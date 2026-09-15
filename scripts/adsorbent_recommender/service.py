@@ -8,7 +8,7 @@ import re
 import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any
 
 import joblib
@@ -303,26 +303,25 @@ def _scenario_identity(scenario: dict[str, Any]) -> tuple[str, str]:
 
 
 def pfas_features_source(bundle: RecommenderBundle) -> tuple[Path, str]:
-    """Locate the PFAS feature cache the bundle was trained against.
+    """Locate the PFAS feature cache the bundle's model was trained against.
 
-    run_config records the absolute path on the training machine.  A hosted copy
-    of the app has no such path, so it falls back to ADSORBENT_PFAS_FEATURES_PATH
-    and then to a workbook of the same name shipped inside the bundle directory.
+    A bundle carries its own copy of the workbook, which is what lets it run
+    away from the training machine.  ADSORBENT_PFAS_FEATURES_PATH overrides that
+    copy; the absolute path in run_config serves bundles exported before copies
+    existed (``python -m adsorbent_recommender.bundle <dir>`` adds one).
     """
-    pfas_config = bundle.config.get("pfas_features", {})
-    configured = Path(pfas_config.get("path", ""))
-    sheet_name = pfas_config.get("sheet_name", "")
-    # The recorded path is a Windows path; on a POSIX host its backslashes are
-    # not separators, so the file name is taken with Windows parsing rules.
-    filename = PureWindowsPath(pfas_config.get("path", "")).name
-    for candidate in (
-        configured,
-        Path(os.environ.get("ADSORBENT_PFAS_FEATURES_PATH", "")),
-        bundle.directory / filename,
-    ):
-        if candidate.name and candidate.is_file():
+    trained = bundle.config.get("pfas_features", {})
+    bundled = bundle.manifest.get("pfas_features", {})
+    sheet_name = bundled.get("sheet_name") or trained.get("sheet_name", "")
+    candidates = [Path(os.environ["ADSORBENT_PFAS_FEATURES_PATH"])] if os.environ.get("ADSORBENT_PFAS_FEATURES_PATH") else []
+    if bundled.get("snapshot_filename"):
+        candidates.append(bundle.directory / bundled["snapshot_filename"])
+    if trained.get("path"):
+        candidates.append(Path(trained["path"]))
+    for candidate in candidates:
+        if candidate.is_file():
             return candidate, sheet_name
-    return configured, sheet_name
+    return (candidates[0] if candidates else Path()), sheet_name
 
 
 def resolve_pfas(bundle: RecommenderBundle, scenario: dict[str, Any], rdkit_python: Path | None = None):

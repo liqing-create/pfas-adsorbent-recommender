@@ -653,7 +653,79 @@
     "eligible_candidate_count": 63
   },
   "capabilities": {
-    "catalog_screening": true
+    "catalog_screening": true,
+    "database_evidence_lookup": true
   },
-  "status": "ready"
+  "status": "ready",
+  "pfas_features": {
+    "available": true,
+    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
+    "sheet_name": "Sheet1",
+    "snapshot_filename": "pfas_features.xlsx",
+    "sha256": "f890e7aea3e7a096d84ed4f62a313f913954a900a0ac627755d24c437fab722b"
+  },
+  "database_evidence": {
+    "available": true,
+    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_25mgL_search.xlsx",
+    "source_sheet": "Dose_25mgL_Search",
+    "rows": 1845,
+    "snapshot_filename": "reference_dose_evidence.csv",
+    "match_policy": {
+      "version": 1,
+      "reference_dose_mg_L": 25.0,
+      "hard_exact_matches": [
+        "PFAS",
+        "adsorbent",
+        "standardized water type"
+      ],
+      "numeric_tolerances": {
+        "initial_concentration_mg_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        },
+        "pH": {
+          "kind": "absolute",
+          "tolerance": 0.5,
+          "description": "\u00b10.5 pH unit"
+        },
+        "temperature_C": {
+          "kind": "absolute",
+          "tolerance": 2.0,
+          "description": "\u00b12 \u00b0C"
+        },
+        "organic_carbon_mg_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        },
+        "tds_mg_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        },
+        "ionic_strength_mol_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        }
+      },
+      "selection_order": [
+        "isotherm-recalculated result before near-dose observation",
+        "smallest normalized condition distance",
+        "highest qualifying isotherm R\u00b2",
+        "stable standardized row identifier"
+      ]
+    }
+  },
+  "retrofits": [
+    {
+      "sections": [
+        "pfas_features",
+        "database_evidence"
+      ],
+      "at": "2026-09-15T15:15:04",
+      "note": "copied in after export from the source files as they were at this time"
+    }
+  ]
 }

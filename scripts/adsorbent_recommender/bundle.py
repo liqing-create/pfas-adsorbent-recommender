@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -29,6 +32,7 @@ from adsorbent_recommender.evidence import (
 BUNDLE_FILENAME = "recommender_bundle.json"
 BUNDLE_FORMAT = "adsorbent_recommender_bundle"
 BUNDLE_VERSION = 4
+PFAS_FEATURES_SNAPSHOT_FILENAME = "pfas_features.xlsx"
 
 # The model keeps original dataset-column names.  This registry gives runtime
 # code a stable source and human label without changing historic data columns.
@@ -161,6 +165,41 @@ def _relative_artifact(filename: str) -> str:
     return filename
 
 
+def _snapshot_pfas_features(output_dir: Path, source: Path | None, sheet_name: str) -> dict[str, Any]:
+    """Copy the PFAS feature cache the model was trained against into the bundle.
+
+    Recommendation looks every PFAS up in this workbook at run time.  A bundle
+    that only records where the workbook lived stops working wherever that path
+    does not exist, which is everywhere except the training machine.
+    """
+    details: dict[str, Any] = {
+        "available": False,
+        "source_path": None if source is None else str(source),
+        "sheet_name": sheet_name,
+    }
+    if source is None or not Path(source).is_file():
+        details["reason"] = "no PFAS feature workbook was joined" if source is None else "PFAS feature workbook not found"
+        return details
+    target = output_dir / PFAS_FEATURES_SNAPSHOT_FILENAME
+    if Path(source).resolve() != target.resolve():
+        shutil.copy2(source, target)
+    details.update({
+        "available": True,
+        "snapshot_filename": PFAS_FEATURES_SNAPSHOT_FILENAME,
+        "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+    })
+    return details
+
+
+def _snapshot_evidence(output_dir: Path, source: Path, sheet_name: str) -> dict[str, Any]:
+    evidence, details = load_reference_dose_evidence(source, sheet_name)
+    if details.get("available"):
+        evidence.to_csv(output_dir / EVIDENCE_SNAPSHOT_FILENAME, index=False)
+        details["snapshot_filename"] = EVIDENCE_SNAPSHOT_FILENAME
+    details["match_policy"] = DEFAULT_MATCH_POLICY
+    return details
+
+
 def export_recommender_bundle(
     output_dir: Path,
     model_family: str,
@@ -176,8 +215,14 @@ def export_recommender_bundle(
     minimum_material_feature_count: int | None = None,
     evidence_path: Path | None = None,
     evidence_sheet: str = DEFAULT_EVIDENCE_SHEET,
+    pfas_features_path: Path | None = None,
+    pfas_features_sheet: str = cfg.DEFAULT_PFAS_FEATURES_SHEET,
 ) -> dict[str, Any]:
-    """Write the stable runtime manifest and catalog artifacts for one run."""
+    """Write the stable runtime manifest and catalog artifacts for one run.
+
+    Everything recommendation reads at run time is copied into ``output_dir``,
+    so the bundle directory alone is enough to serve the model elsewhere.
+    """
     catalog_details: dict[str, Any] = {"available": False, "category": None, "eligibility_filename": None}
     material_features = list(selected_by_bucket.get("Adsorbent properties", []))
     catalog_error = None
@@ -217,15 +262,8 @@ def export_recommender_bundle(
             catalog_error = f"{type(exc).__name__}: {exc}"
             catalog_details["error"] = catalog_error
 
-    evidence_source = evidence_path or DEFAULT_EVIDENCE_PATH
-    evidence, evidence_details = load_reference_dose_evidence(
-        evidence_source,
-        evidence_sheet,
-    )
-    if evidence_details.get("available"):
-        evidence.to_csv(output_dir / EVIDENCE_SNAPSHOT_FILENAME, index=False)
-        evidence_details["snapshot_filename"] = EVIDENCE_SNAPSHOT_FILENAME
-    evidence_details["match_policy"] = DEFAULT_MATCH_POLICY
+    evidence_details = _snapshot_evidence(output_dir, evidence_path or DEFAULT_EVIDENCE_PATH, evidence_sheet)
+    pfas_details = _snapshot_pfas_features(output_dir, pfas_features_path, pfas_features_sheet)
 
     contract = _input_contract(selected, selected_by_bucket, bounds.get("controls", {}))
     capabilities = {
@@ -247,6 +285,7 @@ def export_recommender_bundle(
         "controls": bounds.get("controls", {}),
         "catalog": catalog_details,
         "database_evidence": evidence_details,
+        "pfas_features": pfas_details,
         "capabilities": capabilities,
         "status": "ready" if capabilities["catalog_screening"] else "not_ready",
     }
@@ -274,8 +313,79 @@ def load_bundle_manifest(bundle_dir: Path) -> dict[str, Any]:
             "Legacy or unsupported recommender bundle; rebuild it with bundle schema version "
             f"{BUNDLE_VERSION}. Applicability-domain artifacts are no longer supported."
         )
-    for name, filename in manifest.get("artifacts", {}).items():
+    declared = dict(manifest.get("artifacts", {}))
+    # A snapshot the manifest declares but the directory lacks would otherwise
+    # fall back silently to a path on the training machine.
+    for section in ("pfas_features", "database_evidence"):
+        snapshot = manifest.get(section, {}).get("snapshot_filename")
+        if snapshot is not None:
+            declared[section] = snapshot
+    for name, filename in declared.items():
         relative = Path(str(filename))
         if relative.is_absolute() or len(relative.parts) != 1 or not (bundle_dir / relative).exists():
             raise FileNotFoundError(f"Invalid or missing bundle artifact {name!r}: {filename!r}")
     return manifest
+
+
+def make_bundle_self_contained(
+    bundle_dir: Path,
+    pfas_features_path: Path | None = None,
+    evidence_path: Path | None = None,
+    evidence_sheet: str = DEFAULT_EVIDENCE_SHEET,
+) -> dict[str, Any]:
+    """Copy runtime data into a bundle exported before bundles carried it.
+
+    The model, catalog snapshot and feature support are not touched.  The PFAS
+    feature cache defaults to the workbook recorded in run_config; the evidence
+    snapshot is taken from the workbook as it is now, which is also what such a
+    bundle was reading at run time.  Sections already present are left alone, so
+    running this twice changes nothing.
+    """
+    bundle_dir = Path(bundle_dir)
+    manifest = load_bundle_manifest(bundle_dir)
+    retrofitted = []
+    if not manifest.get("pfas_features", {}).get("available"):
+        run_config = json.loads((bundle_dir / manifest["artifacts"]["run_config"]).read_text(encoding="utf-8"))
+        trained = run_config.get("pfas_features", {})
+        source = pfas_features_path or trained.get("path")
+        manifest["pfas_features"] = _snapshot_pfas_features(
+            bundle_dir,
+            Path(source) if source else None,
+            trained.get("sheet_name") or cfg.DEFAULT_PFAS_FEATURES_SHEET,
+        )
+        retrofitted.append("pfas_features")
+    if not manifest.get("database_evidence", {}).get("snapshot_filename"):
+        manifest["database_evidence"] = _snapshot_evidence(
+            bundle_dir, Path(evidence_path or DEFAULT_EVIDENCE_PATH), evidence_sheet,
+        )
+        manifest.setdefault("capabilities", {})["database_evidence_lookup"] = bool(
+            manifest["database_evidence"].get("available")
+        )
+        retrofitted.append("database_evidence")
+    if retrofitted:
+        manifest.setdefault("retrofits", []).append({
+            "sections": retrofitted,
+            "at": datetime.now().isoformat(timespec="seconds"),
+            "note": "copied in after export from the source files as they were at this time",
+        })
+        (bundle_dir / BUNDLE_FILENAME).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return manifest
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Copy the PFAS feature cache and reference-dose evidence into an existing bundle.",
+    )
+    parser.add_argument("bundle_dir", type=Path)
+    parser.add_argument("--pfas-features-path", type=Path, help="defaults to the workbook recorded in run_config.json")
+    parser.add_argument("--evidence-path", type=Path, help=f"defaults to {DEFAULT_EVIDENCE_PATH}")
+    arguments = parser.parse_args()
+    result = make_bundle_self_contained(
+        arguments.bundle_dir, arguments.pfas_features_path, arguments.evidence_path,
+    )
+    print(json.dumps({
+        section: {key: result.get(section, {}).get(key) for key in ("available", "snapshot_filename", "reason")}
+        for section in ("pfas_features", "database_evidence")
+    }, indent=2))

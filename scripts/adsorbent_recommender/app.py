@@ -868,6 +868,7 @@ def _ranking_column_config() -> dict[str, Any]:
         "Basis": st.column_config.TextColumn("Basis", width="small"),
         "Seen in training": st.column_config.CheckboxColumn("In training set"),
     }
+    return config
 
 
 def _http_sources(value: Any) -> list[str]:

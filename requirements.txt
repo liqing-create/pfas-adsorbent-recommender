@@ -1,0 +1,12 @@
+# Runtime for the hosted adsorbent recommender.
+# scikit-learn and xgboost are pinned to the versions the model ensemble was
+# pickled with; other pins match the environment the app was developed in.
+streamlit==1.59.2
+pandas==3.0.3
+numpy==2.4.4
+scikit-learn==1.8.0
+joblib==1.5.3
+openpyxl==3.1.5
+# CPU-only build: same `import xgboost`, without the multi-GB CUDA/NCCL wheels.
+xgboost-cpu==3.2.0
+rdkit==2026.3.5

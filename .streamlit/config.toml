@@ -1,0 +1,79 @@
+# Theme for the adsorbent recommender UI.
+#
+# Streamlit reads this file relative to the working directory, so it applies
+# when the app is launched the documented way:
+#
+#     cd scripts
+#     streamlit run adsorbent_recommender/app.py
+#
+# Everything here is presentation only. Colours, type scale and corner radii
+# live in this file rather than in app.py so the palette can be adjusted
+# without touching the screening code, and so Streamlit themes its own widgets,
+# dataframes and charts from the same tokens the app's CSS uses.
+
+[theme]
+base = "light"
+
+# Inter with a system fallback: if the machine is offline the font request
+# fails and the stack degrades to the platform UI face rather than to a serif.
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+codeFont = "monospace"
+
+# The form is long and dense and is read at arm's length off a lab bench, so
+# body text is lifted once here instead of by per-element overrides. Everything
+# the app styles is sized in rem, which means this one number moves the whole
+# scale together. Heading sizes are held closer to body text than Streamlit's
+# defaults so a subheader introduces its section rather than towering over it.
+baseFontSize = 19
+headingFontSizes = ["2.1rem", "1.5rem", "1.25rem", "1.1rem", "1rem", "0.95rem"]
+headingFontWeights = [700, 650, 650, 600, 600, 600]
+
+baseRadius = "medium"
+buttonRadius = "medium"
+showWidgetBorder = true
+showSidebarBorder = true
+linkUnderline = false
+
+chartCategoricalColors = [
+    "#0E7C8A",
+    "#C77B2B",
+    "#3F6F9E",
+    "#5E8C4A",
+    "#9B5A9B",
+    "#B4553F",
+    "#4E7E7E",
+    "#7A6BA8",
+]
+
+[theme.light]
+primaryColor = "#0E7C8A"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F2F6F8"
+textColor = "#16242C"
+borderColor = "#DCE4E9"
+linkColor = "#0B6B78"
+codeBackgroundColor = "#F2F6F8"
+dataframeHeaderBackgroundColor = "#EDF3F5"
+dataframeBorderColor = "#DCE4E9"
+
+[theme.light.sidebar]
+backgroundColor = "#F7FAFB"
+borderColor = "#E2E9ED"
+secondaryBackgroundColor = "#EBF1F4"
+
+[theme.dark]
+primaryColor = "#3FC2CE"
+backgroundColor = "#0F1519"
+secondaryBackgroundColor = "#182127"
+textColor = "#E6EDF1"
+borderColor = "#2A353D"
+linkColor = "#5AD1DB"
+codeBackgroundColor = "#182127"
+dataframeHeaderBackgroundColor = "#1B242B"
+dataframeBorderColor = "#2A353D"
+
+[theme.dark.sidebar]
+backgroundColor = "#131B20"
+borderColor = "#253037"
+secondaryBackgroundColor = "#1C262D"

@@ -1,10 +1,10 @@
 # Theme for the adsorbent recommender UI.
 #
 # Streamlit reads this file relative to the working directory, so it applies
-# when the app is launched the documented way:
+# when the app is launched from the repository root (the AD folder), which is
+# also how Streamlit Community Cloud launches it:
 #
-#     cd scripts
-#     streamlit run adsorbent_recommender/app.py
+#     streamlit run scripts/adsorbent_recommender/app.py
 #
 # Everything here is presentation only. Colours, type scale and corner radii
 # live in this file rather than in app.py so the palette can be adjusted

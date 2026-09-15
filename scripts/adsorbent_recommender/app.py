@@ -1,13 +1,13 @@
 """Streamlit interface for one selected adsorbent recommender bundle.
 
-Run with:
-    cd scripts
-    streamlit run adsorbent_recommender\\app.py
+Run from the repository root (the ``AD`` folder), as Streamlit Community Cloud
+does:
+    streamlit run scripts/adsorbent_recommender/app.py
 
-Colours, fonts and radii live in ``scripts/.streamlit/config.toml``.  Streamlit
-resolves that file against the working directory, so launching from ``scripts``
-is what applies the theme; from anywhere else the app still lays out and reads
-correctly, it just falls back to Streamlit's stock palette.  The rules injected
+Colours, fonts and radii live in ``.streamlit/config.toml`` at the repository
+root.  Streamlit resolves that file against the working directory, so launching
+from the root is what applies the theme; from anywhere else the app still lays
+out and reads correctly, it just falls back to Streamlit's stock palette.  The rules injected
 below deliberately derive their neutrals from the app's own text colour instead
 of naming greys, so they hold under either palette and in either colour mode.
 

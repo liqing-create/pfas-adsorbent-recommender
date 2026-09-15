@@ -21,11 +21,11 @@ is applied.
 
 | Path | What it is |
 | --- | --- |
-| `scripts/adsorbent_recommender/` | Streamlit app and recommendation service |
+| `scripts/adsorbent_recommender/` | Streamlit app, recommendation service and bundle export |
 | `scripts/ML_model_training/backend/` | Feature construction used by the saved model pipeline |
 | `scripts/DB/` | Normalization rules and mapping tables for user inputs |
-| `output/ML_logKd/Global_xgb_combination_42_20260907_141359/` | Deployed model bundle: ensemble, feature support, adsorbent catalog snapshot, PFAS feature cache |
-| `output/Merge/pfas_adsorption_25mgL_search.xlsx` | Reference-dose database evidence |
+| `output/ML_logKd/Global_xgb_combination_42_20260907_141359/` | Deployed model bundle: ensemble, feature support, adsorbent catalog snapshot, PFAS feature cache and reference-dose database evidence |
 
-The app loads the most recent bundle under `output/ML_logKd/`. Set
-`ADSORBENT_BUNDLE_DIR` to use a different one.
+A model bundle is self-contained: everything the app reads at run time is inside
+its directory. The app loads the most recent bundle under `output/ML_logKd/`;
+set `ADSORBENT_BUNDLE_DIR` to use a different one.

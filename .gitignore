@@ -1,7 +1,78 @@
+# This folder holds the whole research project, but the public repository
+# publishes only what the hosted recommender needs.  Everything is ignored by
+# default; each published file is listed below.  A file the app starts to
+# import must be added here, or the hosted app will fail to import it.
+#
+# Git cannot re-include a file whose parent directory is ignored, so every
+# directory on the way to a published file is re-included and its contents
+# ignored again.
+
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/requirements.txt
+
+!/.streamlit/
+/.streamlit/*
+!/.streamlit/config.toml
+
+!/scripts/
+/scripts/*
+
+# Streamlit app and recommendation service
+!/scripts/adsorbent_recommender/
+/scripts/adsorbent_recommender/*
+!/scripts/adsorbent_recommender/__init__.py
+!/scripts/adsorbent_recommender/app.py
+!/scripts/adsorbent_recommender/bundle.py
+!/scripts/adsorbent_recommender/catalog.py
+!/scripts/adsorbent_recommender/evidence.py
+!/scripts/adsorbent_recommender/pfas_cache.py
+!/scripts/adsorbent_recommender/service.py
+
+# Feature construction the saved model pipeline imports by module name
+!/scripts/ML_model_training/
+/scripts/ML_model_training/*
+!/scripts/ML_model_training/backend/
+/scripts/ML_model_training/backend/*
+!/scripts/ML_model_training/backend/__init__.py
+!/scripts/ML_model_training/backend/logkd_config.py
+!/scripts/ML_model_training/backend/logkd_data.py
+!/scripts/ML_model_training/backend/logkd_features.py
+!/scripts/ML_model_training/backend/model_transforms.py
+
+# Normalization of user-entered water chemistry and identifiers
+!/scripts/DB/
+/scripts/DB/*
+!/scripts/DB/normalization_rules.py
+!/scripts/DB/normalization_units.py
+!/scripts/DB/adsorbent_consolidation.py
+!/scripts/DB/adsorbent_property_overrides.py
+!/scripts/DB/performance_normalization_overrides.py
+!/scripts/DB/adsorbent_map.csv
+!/scripts/DB/column_order_sheet1.csv
+!/scripts/DB/pfas_map.csv
+!/scripts/DB/water_type_map.csv
+
+# The deployed model bundle: runtime files only, no validation outputs
+!/output/
+/output/*
+!/output/ML_logKd/
+/output/ML_logKd/*
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/
+/output/ML_logKd/Global_xgb_combination_42_20260907_141359/*
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/recommender_bundle.json
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/run_config.json
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/optimizer_bounds.json
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/model_ensemble.joblib
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/catalog_snapshot.csv
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/catalog_eligibility.csv
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/catalog_product_model_identity_map.csv
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/pfas_features.xlsx
+!/output/ML_logKd/Global_xgb_combination_42_20260907_141359/reference_dose_evidence.csv
+
+# Never published, even inside an allowed directory
 __pycache__/
 *.pyc
-.pytest_cache/
-.venv/
-.env
 .streamlit/secrets.toml
-*key*.txt

@@ -8,7 +8,7 @@ import re
 import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 import joblib
@@ -312,10 +312,13 @@ def pfas_features_source(bundle: RecommenderBundle) -> tuple[Path, str]:
     pfas_config = bundle.config.get("pfas_features", {})
     configured = Path(pfas_config.get("path", ""))
     sheet_name = pfas_config.get("sheet_name", "")
+    # The recorded path is a Windows path; on a POSIX host its backslashes are
+    # not separators, so the file name is taken with Windows parsing rules.
+    filename = PureWindowsPath(pfas_config.get("path", "")).name
     for candidate in (
         configured,
         Path(os.environ.get("ADSORBENT_PFAS_FEATURES_PATH", "")),
-        bundle.directory / configured.name,
+        bundle.directory / filename,
     ):
         if candidate.name and candidate.is_file():
             return candidate, sheet_name

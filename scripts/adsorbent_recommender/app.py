@@ -479,6 +479,10 @@ PFAS_ENTRIES_KEY = "ar_pfas_entries_v2"
 PFAS_NEXT_ID_KEY = "ar_pfas_next_id_v2"
 PFAS_SEARCH_KEY = "ar_pfas_search_v2"
 PFAS_ADD_C0_KEY = "ar_pfas_add_c0_v2"
+# Status | C0 | action.  The action column must hold "Add PFAS" / "Remove" with
+# an icon at the 19px theme size, and the C0 fields of the add row and of every
+# entry row share the last two widths so they line up.
+PFAS_ROW_COLUMNS = (2.2, 1.8, 1.8)
 PfasChoice = tuple[str, str, str, str, str, str, str]
 
 
@@ -1288,21 +1292,22 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
         "Search the reviewed cache or enter a name, CAS number, abbreviation, or SMILES.",
     )
     choices = _pfas_choices(bundle)
-    search_column, concentration_column, add_column = st.columns(
-        (4.8, 1.6, 1.35), gap="small", vertical_alignment="bottom",
+    # The search gets the full card width to itself: at the themed type size a
+    # three-way split leaves the button column too narrow for its own label.
+    selected = st.selectbox(
+        "Search or enter PFAS *",
+        choices,
+        index=None,
+        # Every cached identifier is its own option, so suggestions stay
+        # concise instead of concatenating abbreviation, name, and CAS.
+        format_func=lambda choice: choice[2] if isinstance(choice, (tuple, list)) else str(choice),
+        placeholder="e.g., PFOA, perfluorooctanoic acid, or 335-67-1",
+        accept_new_options=True,
+        key=PFAS_SEARCH_KEY,
     )
-    with search_column:
-        selected = st.selectbox(
-            "Search or enter PFAS *",
-            choices,
-            index=None,
-            # Every cached identifier is its own option, so suggestions stay
-            # concise instead of concatenating abbreviation, name, and CAS.
-            format_func=lambda choice: choice[2] if isinstance(choice, (tuple, list)) else str(choice),
-            placeholder="e.g., PFOA, perfluorooctanoic acid, or 335-67-1",
-            accept_new_options=True,
-            key=PFAS_SEARCH_KEY,
-        )
+    concentration_column, add_column = st.columns(
+        PFAS_ROW_COLUMNS[1:], gap="small", vertical_alignment="bottom",
+    )
     with concentration_column:
         st.number_input(
             "C₀ (mg/L) *", min_value=0.0, value=0.1, format="%.6g",
@@ -1328,13 +1333,15 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
             if entry.get("cached_choice") and any(
                 entry.get(key) for key in ("abbreviation", "full_name", "cas")
             ):
-                abbreviation_column, name_column, cas_column = st.columns((1.15, 2.4, 1.35), gap="small")
+                # Three identifiers side by side run the letter-spaced labels
+                # into each other at the themed type size, so the full name,
+                # the one long value, takes a row of its own.
+                abbreviation_column, cas_column = st.columns(2, gap="small")
                 with abbreviation_column:
                     _identity_field("Abbreviation", entry.get("abbreviation"))
-                with name_column:
-                    _identity_field("Full name", entry.get("full_name"))
                 with cas_column:
                     _identity_field("CAS number", entry.get("cas"))
+                _identity_field("Full name", entry.get("full_name"))
             else:
                 identity_label = IDENTITY_TYPES.get(entry.get("identity_type"), {}).get(
                     "option", "Entered identifier",
@@ -1342,7 +1349,7 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
                 _identity_field(identity_label, entry.get("identity"))
 
             status_column, c0_column, remove_column = st.columns(
-                (4.8, 1.6, 1.35), gap="small", vertical_alignment="center",
+                PFAS_ROW_COLUMNS, gap="small", vertical_alignment="center",
             )
             with status_column:
                 st.caption(

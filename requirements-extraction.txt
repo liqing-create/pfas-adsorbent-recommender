@@ -2,8 +2,11 @@
 # (scripts/Preprocessing, scripts/Data_Extraction, chains/, prompts/).
 # Pins match the environment used for the manuscript (Python 3.11).
 # The hosted recommender uses requirements.txt instead.
-docling>=2.0          # PDF/DOCX -> Docling JSON conversion and HybridChunker
-docling-core==2.17.1
+# Docling conversion and chunking were run under WSL2 (Linux, Python 3.11).
+docling==2.61.2       # PDF/DOCX -> Docling JSON conversion and HybridChunker
+docling-core==2.50.1
+docling-ibm-models==3.10.2
+docling-parse==4.7.1
 transformers==4.48.2  # tokenizer for HybridChunker
 langchain==0.3.26
 langchain-community==0.3.27

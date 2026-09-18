@@ -1,0 +1,200 @@
+Field_clarifications:
+
+  adsorbent:
+
+    <descriptor>:
+      Vendor:
+        description: >
+          Capture the vendor verbatim. If an adsorbent is produced or modified in the laboratory rather than obtaining from commercial sources, omit this field.  
+      AC_raw_material:
+        description: >
+          If the Adsorbent_category is Activated carbon, record its feedstock (e.g., bituminous-coal, lignite coal, wood, bamboo, coconut), 
+      AC_activation_method:
+        description: >
+          If the Adsorbent_category is Activated carbon, record the activation method for it when provided. There are two main types: physical activation (e.g. Physical_Steam, Physical_CO2) or chemcial activation (e.g. Chemical_KOH, Chemical_ZnCl₂). Use “Reactivated” if the adsorbent was reactivated or “Reactivated_[specific method]” with the exact reactivation method if reported.
+      Polymer_matrix:
+        description: >
+          If the Adsorbent_category is Ion exchange resin or Nonionic resin, record its polymer backbone or matrix. Extract the matrix when polymer name, resin type, or monomer are reported. Normalize common variants to canonical forms where possible, including Polystyrene (PS), Polystyrene-divinylbenzene (PS-DVB), Polyacrylic, Polymethacrylate (PMMA), Polyvinylbenzyl chloride, Polyvinylpyridine (PVPy), and Phenol-formaldehyde. For example, record styrene resin, styrenic polymer, macroporous styrene, or styrene polymer as Polystyrene; record styrene-divinylbenzene, styrene-DVB, PS-DVB, or polystyrene-DVB as Polystyrene-divinylbenzene; and record acrylic resin, acrylic polymer, aliphatic acrylic polymer, polyacrylic resin, or acrylate resin as Polyacrylic. For example, “XAD7HP (macroporous aliphatic acrylic polymer, 0.25-0.85 mm)”, record the Polymer_matrix as Polyacrylic. 
+      Functional_group:
+        description: >
+         Functional_group is a group of atoms within a molecular structure that imparts characteristic chemical behavior. Record chemically identifiable functional groups explicitly reported as present on the final adsorbent. Normalize common names, formulas, and synonymous descriptions to canonical forms where possible. If multiple functional groups are reported, separate them with semicolons. Nitrogen-containing groups include Primary amine (-NH2), Secondary amine (-NHR), Tertiary amine (-NR2), Quaternary ammonium (-N+(R)3), Amide (-CONR2), Imine (-C=N-), Nitrile (-C≡N), and Pyridine (aromatic nitrogen-containing ring). Oxygen-containing groups include Carboxylic acid/carboxylate (-COOH/-COO−), Hydroxyl (-OH), Phenolic hydroxyl (Ar-OH), Carbonyl (>C=O), Ester (-COOR), Lactone (cyclic ester), and Alkoxy (-OR). Sulfur-containing groups include Sulfonic acid/sulfonate (-SO3H/-SO3−). For example, normalize quaternary amine, trimethylammonium, dimethylethanolammonium, triethylammonium, tributylammonium, R-N+(CH3)3, and Type I or Type II quaternary ammonium as Quaternary ammonium; normalize tributylamine as Tertiary amine. Ignore broad, nonspecific descriptions that do not identify an individual functional group, such as “oxygen-containing functional groups”, “weakly acidic functional groups”, "postively charged functional group". Do not extract generic bond environment or broad spectroscopic signals, such as C-H, C-O, CH2, aromatic C-H, unless the source explicitly interprets the signal as confirming a chemically identifiable functional group on the adsorbent. Do not record incorporated material phases as functional groups. For example, a resin infused with iron oxide nanoparticles is not considered functionalized with iron oxide.
+
+      Pore_class:
+        description: >
+          Use one of “Microporous”, “Mesoporous”, “Macroporous”, “Gel”. If the class is explicitly stated in the source text, record this field. 
+      Elemental_composition_method:
+        description: >
+          The method used to determine adsorbent elemental composition. Record only: elemental analyzer, XPS, or EDS. Dismiss and do not record elemental composition data obtained using any other method. 
+
+    <measurement>:
+      SSA_(m2/g):
+        description: >
+          BET specific surface area value in m2/g. If the measurement method is not specified, assume that the reported value is the BET specific surface area. 
+
+      Average_pore_diameter_(Angstrom):
+        description: >
+          Record only a value explicitly reported as the OVERALL pore diameter/width. Normalize to Å (1 nm = 10 Å). Do not use pore-class-specific diameters. For example, if the source reports only average diameter of mesopores is 2.08 nm and average diameter of micropores is 1.46 nm, ignore both values and omit this field.
+ 
+      pHPZC:
+        description: >
+          Point of zero charge value.
+
+      Total_pore_percentage:
+        description: >
+          Overall porosity or total pore-space fraction of the adsorbent, expressed as a value between 0 and 1. For example, if the adsorbent is reported to have 35% porosity, record 0.35. If a pore percentage is reported without distinguishing micro-, meso-, or macropores, treat it as Total_pore_percentage.
+      Micro_pore_percentage:
+        description: >
+          Total fraction of adsorbent pore volume or pore area reported as micropores, expressed as a value between 0 and 1. If the authors directly report a micropore percentage without providing the pore-size boundary, record it as Micro_pore_percentage. If the authors instead report only pore-size bins, use the IUPAC boundary: micropores are pores ≤2 nm. In that case, record this field only when the reported bin or sum of bins fully falls within the ≤2 nm range. For example, if the source reports 13.6% for pores <1 nm and 22.9% for pores 1–2 nm, record Micro_pore_percentage as 0.365. Do NOT record partial or boundary-crossing bins such as <1 nm alone (partial), <6 nm (micro+meso), or 1–5 nm (micro+meso). 
+      Meso_pore_percentage:
+        description: >
+          Total fraction of adsorbent pore volume or pore area reported as mesopores, expressed as a value between 0 and 1. If the authors directly report a mesopore percentage without providing the pore-size boundary, record it as Meso_pore_percentage. If the authors instead report only pore-size bins, use the IUPAC boundary: mesopores are pores >2 nm and ≤50 nm. In that case, record this field only when the reported bin or sum of bins fully falls within the >2–50 nm range. Do NOT record partial or boundary-crossing bins such as 5–25 nm alone (partial), 1–5 nm (micro+meso), or 6–80 nm (meso+macro).
+      Macro_pore_percentage:
+        description: >
+          Total fraction of adsorbent pore volume or pore area reported as macropores, expressed as a value between 0 and 1. If the authors directly report a macropore percentage without providing the pore-size boundary, record it as Macro_pore_percentage. If the authors instead report only pore-size bins, use the IUPAC boundary: macropores are pores >50 nm. In that case, record this field only when the reported bin or sum of bins fully represents all pores >50 nm. Do not record partial macropore bins such as >80 nm when the 50–80 nm fraction is not separately available.
+
+      Total_pore_volume_(cm3/g):
+        description: >
+          Total pore volume within a material, expressed in cm3/g (convert units if necessary). If pore volume is reported without specifying micro/meso/macro, assume it is total pore volume. 
+      Micro_pore_volume_(cm3/g):
+        description: >
+          Micropore volume within a material, expressed in cm3/g (convert units if necessary).  Use the authors’ classification when they explicitly identify pores as micropores. If the authors report pore-size ranges without classifying them, classify micropores using the IUPAC range: ≤2 nm. For example, if the source reports pore volume of 0.136 cm3/g for pores <1 nm and 0.229 cm3/g for pores 1–2 nm, record Micro_pore_volume_(cm3/g) as 0.365 (0.136+0.229) because both <1 nm and 1–2 nm are ≤2 nm and therefore can be considered as micropores. Ignore ranges that cross pore-class boundaries, such as 1–5 nm, because they include both micropores and mesopores.
+      Meso_pore_volume_(cm3/g):
+        description: >
+          Mesopore volume within a material, expressed in cm3/g (convert units if necessary).  Use the authors’ classification when they explicitly identify pores as mesopores. If the authors provide pore sizes but no classification, classify mesopores using the IUPAC range: >2 nm and ≤50 nm.
+      Macro_pore_volume_(cm3/g):
+        description: >
+          Macropore volume within a material, expressed in cm3/g (convert units if necessary). Use the authors’ classification when they explicitly identify pores as macropores. If the authors provide pore sizes but no classification, classify macropores using the IUPAC range: >50 nm.
+      C%:
+        description: >
+          The bulk percentage of carbon (C) in the adsorbent, expressed as a value between 0 and 1. If XPS is used, record only the overall elemental composition, such as survey/full-spectrum elemental percentages, and exclude component-resolved peak fitting, deconvolution, or chemical-state fractions. If both weight% and atom% are reported, record wt% only.
+      N%:
+        description: >
+          The bulk percentage of nitrogen (N) in the adsorbent, expressed as a value between 0 and 1. Same XPS rule as C%.
+      O%:
+        description: >
+          The bulk percentage of oxygen (O) in the adsorbent, expressed as a value between 0 and 1. Same XPS rule as C%.
+
+
+    <measurement>_<unit>:
+      Nominal_grain_size:
+        description: >
+          The specified bulk size or mechanically selected sieve fraction of the adsorbent in its dry solid state before aqueous testing. This field includes only size specifications resulting from grinding, milling, crushing, sieving, or similar physical size-selection processes. Vendor-reported size specifications generally fall within this category. Record values in the reported unit (e.g., <100_nm, 40_mesh, 80-100_mesh, 75-150_µm, 1-2_mm); do not convert sieve mesh numbers to length units. When the same nominal size is reported in both length and mesh units, retain only the length-unit value; for example, record “0.3–0.85 mm (20 × 50 mesh)” as 0.3-0.85_mm. When grain sizes are reported as percentage distributions, combine adjacent fractions to identify the narrowest bounded size range containing at least 80% of the reported particles, and record the resulting range without the percentages. For example, record “1% >400 µm, 60% 180–400 µm, 20% 120–180 µm, 15% 75–120 µm, and 4% <75 µm” as 120-400_µm because the 120–180 µm and 180–400 µm fractions together account for 80% of the particles. Record “80% <325 mesh” as <325_mesh. Do not use open-ended size bins (e.g., <75 µm or >400 µm) in the final reported range unless they are required to reach the 80% cumulative coverage threshold. Strictly exclude microscopic, intrinsic, or in-solution measurements, such as DLS hydrodynamic diameter, SEM/TEM-derived sizes, crystallite size, particle/fiber diameter, and post-dispersion aggregate size. For example, if a source states: "GAC was crushed into 1.0–1.4 mm particles. The surface area was 900–1100 m²/g, and the diameter was 0.25–0.50 mm," the nominal grain size is 1.0–1.4 mm, while 0.25–0.50 mm is an excluded microscopic measurement.
+
+      Ion_exchange_capacity:
+        description: >
+          Use this one field for every reported ion-exchange capacity, including values explicitly called ion-exchange, cation-exchange, or anion-exchange capacity. Record the numerical value and reported capacity unit (for example, Ion_exchange_capacity: 3.0_eq/kg). When both cation-exchange capacity (CEC) and anion-exchange capacity (AEC) are reported for the same adsorbent in the same reported unit, record their sum as the total Ion_exchange_capacity.  
+
+
+    special:
+       Zeta_potential_(mV):
+        description: >
+          Report as <numeric value>@pH_<pH value> (e.g., 25@pH_7), if no pH was reported, you may ignore the @pH_<pH value>; if multiple measurements are provided, list each in the same format separated by semicolons (e.g., 12@pH_3; 18@pH_5; 25@pH_7). 
+
+  performance:
+    <measurement>:
+      Freundlich_KF_value:
+        description: >
+          KF as in the Freundlich isotherm: Qe = KF · Ce^(1/n). 
+      Langmuir_Qm_value:
+        description: >
+          Qm as in standard Langmuir isotherm: Qe = Qm · KL · Ce / (1 + KL · Ce). Qm derived from Langmuir-Freundlich isotherm (Qe = Qm · KL · Ce^n / (1 + KL · Ce^n), also known as Sip isotherm) are out-of-scope and should not be recorded here.
+      Langmuir_KL_value:
+        description: >
+          KL as in standard Langmuir isotherm: Qe = Qm · KL · Ce / (1 + KL · Ce). KL derived from Langmuir-Freundlich isotherm (Qe = Qm · KL · Ce^n / (1 + KL · Ce^n), also known as Sip isotherm) are out-of-scope and should not be recorded here.
+      Langmuir_R2:
+        description: >
+          R2 for the standard Langmuir isotherm only: Qe = Qm · KL · Ce / (1 + KL · Ce). 
+
+      Kd_value:
+        description: >
+          Solid–liquid partition coefficient as in Kd = Qe / Ce. Kd may be reported either as a linear-isotherm model fitting result (Test_mode = isotherm) or as a single-point measured value (Test_mode = snapshot); both are valid. 
+
+      Removal_rate:
+        description: >
+          Performance removal percentage = ((C0 - Ce) / C0) × 100%. Output as a decimal between 0 and 1 (e.g. 0.1708 instead of 17.08%). If the source provides percentages, divide it by 100 before reporting.
+      Qe_value:
+        description: >
+          Solid-phase uptake amount (Qe) as defined by Qe = (C0 - Ce)·V / m. This field is reserved for standalone, directly measured Qe values from batch adsorption experiments. If Qe is provied for an in-scope model, record it only in the corresponding model-specific field, such as PSO_Qe_value, PFO_Qe_value, or Langmuir_Qm_value. If the value is derived from an out-of-scope model or test, do not record it. If the source of Qe is unclear, be conservative and omit the value. 
+      PFO_k1_value and PFO_Qe_value:
+        description: >
+          Numeric values of the pseudo-first-order rate constant and the amount of adsorbed PFAS at equilibrium (Pseudo-First-Order, PFO, dQ/dt = k1 (Qe - Q)). 
+      PSO_k2_value, PSO_v0_value and PSO_Qe_value:
+        description: >
+           Numeric values of the pseudo-second-order rate constant and the amount of adsorbed PFAS at equilibrium (Pseudo-Second-Order, PSO, t/Q = 1/(k2Qe^2) + t/Qe = 1/v0+t/Qe). 
+
+      Contact_time_(h):
+        description: >
+          The adsorption sampling/analysis time point(s) used in the experiment. For isotherm tests, record the single equilibrium contact time. For kinetic tests, record all reported contact times as a comma-separated list, such as 0.5,1,2. For snapshot tests, record either a single time point or multiple time points, depending on what is reported.   
+
+      Mixing_speed_(rpm):
+        description: >
+          The agitation, shaking, stirring, or mixing speed used during the adsorption test. Record values reported in rpm, r/min, rev/min, revolutions/min, or other units that can be unambiguously converted to rpm. 
+
+      TDS_(mg/L):
+        description: >
+          Total dissolved solids (TDS) is the total concentration of dissolved inorganic salts and small amounts of dissolved organic matter that pass through a specified filter, commonly 0.45 µm. TDS may be measured gravimetrically by evaporating a filtered sample and weighing the residue. Extract only values explicitly reported as TDS; do not calculate TDS from conductivity, salinity, ionic strength, or individual solute concentrations. Normalize reported values to mg/L.
+
+      TOC_(mg/L):
+        description: >
+          Total organic carbon (TOC) is the concentration of organic carbon in an unfiltered water sample, including dissolved, colloidal, and particulate fractions. It is commonly measured with a TOC analyzer that converts organic carbon to CO2 and quantifies the produced CO2. Extract only values explicitly reported as TOC or total organic carbon. Do not record DOC or DOM values as TOC. Normalize reported values to mg/L.
+
+      DOC_(mg/L):
+        description: >
+          Dissolved organic carbon (DOC) is the concentration of organic carbon remaining after filtration of a water sample, commonly through a 0.45 µm filter. It is commonly measured with a TOC analyzer. Extract values explicitly reported as DOC or dissolved organic carbon. If authors call the measurement dissolved organic matter (DOM) but state that it was quantified using a TOC analyzer, record it as DOC because the analyzer measures the carbon fraction rather than total DOM mass. Do not record TOC values here. Normalize reported values to mg/L.
+
+    <unit>:
+      General note on unit fields:
+        description: >
+          For _unit fields (such as Langmuir_Qm_unit,  Langmuir_KL_unit, Kd_unit, etc), follow the standard <unit> rules unless specified otherwise. No additional field-specific clarifications.
+      Freundlich_KF_unit:
+        description: >
+          Record the reported unit of the Freundlich constant KF, normalized to the goal shape: (amount-per-mass)/(amount-per-volume)^(exponent). Preserve the exponent notation exactly as reported in the source. Do not select, replace, convert, or reinterpret the exponent based on Freundlich_equation_form or the numeric magnitude of the reported Freundlich parameter. If the unit is not already in this format, normalize it following the general <unit> rules before outputting. For example, "(μg/mg)(L/μg)^(1/n)" → "(μg/mg)/(μg/L)^(1/n)", "mg^(1−n)·L^n·g^-1" → "(mg/g)/(mg/L)^n", "( μ mol g - 1 ) (L  μ mol - 1 1/n  )" → "(μmol/g)/(μmol/L)^(1/n)". Interpret mathematically equivalent unit expressions holistically. Do not rely on isolated tokens such as n or 1/n alone. Pay careful attention to explicit division (/) versus implied multiplication, because this changes the placement of concentration terms and the sign of exponents. If the unit is not directly provided, but the units for Ce and qe are provided AND Freundlich_equation_form has been independently and confidently determined from a directly readable Freundlich equation under Tier 1, construct the unit as Kf = qe/Ce^(Freundlich_equation_form). For example, if Ce unit is mmol/L and qe unit is mmol/g, and the Freundlich_equation_form is 1/n, then Freundlich_KF_unit = (mmol/g)/(mmol/L)^(1/n). If the KF unit is not directly reported and cannot be confidently constructed from the reported Ce unit, qe unit, and Freundlich_equation_form, omit Freundlich_KF_unit.
+
+    <descriptor>:
+      Freundlich_equation_form:
+        description: >
+          Determine the actual mathematical form of the Freundlich isotherm for this experiment. Output only one of the following values: "n" for Qe = KF·Ce^n and "1/n" for Qe = KF·Ce^(1/n). Determine the form using the following priority order.
+          Tier 1: If the Freundlich equation is directly readable, determine the form from the exponent shown in the equation. 
+          Tier 2: If the equation is not directly readable, determine the form from the exponent encoded in Freundlich_KF_unit, when the unit is readable. Units may be expressed in mathematically equivalent forms (e.g., mol^(1-n)·kg^-1·L^n vs. (mol/kg)(mol/L)^-n). Interpret the expression holistically. Pay strict attention to explicit division (/) versus implied multiplication, as this dictates the sign of the exponents.   
+          If neither of the tiers provides a consistent and unambiguous conclusion, omit Freundlich_equation_form rather than forcing a determination.
+   
+
+      Water_type:
+        description: >
+          Water matrix used in the adsorption test. Standardize using the provided Water_type_list, using all list fields to find the best supported match; exact wording is not required. For example, if the list contains PFOSF washing wastewater but the chunk only says wastewater, match it if no other wastewater entry is available. The list may come from a broader source-text scope than the current chunk, so some list details may not appear in the chunk. Note: synthetic water is defined as ultrapure water amended with known non-PFAS constituents, such as salts, buffer, NOM, humic acid, bicarbonate, hardness ions, or synthetic wastewater constituents, to simulate background water chemistry or a target matrix. pH adjustment alone is usually not sufficient to classify a matrix as synthetic water, because only a small amount of acid or base is typically added for pH control. Ultrapure water amended only with PFAS is not considered synthetic water.)
+
+    <descriptor>_<measurement>:
+      Freundlich_n_or_1/n_verbatim:
+        description: >
+          Record the Freundlich n-type parameter exactly as reported in the source text, combining the author's chosen notation and the number. 
+          - If the text provides n, record "n_<value>" (e.g., "n_1.8"). 
+          - If the text provides 1/n (including equivalent forms such as n⁻¹, n -1, or n^−1), record "1/n_<value>" (e.g., "1/n_0.45").  
+          - If both are provided (e.g., 1/n = 0.8 and n=1.25), pick one to record as they are equivalent.  
+          Note: The "n_" or "1/n_" prefix represents the notation used by the authors for the reported numeric value; it is NOT the Freundlich_equation_form. Copy the source notation exactly and do not apply additional judgment or conversion. For example, if the column header is n−1 and the reported values are 2.4 and 0.56, record them as 1/n_2.4 and 1/n_0.56, respectively. 
+
+    <descriptor>_<measurement>_<unit>:
+      PFAS_C0:
+        description: >
+          concentration of PFAS before adsorption happens (e.g. PFOA_1_ng/L; PFOS_2e-4to3e-2_mmol/L; GenX_0.1,0.5,1.0,2.0_mg/L). Note, some researchers use PFC (perfluorinated compounds) to refer to PFAS. If the PFAS initial concentration is not directly reported but can be calculated from the stock solution concentration, spiked volume, and solution volume, record the calculated value. For example, if the source states that “500 mL of testing water was spiked with 12.5 μL of PFAS stock solution at 0.2 ng/μL for each PFAS,” the added mass of each PFAS is calculated as 12.5 μL × 0.2 ng/μL = 2.5 ng. The initial concentration in the adsorption test is therefore 2.5 ng / 0.5 L = 5 ng/L for each PFAS.   
+
+      Adsorbent_dosage:
+        description: >
+          The amount of adsorbent added to the test solution, reported in a mass/volume unit. If the adsorbent name matches an entry in the Adsorbent_list, use the corresponding Adsorbent_id as the <descriptor>. If only the adsorbent mass is reported, convert it to a mass/volume dosage when the solution volume is provided. For example, if the adsorbent mass is 5 mg and the solution volume is 500 mL, record the dosage as 10 mg/L because 5 mg / 0.5 L = 10 mg/L. If the dosage is reported as an adsorbent volume, convert it to a mass-based amount only when the density or another explicit conversion factor is provided. For example, if 0.4 mL of resin is used and the resin density is 221 mg/mL, the adsorbent mass is calculated as 0.4 mL × 221 mg/mL = 88.4 mg. Then, if the solution volume is provided, convert the calculated mass to a mass/volume dosage. 
+
+      Inorganic_matter:
+        description: >
+          Explicitly named inorganic species present in the adsorption test solution as water-matrix constituents, whether naturally occurring or intentionally added (e.g., NaCl, Na2SO4, NaHCO3, NaN3 (sodium azide), NO3^-, Cl^-, SO4^2-, HCO3^-, CO3^2-, Br^-, I^-). Exclude reagents used only for pH adjustment, because their final concentrations in the adsorption solution are typically negligible or not quantifiable; reported stock concentrations such as 0.1 M NaOH or 0.1 M HCl should not be treated as final solution concentrations. However, record background electrolyte, microbial inhibitor, and buffer salt as their concentrations are usually not negligible. If multiple inorganic constituents are reported, separate them with semicolons. Example: Ca^2+_10_mg/L; NaCl_1_mg/L.
+
+      Organic_matter:
+        description: >
+          Explicitly named organic species present in the testing solution as water-matrix constituents, whether naturally occurring or intentionally added (e.g., humic acid, natural organic matter, fulvic acid, co-existing contaminants, co-solvent (e.g., methanol, ethanol, acetate)). If multiple constituents are provided, use semicolon to separate them, example: Organic_constituent: humic acid_1_mg/L; methanol_10_mM.
+
+
+  review:
+
+    <provenance>:
+      Data_provenance:
+        description: >
+          Identify the source chunk or chunks in the current extraction prompt that directly support the extracted record. Return only the visible chunk number after `Chunk` in the source header, not the backend `Data_Source` identifier, a quotation, or an explanation. For example, for `Chunk 6 (Data_Source=table_0; labels=performance)`, return `6`. If multiple chunks support the same record, separate the chunk numbers with commas, such as `6, 7`. Omit Data_provenance only when the supporting source chunk cannot be identified from the prompt.
+
+

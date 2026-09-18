@@ -5,3 +5,18 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 *key*.txt
+API key*
+*.env
+!.env.example
+# Local data and run outputs (only the deployed bundle and evidence file are tracked)
+output/*
+!output/ML_logKd/
+output/ML_logKd/*
+!output/ML_logKd/Global_xgb_combination_42_20260907_141359/
+!output/Merge/
+output/Merge/*
+!output/Merge/pfas_adsorption_25mgL_search.xlsx
+Processed/
+Adsorbent_Data/
+data/
+external/

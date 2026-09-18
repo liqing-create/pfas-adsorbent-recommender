@@ -1,0 +1,53 @@
+I. Objective
+You will receive the abstract and multiple text chunks from the same paper. Your task is to enumerate all unique water matrices used in PFAS batch adsorption tests. Treat both the abstract and the text chunks as valid sources of evidence.
+
+A valid water matrix identifies the aqueous environment in which PFAS are present during the adsorption test. It may be either **natural water**, such as groundwater, river water, wastewater, landfill leachate, tap water, or AFFF-impacted water, or **laboratory-prepared water**, such as deionized water, Milli-Q water, or a synthetic water matrix amended with non-PFAS background constituents, including buffers, salts, NOM, or other relevant additives. 
+
+II. Output Format
+Return strict JSON only. Use this exact structure:
+
+{
+  "water_types": [
+    {
+      "Full_name": "",
+      "Abbreviation": "",
+      "Class": "",
+      "Data_Source": ""
+
+    }
+  ]
+}
+
+If no valid water matrices are present, return:
+
+{
+  "water_types": []
+}
+
+where:
+- Full_name: The water-matrix label used by the authors for the adsorption-test matrix, such as “river water”, “lake water”, “groundwater”, “Milli-Q water”, “deionized water”, or “tap water”. Preserve the matrix label used in the source text, but extract only the label needed to identify the water matrix. Do not include extensive source-location details, preparation chemistry, chemical concentrations, pH, DOC/TDS values, or treatment conditions unless they are necessary to distinguish between multiple water matrices used in the same study. For example, use “surface water” rather than “surface water from the Red River (Grand Forks, ND)” if only one surface-water matrix is used. However, if the study compares multiple surface-water samples from different sources, preserve the distinguishing label, such as “Red River surface water” and “Lake Agassiz surface water”, if those labels are used or needed to differentiate the matrices. If multiple labels refer to the same matrix, prefer the expanded/full form over abbreviation-only forms; for example, use “deionized water” rather than “DI water”. Do not include the abbreviation in Full_name.
+- Abbreviation: The abbreviation, code, shorthand, or alias used by the authors for the corresponding water matrix, such as “GW”, “SW”, “WW”, “DI”, or “MQ”. Do not infer abbreviations. If no alias or shorthand is reported, leave this field as an empty string.
+- Class: The normalized water matrix classification. Choose one from the shortlist whenever applicable:
+  - ultrapure water (e.g., Milli-Q water, DI water)
+  - synthetic water (i.e., ultrapure water amended with known non-PFAS constituents, such as salts, buffer, NOM, humic acid, bicarbonate, hardness ions, or synthetic wastewater constituents, to simulate background water chemistry or a target matrix. pH adjustment alone is usually not sufficient to classify a matrix as synthetic water, because only a small amount of acid or base is typically added for pH control. Ultrapure water amended only with PFAS is not considered synthetic water.)
+  - groundwater (e.g., well water)
+  - AFFF solution
+  - surface water (e.g., river water)
+  - wastewater
+  - landfill leachate
+  - tap water
+  - others, if the reported matrix cannot be mapped to any category above.
+- Data_Source: Return only the visible chunk number after `Chunk` in the source header, not the `Data_Source=...` backend identifier. For example, for `Chunk 6 (Data_Source=table_0; labels=adsorbent)`, return `6`. If a record relies on multiple chunks, separate the chunk numbers with commas, such as `6, 7`.
+
+III. Extraction Rules
+- Create one object per unique water-matrix used for PFAS batch adsorption test. Merge different wordings that clearly refer to the same water matrix.
+- If multiple water matrices within the same class are used, create separate records for each matrix. For example, if a paper uses both “river water” and “lake water” in PFAS batch adsorption tests, output two records, even though both map to Class = "surface water".
+- Include only water matrices used as the bulk solution in batch PFAS adsorption tests. Exclude water or solutions used solely for stock preparation, calibration, analytical measurement, rinsing, regeneration, desorption, or other out-of-scope procedures, unless they also serve as the adsorption-test matrix. For example, if an AFFF stock solution is spiked into DI water for an adsorption test, classify the water matrix as DI water rather than AFFF solution. In this case, DI water is the bulk adsorption matrix, while the AFFF stock functions only as the PFAS source or contaminant spike, not as the intended water matrix.
+- Do not extract water-matrix terms that are mentioned only as context, motivation, target application, or rationale. For example, if experiments are designed to evaluate the effects of groundwater-relevant ions, organics, salinity, or pH on PFAS adsorption, but the adsorption tests are conducted in synthetic solutions prepared with added ions, organics, pH adjustment, or salts rather than actual groundwater, do not record “groundwater” as a water matrix. In such cases, “groundwater” describes the environmental relevance of the tested conditions, not the bulk adsorption-test matrix.
+
+IV. Source Text
+Abstract:
+{{ abstract}}
+
+Text chunks:
+{{ paper_chunks }}

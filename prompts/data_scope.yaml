@@ -1,0 +1,57 @@
+extraction_scope:
+  - category: "Data origin"
+    include:
+      - "Data generated and reported directly in the current text excerpt."
+      - "Adsorbent properties or experimental protocols are presented with details in the current excerpt, even if originally published elsewhere."
+    exclude:
+      - "Any statement that merely points to material not present in the current excerpt (e.g., “properties in Table S1,” “methods described in Smith 2025,” “see Fig. 1”) when the actual content is absent. Such references must be ignored."
+      - "Any **adsorption performance data** that are explicitly identified as originating from external studies"
+    edge_cases:
+
+  - category: "Adsorbent scope"
+    include:
+      - "Activated carbon (AC such as PAC, GAC)"
+      - "Ion-exchange resins (IX)"
+      - "Non-ionic resins (NIR)"
+      - "Cyclodextrin polymers (CDP, StyDex, DEXSORB)"
+      - "Modified clays/minerals (e.g., Fluorosorb)"
+    exclude:
+      - "Metal–organic frameworks (MOFs, e.g., any with MOF-, ZIF-, UiO-, MIL-, HKUST- prefixes, etc.)"
+      - "Covalent–organic frameworks (COFs)"
+      - "Molecularly imprinted polymers (MIPs)"
+      - "Graphene oxide (GO)"
+      - "Silica"
+      - "Biochar"
+      - "Modified forms of the excluded adsorbents, including functionalized variants and composite materials (e.g., MOF/AC, GO-AC, Fe/TNTs@AC)."
+    edge_cases:
+      - "Batch adsorption test protocols are conceptually independent of the adsorbent. Therefore, when the task focuses on experimental design, such details may still be included even if the description involves an out-of-scope adsorbent."
+      - "Units for performance metrics are conceptually independent of the adsorbent. Therefore, when the task focuses on units, such details may still be included even if the description involves an out-of-scope adsorbent."
+      - "Adsorbents might be assigned unconventional or non-descriptive names—such as simple numbers (e.g., polymer 1, bin 2, 3, etc) or abbreviations without clear meaning (e.g., \"BC\" could refer to bentonite clay (in-scope) or biochar (out-of-scope), BioNuchar (BioNC) looks like a biochar but it is actually a wood-based GAC). Do not infer scope, default to in-scope unless the adsorbent is explicitly on the negative list."
+
+
+  - category: "Experimental design"
+    include:
+      - "PFAS Batch adsorption tests. If the text addresses experimental settings, include only batch‐mode PFAS adsorption data (e.g., equilibrium isotherms, kinetic studies, and parametric studies that investigate the influences of experimental conditions on adsorption)."
+      - "Batch-test results: If the text reported adsorption metrices of the PFAS batch adsorption tests. Such metrices include (Freundlich (Qe=KF.Ce^(1/n)), Langmuir (Qe=Qm.KL.Ce/(1+KL.Ce)), or linear (Kd=Qe/Ce) isotherm parameters, standalone equilibrium solid-phase uptake Qe (Qe=(C0-Ce).V/m), removal rate (R=(C0-Ce)/C0*100%), pseudo-first-order (PFO) (dQ/dt = k1 (Qe - Q)), and pseudo-second-order (PSO) (dQ/dt = k2 (Qe-Q)^2)) kinetic model results."
+      - "Contextual/background information. If the text provides contextual or background information relevant to PFAS batch adsorption (e.g., water chemistry, units for key parameters, adsorbent properties), even if no adsorption protocol is explicitly described, as such context is critical for interpreting batch experimental results. If it’s unclear whether the information is directly related to a PFAS batch adsorption test (e.g., uncertain if a water sample with detailed properties was used in the experiment), default to inclusion."
+    exclude:
+      - "Excluded batch adsorption test that involves external energy input (ultrasound, electricity, etc)."
+      - "Column-only studies (RSSCT, breakthrough curves, bed-volume (BV), filter, etc.) and full-scale system monitoring"
+      - "Batch studies whose sole objectives are spent/exhausted adsorbent regeneration (e.g., thermal, hydrothermal, solvent washing, etc), adsorption-desorption process, investigation of competitive or non-competitive adsorption behavior of PFAS, PFAS recovery, solid phase extraction (SPE), multiple loading tests (MLT), chemical analyses (e.g., HPLC-MS/MS setups), or quality control activities (blanks, control experiments, limit of detections, etc.)"
+      - "Excluded any results that **solely** focus on micropollutants other than PFAS (e.g., pharmaceuticals, pesticides, dyes). Note: some sources may refer to PFAS using alternative terms such as PFCs (perfluorochemicals)."
+      - "Exclude alternative kinetic (e.g., Elovich, Boyd, Biot) or isotherm (e.g., Temkin, Sips, Dual-mode-sorption, BET) model results for PFAS uptake." 
+      - "Exclude modified forms of in-scope models (e.g., Langmuir-Freundlich (Qe=Qm.KL.Ce^n/(1+KL.Ce^n)). Simple mathematical rearrangements of a valid model (e.g., linearized log/ln forms vs. non-linear fitting) are still in scope and should not be excluded. Note: in some cases a modified equation simplifies into another in-scope model, it should be treated as the later. For example, when Ce ≪ 1, the Langmuir equation reduces to Qe ≈ Kd·Ce (where Kd = qmax·KL). Such results should be treated as linear isotherm (Kd) data, not as Langmuir model data—even if the authors describe them as Langmuir." 
+      - "Procedures that pertain solely to adsorbent preparation (e.g., milling, purifying, or creating characterization samples (e.g., pre-loading PFAS onto an adsorbent just to reach a detectable concentration for instrumental analysis)"
+      - "Preparatory steps carried out before the formal experiment, such as making stock solutions or preparing calibration standards."
+      - "Statistical analyses (ANOVA, regression models, Pearson correlations, statistical significance discussions)"
+    edge_cases:
+      - "If it is unclear whether the contaminant under investigation is a PFAS, default to inclusion unless the text explicitly states otherwise."
+      - "Water samples may undergo pretreatment before PFAS adsorption. While the pretreatment process itself is out of scope, any reported properties of the treated water (e.g., pH, DOC, conductivity) should be included."
+
+
+apply_rules:
+  - "The edge case rule takes priority over other rules."
+  - "Mixed-Scope Case: When an excerpt includes multiple data points, some in-scope and others out-of-scope, extract ONLY the in-scope values and omit the out-of-scope ones (e.g. “granular AC milled to 20–50 µm for batch and 90–125 µm for RSSCT” → record only 20–50 µm from the batch study)."
+  - "Context cues: Apply qualifiers from captions, footnotes, or section titles before deciding scope."
+  - "When a table uses multiple header rows, the top‐level headers represent broad categories (e.g., adsorbent types), while the subheaders identify the specific items within each category (e.g., individual adsorbent names)."
+  - "Value propagation in tables with empty cells: You may inherit descriptive/context values downward to blank cells (e.g., a shared reference or common experimental condition not repeated in each row). Exception: do not propagate values in performance-metric fields (e.g., isotherm parameters, removal efficiency); leave those cells blank. Note: this is only for internal processing."

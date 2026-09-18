@@ -1,0 +1,98 @@
+I. Objective
+You are an expert in PFAS adsorption studies. Your task is to extract only the requested units for adsorption performance metrics.
+
+Your extraction is based on:
+(1) Source chunks from a paper.
+(2) Figure captions for figures mentioned in the provided chunks. Any relevant information they contain is extractable. If no figure is mentioned, or if the relevant figure was not captured in an earlier step, this field will be empty.
+
+II. Extraction Fields
+Output a contiguous block of lines with no blank lines inside the record, no headings, explanations, reasoning steps, logs, notes, warnings, or any other extra text:
+
+<Field_1>: <value>
+<Field_2>: <value>
+---
+
+Requested field keys (extract only these; do not return any other fields):
+{% for field in requested_unit_fields %}
+- {{ field }}
+{% endfor %}
+
+If no valid requested unit is available, return exactly:
+NO_VALID_RECORDS.
+
+
+III. Field Explanations
+{% if "Freundlich_equation_form" in requested_unit_fields %}
+- Freundlich_equation_form: Determine the actual mathematical form of the Freundlich isotherm for this experiment. Output only one of the following values: "n" for Qe = KF·Ce^n and "1/n" for Qe = KF·Ce^(1/n). Determine the form using the following priority order.
+          Tier 1: If the Freundlich equation is directly readable, determine the form from the exponent shown in the equation. 
+          Tier 2: If the equation is not directly readable, determine the form from the exponent encoded in Freundlich_KF_unit, when the unit is readable. Units may be expressed in mathematically equivalent forms (e.g., mol^(1-n)·kg^-1·L^n vs. (mol/kg)(mol/L)^-n). Interpret the expression holistically. Pay strict attention to explicit division (/) versus implied multiplication, as this dictates the sign of the exponents.   
+          If neither provides a consistent and unambiguous conclusion, omit Freundlich_equation_form rather than forcing a determination.
+
+{% endif %}
+{% if "Freundlich_KF_unit" in requested_unit_fields %}
+- Freundlich_KF_unit: Record the reported unit of the Freundlich constant KF, normalized to the goal shape: (amount-per-mass)/(amount-per-volume)^(exponent). Preserve the exponent notation exactly as reported in the source. Do not select, replace, convert, or reinterpret the exponent based on the numeric magnitude of the reported Freundlich parameter. If the unit is not already in this format, normalize it following the general <unit> rules before outputting. For example, "(μg/mg)(L/μg)^(1/n)" → "(μg/mg)/(μg/L)^(1/n)", "mg^(1−n)·L^n·g^-1" → "(mg/g)/(mg/L)^n", "( μ mol g - 1 ) (L  μ mol - 1 1/n  )" → "(μmol/g)/(μmol/L)^(1/n)". Interpret mathematically equivalent unit expressions holistically. Do not rely on isolated tokens such as n or 1/n alone. Pay careful attention to explicit division (/) versus implied multiplication, because this changes the placement of concentration terms and the sign of the exponents. If the KF unit is not directly reported, but the units for Ce and qe are provided and the exponent can be independently and confidently determined from a directly readable Freundlich equation, construct the unit as Kf = qe/Ce^(exponent). For example, if Ce unit is mmol/L and qe unit is mmol/g, and the equation exponent is 1/n, then Freundlich_KF_unit = (mmol/g)/(mmol/L)^(1/n). If the KF unit is not directly reported and cannot be confidently constructed from the reported Ce unit, qe unit, and a directly readable Freundlich equation, omit Freundlich_KF_unit.
+
+{% endif %}
+{% if "Langmuir_Qm_unit" in requested_unit_fields %}
+- Langmuir_Qm_unit: Unit of Langmuir maximum adsorption capacity Qm. This usually has the same adsorption-capacity unit as Qe, such as `mg/g`, `μg/mg`, or `μmol/g`.
+
+{% endif %}
+{% if "Langmuir_KL_unit" in requested_unit_fields %}
+- Langmuir_KL_unit: Unit of Langmuir affinity constant KL. If the unit is not directly reported, you can also infer it from the unit of Ce because in the Langmuir expression `Qe = Qm * KL * Ce / (1 + KL * Ce)`, `KL * Ce` must be dimensionless. If Ce is explicitly reported in `mg/L`, KL is `L/mg`; if Ce is in `μmol/L`, KL is `L/μmol`.
+
+{% endif %}
+{% if "Kd_unit" in requested_unit_fields %}
+- Kd_unit: Unit of the solid-liquid distribution coefficient Kd, defined as `Kd = Qe / Ce`. Common examples include `L/g`, `mL/g`, and `L/kg`. A label such as `logKd [L/g]` supports `Kd_unit: L/g`.
+
+{% endif %}
+{% if "Qe_unit" in requested_unit_fields %}
+- Qe_unit: Unit of standalone equilibrium solid-phase uptake amount. This may be labeled as Qe, qe, q, Cs, adsorbed amount, sorbed concentration, or an equivalent symbol when the source defines it as an equilibrium adsorbed amount normalized to adsorbent amount, adsorbent mass, adsorbent area, or another solid-phase basis.
+
+{% endif %}
+{% if "PFO_k1_unit" in requested_unit_fields %}
+- PFO_k1_unit: Unit of the pseudo-first-order rate constant k1. This is normally reciprocal time, such as `1/min` or `1/h`.
+
+{% endif %}
+{% if "PFO_Qe_unit" in requested_unit_fields %}
+- PFO_Qe_unit: Unit of Qe from a pseudo-first-order kinetic model. Use the model-specific capacity unit as reported or unambiguously derived.
+
+{% endif %}
+{% if "PSO_k2_unit" in requested_unit_fields %}
+- PSO_k2_unit: Unit of the pseudo-second-order rate constant k2. Record the unit as reported or derive it only when the PSO equation and Qe/time units are explicit.
+
+{% endif %}
+{% if "PSO_v0_unit" in requested_unit_fields %}
+- PSO_v0_unit: Unit of the initial adsorption rate v0 in the pseudo-second-order model. This should combine a Qe-type capacity unit with reciprocal time when supported.
+
+{% endif %}
+{% if "PSO_Qe_unit" in requested_unit_fields %}
+- PSO_Qe_unit: Unit of Qe from a pseudo-second-order kinetic model. Use the model-specific capacity unit as reported or unambiguously derived.
+
+{% endif %}
+
+IV. Extraction Guidelines
+1. Extract only the requested unit fields listed above. Do not introduce any additional keys. This step extracts units only, not values.
+2. Different units might be presented in different chunks. Merge all extractable requested unit fields into that single unit record.
+3. If no requested field is extractable, return exactly `NO_VALID_RECORDS.`
+4. If multiple units are explicitly reported for the same requested field, record all supported units separated by semicolons.
+5. When a source uses an alternative symbol for a requested metric, map it only when the text, table caption, equation, or header defines the symbol clearly.
+{% if "Qe_unit" in requested_unit_fields %}
+    For example, `Cs is the adsorbed level (mg/g)` can support Qe_unit when Cs is used as the adsorbed equilibrium amount.
+{% endif %}
+6. Do not infer missing units from common domain knowledge. Derive a unit only from explicit source evidence and a provided in-scope equation.
+7. Normalize unit strings:
+   a. Normalize Unicode and symbols (e.g., “\u03BC m” → “µm”, “um” → “µm”, “m 2 g /C0 1” → “m2/g”).  
+   b. Remove encoding artifacts (e.g., “mÂ²/g” → “m2/g”).  
+   c. Collapse extra spaces and fix joins (e.g., “mg / L” → “mg/L”).  
+   d. Convert negative exponents to fractional notation (e.g., “kGy⁻¹” → “1/kGy”, "(μg/mg)(μg/L)^-n" → "(μg/mg)/(μg/L)^n").  
+   e.Interpret trailing “–n” as a negative exponent, not subtraction; if it applies to a <measurement>, convert it to scientific notation (e.g. 3.12 × 10 –7 → 3.12e-7); if it applies to a <unit> and n = -1, convert it to a fraction (e.g., mg L⁻¹ → mg/L); otherwise, rewrite it using exponent notation, add parentheses if necessary (e.g., (ng/L) –1/n → (ng/L)^(–1/n))
+{% if "Kd_unit" in requested_unit_fields %}
+8. If a table header reports a transformation such as `logKd [L/g]`, ignore the transformation label and record the underlying metric unit.
+{% endif %}
+
+VI. Input
+Source chunks:
+{{ enriched_text }}
+
+Relevant figure captions:
+{{ figure_captions }}

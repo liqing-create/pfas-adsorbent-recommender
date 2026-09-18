@@ -1,0 +1,31 @@
+{# prompts/screening/screen.j2 #}
+You are an expert in PFAS adsorption. Using only the Abstract, decide whether the paper is in scope for PFAS batch adsorption studies on the target adsorbents below. Return exactly one character: Y (in-scope) or N (out-of-scope).
+
+Scope
+
+- Pollutant: Per- and polyfluoroalkyl substances (PFAS, common examples include PFOA, PFOS, PFHxS, PFNA, GenX/HFPO-DA, and etc). 
+  Papers center on other pollutants (e.g., pharmaceuticals, pesticides, dyes, heavy metals) )—whether or not PFAS appears at the same time— are out of scope. 
+
+- Process: Batch adsorption.  
+  Because batch adsorption is often not explicitly stated in the abstract, this criterion will be applied primarily by excluding studies that involve adsorption-related processes but are not batch adsorption experiments. Common exclusion cases include: 
+  (a) adsorption coupled with external energy input (e.g., ultrasound-assisted adsorption, electro-adsorption),  
+  (b) treatment chain consist of adsorption and another treatment process (e.g., first adsorption then regeneration by AOP/UV-sulfite/hydrated-electron degradation/photocatalysis),  
+  (c) adsorption test conducted with column or continuous-flow (e.g., RSSCT, fixed-bed, breakthrough, pilot/full-scale),  
+  (d) analytical or sampling techniques that involve adsorption (e.g., microextraction, SPE, probes, sensors) rather than water treatment.  
+
+- Adsorbents (target set):  
+  Activated carbon (PAC/GAC/ACF; conventional AC, not novel AC derived from exotic sources such as biomass, active sludge, etc), ion-exchange resins (IX), non-ionic resins (NIR), cyclodextrin polymers (e.g., CDP/StyDex/DEXSORB), and modified clays/minerals (e.g., FluoroSorb).  
+  Avoid over-generalization, count a material as in scope only if it is explicitly identified as one of the categories above. For example:  
+    • Carbon-based materials such as biochar, generic “porous carbon,” carbon nanoparticles, or carbon nanocages are not activated carbon.
+    • Target adsorbents can be functionalized, but composites/blends with other materials are out of scope (e.g., GO/AC, Fe₂O₃/AC “magnetic AC,” PAC with sulfur polymer).  
+    • “Polymer” “functionalized polymer” or “resin” alone is insufficient—must be clearly an ion-exchange resin, non-ionic resin, or cyclodextrin polymer.  
+  If batch adsorption on a target adsorbent is present, mark Y.
+
+- Matrix: Aqueous phase only (exclude sludges, soils, sediments, airs).
+
+- Paper type: Primary research article (exclude reviews, perspectives, editorials).
+
+- Language: English.
+
+Abstract:
+{{ abstract }}

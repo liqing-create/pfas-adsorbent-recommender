@@ -1,0 +1,397 @@
+unique_identifiers:
+  Adsorbent:
+    field: Adsorbent_id
+    description: >
+      Unique identifier for each adsorbent record.
+
+    construction:
+      - >
+        If an adsorbent name appears only as a row or column label in a performance metrics table (i.e. the table only shows numeric results like removal rate, isotherm constants) without any adsorbent-related details (e.g., physicochemical properties, raw materials, etc), do not generate an Adsorbent_id. 
+      - >
+        If two or more adsorbents are referred only by a material category (e.g., PAC, GAC, CDP granules) or a generic naming pattern (e.g., 'KAC a-b-c, where a, b, c mean x, y, z') **and**, based on the current source, there is not enough information to distinguish them individually, then do not count or create separate Adsorbent_id values for each. Instead, enter “NA” for Name_Abbreviation, Name_Full, and Name_Commercial, and consolidate them into one record with Adsorbent_id = 'general_<category>', where <category> can be AC, IX, NIR, CDP, Clay, and Polymer (use polymer when a polymer/resin is mentioned without IX/NIR/CDP cues). If exactly one material is referred (“the resin”), follow the rule below to determine its Adsorbent_id.
+      - >
+        To determine the Adsorbent_id for a single adsorbent, use the following name field priority:
+        - "If Name_Abbreviation is extractable, use that."
+        - "Else if Name_Full is extractable, use that."
+        - "Else if Name_Commercial is extractable, use that."
+    name_fields_clarifications:
+      name_fields:
+        - Name_Full: The complete or descriptive name that uniquely identifies a single adsorbent, typically referring to its composition, source, or preparation (e.g., "coconut-based GAC", "virgin bituminous AC", "amine-functionalized CDP").   
+        - Name_Abbreviation: A concise acronym, code, or synonym that uniquely identifies an adsorbent and is typically a condensed or symbolic form of the full name or commercial name (e.g., "F400", "CBC-500", "amine-CDP"). Do not infer abbreviations, record only those explicitly provided by the authors.
+        - Name_Commercial: The trade or model name of an commercial adsorbent, often identifiable by capitalization, trademarks, or association with a supplier (e.g., "FILTRASORB 400", "AquaSorb Omni G, -12 × 40"). 
+      recording_guidelines: > 
+        - Category terms can be used in two distinct ways: 1. As a category label - referring to two or more adsorbents; in this case, apply Adsorbent_id = 'general_<category>'; 2. As an adsorbent name - referring to a single, uniquely identifiable adsorbent, in this case, category terms are valid values for name fields. 
+        - If a single adsorbent has multiple values within a single name field (e.g., multiple abbreviations), select the most specific option among them. Note: this rule applies within each name field and does not override the standard name field priority (e.g., if the texts read "Filtrasorb 400 (GAC) was used in the adsorption test", you should pick Name_Abbreviation = GAC over Name_Commercial = Filtrasorb 400 even if the commercial name seems to be more specific than GAC).
+        - Follow authors' usage of each name field and capture it verbatim and completely, including any appended attributes. Appended attributes generally fall into two main categories: (1) Properties such as physical characteristics (e.g., particle size (e.g., HFAC (425–850 µm), CBC OLC, 12 × 30), physical form/grade (e.g., granular AC, powdered AC)) and chemical characteristics (e.g., feedstock/source (e.g., coconut-based GAC, coal-based GAC), modification (e.g., amine-functionalized CDP, quaternary-amine resin, acid-washed GAC, oxidized A, reactivated AC), structural features (e.g., polymer free CAC, polymer-containing CAC)). Note: these attributes should be mapped to their canonical fields in addition to the complete name. (2) model/series label (e.g., Ambersorb 563, Filtrasorb 400, Amberlite IRA67, GAC-1, Bin 1). Note: Don't overgeneralize this rule. Do not merge distinct identifiers into one name or treat entire descriptive sentences as names. For instance, in “coal-based Filtrasorb 400 (F400)” record them separately as Name_Full: Filtrasorb 400, Name_Abbreviation: F400, and Raw_Material: coal rather than Name_Full: coal-based Filtrasorb 400 (F400). Likewise, if the text provides only a descriptive statement rather than a discrete name—for example, “an anion exchange resin consisting of polystyrene crosslinked with divinylbenzene and functionalized with amino acids”—extract the details such as resin type, raw material, and functional group into their proper fields, while keeping the name field concise (e.g., “anion exchange resin”).
+        - If an adsorbent is processed (e.g., grounding into different particle sizes, surface modifications, activations, etc) to yield multiple **named** adsorbents, record both the unmodified and modified adsorbents as separate Adsorbent_id entries. 
+        - 'If a shared prefix clearly applies to every item in a list, carry it over (e.g., “FILTRASORB F100, F200, and F300” should be recorded as **3** records with Name_Commercial: “FILTRASORB F100", "FILTRASORB F200", and "FILTRASORB F300”.'
+
+    examples: 
+      - id: "Example 1"
+        source_text: >
+          For the PFAS experiments, five granular activated carbons (GAC) and six basic anion exchange (IEX) media were tested (details in Tables 1 and 2). The GAC types varied in raw material, supplier, and origin, including bituminous coal, lignite, and unknown-source mixtures with open-pore structures. Recently developed coconut shell (CC)-based GAC with higher mesopore volume and activation grades were also examined. All IEX materials were styrene–divinylbenzene copolymers, including both macroporous and gelular resins.
+        expected_Adsorbent_id: 
+          - 1. general_IX
+          - 2. general_AC
+        comment: "1. The six anion exchange media are identified only by category (“basic anion exchange media”) with no individual identifiers. 2. Although different raw materials for the GACs are mentioned (bituminous coal, lignite, coconut shell, etc.), these cannot be matched to specific, uniquely identifiable adsorbents, so the highest resolution possible is still at the category level."
+
+      - id: "Example 2"
+        source_text: >
+          5 adsorbents were compared in this study for their adsorption of PFAS. Purolite PFA300, PFA400, and PFA444 were purchased from Purolite, Japan. DEXSORB+ (amine-functionalized cyclodextrin polymer) was provided by Cyclopure, USA. Resins were washed with methanol and Milli-Q water, then dried at 50 °C to constant weight. Filtrasorb 400 (GAC; Dow Chemicals, Japan) was washed with Milli-Q water, heated in Milli-Q water at 80 °C for 2 h, dried at 105 °C for 48 h, and crushed to 1–1.4 mm particles. The GAC had a surface area of 900–1100 m²/g, particle diameter of 0.25–0.50 mm, total pore volume of 0.61 cm³/g, and pore sizes of 0.04, 0.09, and 0.48 cm³/g for macro-, meso-, and micropores, respectively..
+        expected_Adsorbent_id: 
+          - 1. Purolite PFA300
+          - 2. Purolite PFA400
+          - 3. Purolite PFA444
+          - 4. amine-functionalized cyclodextrin polymer
+          - 5. GAC
+        comment: "The opening sentence indicates a total of five adsorbents, which provides a useful check on the expected number of entries. 1-3: The three ion exchange (IX) resins are uniquely identifiable and not presented as a general category. Therefore, they are recorded individually rather than collapsed under general_IX. Adsorbent_id = Name_Commercial = “Purolite PFA300,” “Purolite PFA400,” and “Purolite PFA444” (with “Purolite” carried across PFA400 and PFA444) with Name_Full = NA, Name_Abbreviation = NA. Importantly, do not infer “PFA###” as an abbreviation, since no abbreviation is explicitly defined. 4. Adsorbent_id = Name_Full = amine-functionalized cyclodextrin polymer with Name_Commercial = DEXSORB+, Name_Abbreviation = NA. 5. The categorical term GAC points to a single adsorbent Filtrasorb 400, so Adsorbent_id = Name_Abbreviation = GAC with Name_Commercial = Filtrasorb 400, Name_Full = NA. Note: Purolite PFA###, DEXSORB+, and Filtrasorb 400 are considered Name_Commercial because they are closely associated with the supplier."
+
+
+      - id: "Example 3"
+        source_text: >
+          Prior to the use in the sorption experiment, the resin was first washed in deionized water to remove dirt and then dried at 50 /C14 C until constant weight. Similarly, commercially available  AquaCarb  1230C  activated  carbon was first rinsed with deionized water for several times and then washed in 80 /C14 Cdeionized water for 2 h to remove the impurities. After being dried in an oven at 105 /C14 C for 48 h, they were crushed by a mortar and screened. The activated carbons in the size range of 0.9-1.0 mm were used as the granular activated carbon (GAC), while the powder activated carbon (PAC) in this paper represented the particles below 0.1 mm.
+        expected_Adsorbent_id: 
+          - 1. resin
+          - 2. AquaCarb  1230C 
+          - 3. GAC
+          - 4. PAC
+        comment: >
+          "1. The singular phrasing (“the resin”) indicates one uniquely identifiable adsorbent: Adsorbent_id = Name_Full = resin with Name_Abbreviation = NA, Name_Commercial = NA. 2-4. AquaCarb 1230C is processed to produce GAC and PAC, all three need to be records as their own Adsorbent_id. 2. Adsorbent_id = Name_Commercial = AquaCarb 1230C with Name_Abbreviation = NA, Name_Full = NA. Although the supplier was not provided, AquaCarb 1230C was clearly identified as a commercial adsorbent. 3 Adsorbent_id = Name_Abbreviation = GAC with Name_Full = granular activated carbon, Name_Commercial = NA. 4. Adsorbent_id = Name_Abbreviation = PAC with Name_Full = powder activated carbon, Name_Commercial = NA."
+
+      - id: "Example 4"
+        source_text: >
+          CDP granules of varying particle diameters were produced by Cyclopure, Inc. (Skokie, IL) in January 2021 from a powdered CDP+ (previously reported as <63 μm). Granules were generated by spray granulation using a Glatt TMG HighShear Granulator, where CDP+ powders were stirred under high shear while a cellulose acetate binder was sprayed to enable particle aggregation. This process yields porous CDP granules with a narrow, controllable size distribution and a CDP mass loading of 90–95%.  CDP granules representing three particle sizes were received and are referred to in this study as Bin 1 through Bin 3 with average diameters of 84, 127, and 718 μm. 
+        expected_Adsorbent_id: 
+          - 1. CDP+
+          - 2. Bin 1 
+          - 3. Bin 2 
+          - 4. Bin 3
+        comment: >
+          "CDP+ is a commercial adsorbent as suggested by the vendor info: 1. Adsorbent_id = Name_Commercial = CDP+ with Name_Full = NA, Name_Abbreviation = NA. 2-4. The authors explicitly referred to the modified adsorbents as Bin 1 through Bin 3, therefore these labels should be recorded verbatim without constructing new names. 2. Adsorbent_id = Name_Abbreviation = Bin 1 with Name_Full = NA, Name_Commercial = NA. 3-4 are similar to 2."
+
+      - id: "Example 5"
+        source_text: >
+          We selected three activated carbon materials (ACs) and two b -cyclodextrin polymers (CDPs) as adsorbents for this study. These include the commercially available CCAC AquaCarb ® (1230C, Westates Carbon, Siemens, Roseville, MN), AWAC Filtrasorb ® (400M, Calgon Carbon Co., Pittsburgh, PA), and CDP þ (DEXSORB þ ™ , CycloPure, Encinitas, CA); we note that the performance of CDP þ is reported here for the first time. We also acquired HFAC (granular activated carbon used at a local drinking water treatment facility to process PFAS-contaminated groundwater) and synthesized aCDP (amine-CDP) according to a previously described method (Klemes et al., 2019). Each AC was pulverized with a mortar and pestle and sieved into different particle size bins (10 e 75, 125 e 212, 425 e 850, and 1000 e 1700 m m); the two smaller size bins are representative of PAC and the two larger size bins are representative of GAC. All sieved ACs were stored in amber vials at room temperature until use in experiments.  
+        expected_Adsorbent_id: 
+          - 1. 1230C
+          - 2. 400M 
+          - 3. CDP þ 
+          - 4. aCDP
+          - 5. HFAC
+        comment: >
+          "The intro names five adsorbents which matches the expected lists. 1-2. The authors used the model name as the abbreviation instead of appending them to the commercial name (pattern: commercial name (abbreviation, vendor), therefore, we record each name field verbatim: 1. Adsorbent_id = Name_Abbreviation = 1230C with Name_Commercial = CCAC AquaCarb ®, Name_Full = NA. 2. Adsorbent_id = Name_Abbreviation = 400M with Name_Commercial = AWAC Filtrasorb ®, Name_Full = NA. 3. author present the name as abbreviation (commercial name), we record each name field verbatim: Adsorbent_id = Name_Abbreviation = CDP þ with Name_Commercial = DEXSORB þ ™, Name_Full = NA. 4. Adsorbent_id = Name_Abbreviation = aCDP with Name_Commercial = NA, Name_Full = amine-CDP. 5. Adsorbent_id = Name_Abbreviation = HFAC with Name_Commercial = NA, Name_Full = granular activated carbon. Although HFAC was processed to yield adsorbents with different particle sizes, they are not named by the authors and therefore we don't list them as their own Adsorbent_id, we can just treat those particle size ranges as the property of HFAC." 
+
+      - id: "Example 6"
+        source_text: >
+          Table 1. The property of the granular activated carbon.
+          | Total pore volume       | 0.375 cm 3 g - 1 |
+          |-------------------------|------------------|
+          | Average pore diameter   | 25 A ˚           |
+          | Surface area            | 534 m 2 g - 1    |
+          | Diameter                | 20-40 mesh       |
+        expected_Adsorbent_id: 
+          - 1. granular activated carbon
+        comment: "The singular phrasing and specific properties indicate a single, specific adsorbent. Only full name is provided, Adsorbent_id = Name_Full = granular activated carbon."
+
+      - id: "Example 7"
+        source_text: >
+          The AC was provided by Jacobi CARBONS, Sweden. It is a coal-based granular activated carbon and its commercial name is ACTITEX WK L20. The surfactant modified clay (SMC, FLUORO-SORB ® 200) was provided  by  CETCO,  Minerals  Technologies  Inc.
+        expected_Adsorbent_id: 
+          - 1. AC
+          - 2. SMC
+        comment: "1. AC refers to a single, uniquely identifiable adsorbent in this excerpt: Adsorbent_id = Name_Abbreviation = AC with Name_Full = coal-based granular activated carbon, Name_Commercial = ACTITEX WK L20. 2. Adsorbent_id = SMC = Name_Abbreviation = SMC, Name_Full = surfactant modified clay, Name_Commercial = FLUORO-SORB ® 200."
+
+      - id: "Example 8"
+        source_text: >
+          The AC was provided by Jacobi CARBONS, Sweden. It is a coal-based granular activated carbon and its commercial name is ACTITEX WK L20 (CACF). β -CD-HDI polymer was synthesized according to established protocols and sieved through a 40-mesh screen to obtain a uniform particle size.
+        expected_Adsorbent_id: 
+          - 1. CACF
+          - 2. β -CD-HDI
+        comment: "1. The two abbreviations, AC and CACF, point to the same adsorbent, the author specificially define CACF, terefore, Adsorbent_id = Name_Abbreviation = CACF with Name_Full = coal-based granular activated carbon, Name_Commercial = ACTITEX WK L20; 2. Adsorbent_id = Name_Abbreviation = β -CD-HDI, Name_Full = NA, Name_Commercial = NA. Record “β -CD-HDI” verbatim despite irregular spacing."
+
+      - id: "Example 9"
+        source_text: >
+          Table 4. S. Surface chemical properties of the commercial ACFs from our previous study (Saeidi et al., 2020).
+          |   Sample   |  PZC   | AEC (Âµmol/m2) | CEC (Âµmol/m2) |
+          |------------|--------|----------------|----------------|
+          | VS         | 7.3    | 0.148          | 0.0714         |
+          | FC15       | 7.1    | 0.137          | 0.131          |
+          | FC10       | 6.5    | 0.0922         | 0.418          |
+        expected_Adsorbent_id: 
+          - 1. VS
+          - 2. FC15
+          - 3. FC10
+        comment: "Although the presented properties were originally published elsewhere, it was reproduced with details in the current excerpt, so they are still within scope. Only abbreviations are provided, Adsorbent_id = Name_Abbreviation."
+
+      - id: "Example 10"
+        source_text: >
+          Table 2. Physical properties of adsorbents
+          |           |                                     | Particle size   | BET surface       | 
+          |-----------|-------------------------------------|-----------------|-------------------|
+          | Adsorbent | Description (precursor)             | ( μ m)          | area (m 2 g - 1 ) | 
+          | SOMS      | Swellable modified silica ( 1 )     | 250 450 -       | 650               | 
+          | F-SOMS    | Fluoroalkyl modified ( 1 , 2 )      | 250 450 -       | 660               | 
+          | GAC       | Norit ® 1240 W                      | 450 600 -       | 975               |
+        expected_Adsorbent_id: 
+          - 1. GAC
+        comment: "SOMS (silica-derived) and F-SOMS (a SOMS derivative) are excluded per the negative adsorbent list. 1. GAC points to a single in-scope adsorbent, include it: Adsorbent_id = Name_Abbreviation = GAC with Name_Commercial = Norit ® 1240 W, Name_Full = NA."
+
+  Performance:
+    field: Performance_id
+    description: >
+      Unique identifier for each performance record.
+    construction:
+      1. units:
+        description: >
+          When NO numeric values present but explicit **units** of performance metrics are reported, set Performance_id to `unit`. Do not require PFAS name, adsorbent name, or conditions for Performance_id: unit. If numeric values for performance metrics appear together with the unit, do NOT create a Performance_id = unit; instead, follow the instructions below for handling numeric values. 
+      2. numeric:
+        description: >
+          When **numeric adsorption metrics** are provided (Freundlich (Qe=KF.Ce^(1/n)), Langmuir (Qe=Qm.KL.Ce/(1+KL.Ce)), or linear (Kd=Qe/Ce) isotherm parameters (no Langmuir-Freundlich (Qe=Qm.KL.Ce^n/(1+KL.Ce^n))), Qe (Qe=(C0-Ce).V/m), removal rate (R=(C0-Ce)/C0*100%), Pseudo-first-order (PFO) (dQ/dt = k1 (Qe - Q)), Pseudo-second-order (PSO) (dQ/dt = k2 (Qe-Q)^2)), build the ID as: `<PFAS_name>|<Adsorbent_name>|<Specific_Condition>`. Insert “NA” for any missing field (e.g., PFOA|GAC|NA), do not leave any field blank. If none of the three components are reported and the excerpt contains only a single record, NA|NA|NA is still considered valid. 
+        clarification_on_terms:
+          PFAS_name: The name of a specific PFAS compound (e.g., PFOA, PFBS, GenX, ADONA, 6:2 FTS). Even subtle character differences (e.g., PFHxA vs. PFHxS) indicate different PFAS.
+          Adsorbent_name: > 
+            Capture adsorbent name verbatim, including all appended characteristics describing the adsorbent’s inherent properties. Characteristics fall into two main categories: (1) Physical characteristics – e.g., particle size (HFAC (425–850 µm), CBC OLC, 12 × 30), physical form/grade (granular AC, powdered AC). (2) Chemical characteristics – e.g., feedstock/source (coconut-based GAC, coal-based GAC), modification (amine-functionalized CDP, quaternary-amine resin, acid-washed GAC, oxidized A, reactivated AC), structural features (polymer-free CAC, polymer-containing CAC). If no specific adsorbent name is provided (e.g., text only says “adsorbents”), record `NA`.
+          Specific_Condition: 
+            description: >
+              Include only experimental conditions that are not identical across all records. 
+            categories: 
+              - pH: >
+                 Record as `pH_<value>` (e.g., `pH_7.0`). 
+              - Time: >
+                 Record as `Time_<value>_<unit>` (e.g., `Time_24_h`). If the authors did not report a numeric time (e.g., only provided an average across all time points), record the authors’ label verbatim.
+              - PFAS_initial_concentration: >
+                 Record as `<PFASname>_<value>_<unit>` (e.g., `PFBS_1_μg/L`). A variation in either <PFASname> (e.g., different PFAS with the same concentration) or <value> (e.g., the same PFAS tested at different concentrations) qualifies as a distinct Specific_condition. If the specific name of PFAS is not provided, use PFAS as a placeholder for <PFASname>.
+              - Adsorbent_dosage: >
+                 Record as `<AdsorbentName>_<value>_<unit>` (e.g., `PAC_1_mg/L`). A variation in either <AdsorbentName> (e.g., different adsorbents with the same dosage) or <value> (e.g., the same adsorbent tested at different dosages) qualifies as a distinct Specific_condition. If the specific name of adsorbent is not provided, use Adsorbent as a placeholder for <AdsorbentName>.
+              - Ionic_strength: >
+                 If ionic strength > 0, record as `<ionic_strength>_<value>_<unit>` (e.g., `ionic_strength_5_mM`). If the specific inorganic matter used is knwon, record as `<inorganic_name>_<value>_<unit>` instead. 
+              - Coexisting_inorganic_matter: >
+                 Record as `<inorganic_name>_<value>_<unit>`, where <value>_<unit> can be ignored if not provided (e.g., `calcium_1_mg/L`, "sodium chloride"). Use common names (e.g., chloride, magnesium, sodium chloride) rather than chemical symbols, even if the original source uses symbols. If multiple species coexist, use && as a separator (e.g., calcium_1_mg/L&&magnesium_1_mg/L).   
+              - Coexisting_organic_matter: >
+                 Record as `<organic_name>_<value>_<unit>`, where <value>_<unit> can be ignored if not provided (e.g., `humic acid_5_mg/L`, `NOM`, ). Capture the organic_name verbatim (e.g., 1,4-dioxane, TCE, ethanol, SRFA, SRNOM). If multiple species coexist, use && as a separator (e.g., Et_1_mg/L&&HA_1_mg/L). 
+              - Water_matrix: >
+                 Record the <WaterLabel> (e.g., `ground water`) as given in the source—whether it’s a common descriptor like “ground water” or a study-specific code such as “GW-1” or “AA|A”.  
+              - TOC_or_DOC: >
+                 Record as `TOC_<value>_<unit>` or `DOC_<value>_<unit>` (e.g., `TOC_4_mg/L`). 
+              - Temperature: >
+                 Record as `Temperature_<value>_°C` (e.g., `Temperature_25_°C`). If temperature is reported in K, convert to °C using  K -273 before outputting. 
+              - NA: >
+                 Use NA if no qualifying condition is reported for the record. 
+            recording_guidelines: >
+              –  If a category is explictly reported with <value> = 0, record it as `NA` (e.g., use NA instead of ionic_strength_0_mM or calcium_0_mg/L). Important: a missing concentration does not imply a value of 0. For example, if authors state “in the presence of NOM” without specifying the concentration, the <value> is unknown, not zero.
+              –  If the excerpt contains a single Performance_id, set Specific_Condition = NA as no condition is needed to distinguish it from others.
+              –  Evaluate each reported condition independently to determine if it qualifies as a Specific_condition. 
+              –  If multiple conditions qualify as Specific_Condition on their own, list them in the order shown above (i.e., pH, Time, PFAS_initial_concentration, ..., water_matrix, TOC_or_DOC) separated by semicolons (e.g., "Time_1_h; Ferric_5_mg/L"). 
+
+   
+    examples:
+      - id: "Example 1"
+        source_text: >
+          Isotherm experiments were conducted with a 100 mg/L adsorbent dosage. For CDP1, GenX (1, 10, 30, 50, 100, 130, 160, 200 mg/L) and PFOA (30, 50, 70, 100, 130, 160, 200 mg/L) were tested. For CDP2, due to negligible removal at these ranges, lower concentrations were used: PFOA (1, 3, 5, 8, 12, 16, 20 mg/L) and GenX (0.01, 0.05, 0.1, 0.2, 0.4, 0.8, 1 mg/L). Solutions were stirred for 22 h and analyzed by HPLC–MS/MS. Experimental data were fitted by the Freundlich equation: Qe = KF.Ce^(1/n), where KF [(ng/mg)(ng/L)^-1/n] is adsorption-capacity constant and 1/n (dimensionless) quantifies the adsorption intensity.
+        expected_Performance_id: 
+          - 1. unit
+        comment: "1. **unit** for KF is explictly provided ((ng/mg)(ng/L)^-1/n); 2. no numeric adsorption metrics are given, no <PFAS|Adsorbent|Specific_condition> type of records"
+
+      - id: "Example 2"
+        source_text: >
+           Table S9. The adsorption of PFOA on HFAC (425-850 um).
+           | Ca 2 + (mM)  | NaCl (mM) | 0.5h    | 4h    |
+           |--------------|-----------|---------|-------|
+           | 0            | 0         | 89.2%   | 95.5% |
+           | 0            | 1         | 74.2%   | 82.1% |  
+           | 0.1          | 5,8       | 47.1%   | 53.2% | 
+        expected_Performance_id: 
+          - 1. PFOA|HFAC (425-850 um)|Time_0.5_h
+          - 2. PFOA|HFAC (425-850 um)|Time_4_h
+          - 3. PFOA|HFAC (425-850 um)|Time_0.5_h; sodium chloride_1_mM 
+          - 4. PFOA|HFAC (425-850 um)|Time_4_h; sodium chloride_1_mM
+          - 5. PFOA|HFAC (425-850 um)|Time_0.5_h; calcium_0.1_mM&&sodium chloride_5.8_mM
+          - 6. PFOA|HFAC (425-850 um)|Time_4_h; calcium_0.1_mM&&sodium chloride_5.8_mM
+        comment: "1. Time is a Specific_condition as its value varies between records; 2. Co-existing chemicals are listed as Specific_Condition only when their concentrations are not 0, inorganic matter (ion and salt) are written as common name instead of the formula and separated by && when multiple species coexist; 3. Values such as 5,8 are recorded as 5.8 as the former is clearly an OCR error. 4. Adsorbent name is recorded verbatim (i.e., HFAC (425-850 um) instead of HFAC)."
+
+      - id: "Example 3"
+        source_text: >
+           Table 3 Pseudo-second order rate constants and equilibrium adsorption capacity for PFAS solutes
+           | PFAS  | k₂ (g ads/mg PFAS·h) @ 0 mM / 50 mM | qₑ (mg/g) @ 0 mM / 50 mM |
+           |-------|--------------------------------------|---------------------------|
+           | PFDA  | 0.8 / 1.4                            | 7.5 / 9.9                 |
+           | PFPeA | 0.4 / 0.6                            | 9.9 / 7.2                 |
+ 
+        expected_Performance_id: 
+          - 1. PFDA|NA|NA
+          - 2. PFDA|NA|ionic_strength_50_mM
+          - 1. PFPeA|NA|NA
+          - 2. PFPeA|NA|ionic_strength_50_mM
+        comment: "Adsorbent name is not provided, use NA in its field; when ionic strength = 0, record NA instead of ionic_strength_0_mM; when ionic_strength = 50 mM, records as <ionic_strength>_<value>_<unit>."
+
+
+      - id: "Example 4"
+        source_text: >
+          Table S9. Suspect screening analysis of adsorption of PFASs in AFFF.
+           | Compound      | GAC     | AER     |
+           |---------------|---------|---------|
+           |               |Cal F400 | A520E   |
+           | AmPr-FEtSA    |-        | 20 ± 1  |
+           | GenX          |15 ± 1   | -       |
+           | ADONA         |9 ± 1    | -       |
+        expected_Performance_id: 
+          - 1. AmPr-FEtSA|A520E|NA
+          - 2. GenX|Cal F400|NA
+          - 3. ADONA|Cal F400|NA
+        comment: "GAC and AER are the adsorbent category while Cal F400 and A520E are adsorbent names; AmPr-FEtSA|Cal F400|NA, GenX|A520E|NA, and ADONA|A520E|NA are not extracted because no performance metrics are reported; they are shown together here for demonstration purposes."
+
+      - id: "Example 5"
+        source_text: >
+           Table S4. Fitting results of the linear and Langmuir-Freundlich models on different adsorbents.
+           | Adsorbents    | Concentration range Ⅰ: 1 | Concentration range Ⅰ: 1 |    | Concentration range II+III: 2 | Concentration range II+III: 2 | Concentration range II+III: 2 | Concentration range II+III: 2 |
+           |---------------|---------------------------|--------------------------|----|-------------------------------|-------------------------------|-------------------------------|-------------------------------|
+           | Adsorbents    | k1, L/ug                  | Pearson’s r              |    | qm, μg/g                      | k2, (L/ug)-n                  | n                             | R2                            |
+           | RAC           | 2.1 ± 1.1                 | 0.699                    |    | --                            | --                            | --                            | --                            |
+           | KAC 1-900-1.5 | 9.0 ± 0.8                 | 0.993                    |    | 120 ± 2                       | 0.0106 ± 0.0030               | 4.4 ± 0.3                     | 0.997                         |
+           -- represents “not observed in the tested concentration range”.
+           1: linear isotherm model (Yang 2003).
+           2: Langmuir-Freundlich isotherm model (Cerofolini and Rudziński 1997).
+        expected_Performance_id: 
+          - 1. NA|RAC|NA
+          - 2. NA|KAC 1-900-1.5|NA
+        comment: "No PFAS name is provided, no indication suggests it is non-PFAS, so “NA” is used in its place; No separate “unit” Performance_id is created because numeric values are given alongside the units; Although Langmuir-Freundlich is out-of-scope, Linear isotherm is within scope; although k1 is used instead of Kd, they are equivalent since both represent the linear isotherm parameter."
+
+          
+      - id: Example 6
+        source_text: >
+          Table 2. Kinetic parameters of the pseudo-second-order model for F-53B/PFOS adsorption on IRA67.
+          | Adsorbate   | pH   | Initial concentration (mmol/L)   | Pseudo-second-order model   | Pseudo-second-order model   |       |
+          |-------------|------|----------------------------------|-----------------------------|-----------------------------|-------|
+          |             |      |                                  | q e (mmol/g)                | v 0 (mmol/(gh))             | R 2   |
+          | F-53B       | 3    | 0.35                             | 3.892                       | 0.884                       | 0.993 |
+          | PFOS        | 3    | 0.35                             | 5.148                       | 3.147                       | 0.985 |
+        expected_Performance_id:
+        - 1. F-53B|IRA67|F-53B_0.35_mmol/L
+        - 2. PFOS|IRA67|PFOS_0.35_mmol/L
+        comment: "pH_3 is not a Specific_Condition because it is identical across all extractable Performance_id. Although the <value>_<unit> part of PFAS_initial_concentration is the same, the <PFASname> prefix differentiates them, so it qualifies as a Specific_condition."
+
+
+  Experiment:
+    field: Experiment_id
+    description: >
+      Unique identifier for each experiment record.
+    construction: >
+      Built as `<Test_mode>|<Parametric_impact>`.
+    clarification_on_terms:
+      Test_mode:
+        allowed_values:
+          isotherm: >
+            batch adsorption experiments at constant temperature, where either the PFAS concentration or the adsorbent dosage is varied across multiple levels, to evaluate the equilibrium relationship between PFAS and the adsorbent. 
+          kinetic: >
+            batch adsorption experiments at constant temperature and samples are collected at multiple time intervals to evaluate the rate and mechanism of adsorption over time.  
+          snapshot: >
+            batch adsorption tests that measure uptake using only a few combinations of key experimental variables (e.g., initial PFAS concentration, adsorbent dose, sampling time). These data points are not enough to build an isotherm or kinetic curve and instead provide a “snapshot” of adsorption performance under narrowly defined conditions. 
+          unclassified_test: >
+            Adsorption experiment that cannot be confidently assigned to the snapshot, isotherm, or kinetic categories.
+          water_properties_<WaterLabel>: > 
+            Use this tag when details about water samples (e.g., environment water samples, synthetic water samples) are described but no adsorption protocol is provided. These details may cover the sampling context (e.g., groundwater, wastewater treatment plant effluent, well water, firefighting training site) or the measured water properties such as pH, conductivity, ionic strength, DOC, or chemical composition (e.g., NOM, ions, PFAS). If adsorption experiments are described alongside these water properties, record under the corresponding Test_mode instead. Spiking or other preparatory adjustments do not count as an adsorption protocol.   
+            Record one entry for each distinct matrix, replacing `<WaterLabel>` with the author’s label for each sample (e.g., `matrix_effect_surface water`, `matrix_effect_GW-1`, `matrix_effect_GW/A`). If a water matrix is referred to by more than one name, choose the one with the most specific information. For example, if a sample is described as both “landfill leachate” and “raw leachate,” use “raw leachate” because it indicates both the source (landfill) and the status (raw). If the names differ only by being a full term versus an abbreviation (e.g., “wastewater” vs. “WW”), record only one entry using the format <Full name> (<Abbreviation>) (e.g., wastewater (WW)).  
+        recording_guidelines: 
+          1. If the authors explicitly state the Test_mode, follow it. If not, determine the Test_mode based on the number of experimental parameter levels (e.g., PFAS initial concentration, adsorbent dosage, or contact time). Fewer than 5 levels = snapshot; 5 or more levels = kinetic or isotherm. If a range is reported without specifying the number of points, assume it contains less than 5 data points unless otherwise indicated.  
+          2. Treat each distinct batch adsorption experiment as a seperate record, even if multiple experiments share the same Test_mode value. For example, if snapshot experiments are conducted to examine the effects of organic matter, inorganic matter, and pH, each should be recorded as an individual entry—not grouped into a single snapshot record.
+          3.  When the excerpt specifies one or more variants of a base water source (e.g., base sample “GW” with variants “GW1,” “GW2” or "GW-A","GW-B"), treat each variant—regardless of whether the difference arises from preservation, pre-treatment, or handling (e.g., Trizma addition, filtration method, storage conditions)—as a distinct record using the exact label provided, and do not create a record for the base sample name.                  
+      Parametric_impact:
+        description: >
+          Experiments designed to quantify how experimental variables influence adsorption. 
+        allowed_values:
+          matrix_effect_<WaterLabel>: >
+            Study the influence of water matrices (e.g., surface water, groundwater, wastewater, landfill leachate) on adsorption. Record one entry for each distinct matrix, replacing `<WaterLabel>` with the author’s label for each sample (e.g., `matrix_effect_surface water`, `matrix_effect_GW-1`). If a water matrix is referred to by more than one name, choose the one with the most specific information. For example, if a sample is described as both “landfill leachate” and “raw leachate,” use “raw leachate” because it indicates both the source (landfill) and the status (raw). If the names differ only by being a full term versus an abbreviation (e.g., “wastewater” vs. “WW”), record only one entry using the format <Full name> (<Abbreviation>) (e.g., wastewater (WW)). Experiments that vary only individual solution properties (pH, co-existing species, etc) belong in the single-parameter categories below, not here.   
+          PFAS_initial_concentration: > 
+            Vary the initial PFAS concentration (C₀) to examine its influence on adsorption when Test_mode ≠ isotherm. 
+          Adsorbent_dosage: > 
+            Vary the adsorbent dosage to examine its influence on adsorption when Test_mode ≠ isotherm.  
+          Adsorbent_type: > 
+            Compare the adsorption performance of different adsorbents under the same condition.  
+          Time: > 
+            Vary the contact time to examine its influence on adsorption when Test_mode ≠ kinetic or isotherm.
+          Temperature: > 
+            vary the temperature to examine its influence on adsorption.
+          pH: > 
+            Vary the solution pH to examine its influence on adsorption. Simply adjusting and maintaining the solution at a single pH does not fulfill this requirement. 
+          inorganic_matter: > 
+            Intentionally add inorganic species (e.g., cation, anion, salt) or change ionic strength to examine their influence on adsorption.
+          organic_matter: > 
+            Intentionally add organic matter (e.g., natural organic matter, micropollutant) to examine their influence on adsorption.
+          mixed_matter: > 
+            Use when inorganic and organic species are co-added in the same test to assess their combined or interactive effects on adsorption. If added separately, record them under inorganic_matter or organic_matter instead. 
+          NA: >
+            "No parameter-impact study performed or no adsorption test at all (e.g. when Test_mode = water_properties_<WaterLabel>)."
+        recording_guidelines: >  
+              1. When Test_mode = isotherm, do not list PFAS_initial_concentration, Adsorbent_dosage, or time under Parametric_impact, since isotherm studies inherently vary these parameters. Similarly, when Test_mode = kinetic, do not list Time under Parametric_impact.              
+              2. For single parameter sweep test, each parameter requires only a single entry, regardless of how many samples are tested. For example, even if multiple organic matter are added independently, one Parametric_impact = organic_matter entry is enough. Note: since a water sample is associated with a combination of water properties rather than a single parameter, each water sample should have their own entry. 
+              3. Deliberately introduced chemicals qualify as a parametric impact once any non-zero level is added—even if only a single level.   
+              4. Do not treat high-level objective statements lacking concrete parameters as standalone experiments. For example, the phrase “To evaluate the effect of water matrix constituents on PFAS adsorption” should not be logged as a “matrix_effect_groundwater” entry unless specific conditions such as ion concentrations, NOM levels, pH, and so on, are explicitly detailed. When only a single factor is varied, record it under its specific label (e.g., pH, organic_matter) rather than using the umbrella objective.  
+
+    examples:
+      - id: "Example 1"
+        source_text: >
+          Adsorption experiments were conducted in buffered organic-free water, surface water, ozonated landfill leachate, and raw leachate. Organic-free water was distilled water buffered with 1 × 10⁻³ mol/L sodium bicarbonate. Surface water (pH; DOC = 7 mg/L; TDS = 420 mg/L) came from the Red River (Grand Forks, ND). Landfill leachate (pH = 7.7; DOC = 865 mg/L; TDS = 4610 mg/L) was supplied by Waste Management Inc.; no PFAS (n = 11; Table S1) were detected after microfiltration. All waters were spiked with PFAS to 1.5–4 × 10⁻⁵ mol/L. Sorption kinetic results show that the 12-h sorption accounted for /C24 96% of the estimated ultimate uptake and could be assumed to approach equilibrium (see Section 3.1). 25 mL of solution was placed in polypropylene vials with 0.01–0.5 g GAC and rotated at 10 rpm for 12h to reach adsorption equilibrium. Liquid samples were microfiltered before and after to determine PFAS concentrations (Cw).
+        expected_Experiment_id: 
+          - 1. snapshot|matrix_effect_organic-free water
+          - 2. snapshot|matrix_effect_surface water
+          - 3. snapshot|matrix_effect_ozonated landfill leachate
+          - 4. snapshot|matrix_effect_raw leachate
+        comment: "Although kinetic results are mentioned, no kinetic protocol is described, so Test_mode = kinetic does not apply. Only ranges of PFAS concentration and adsorbent dosage are reported without stating the number of data points; this is assumed to be fewer than five levels, so Test_mode = snapshot. Even though ozonated landfill leachate properties are not detailed, it is included because adsorption experiments were conducted with it."
+
+      - id: "Example 2"
+        source_text: >
+          Unless otherwise stated, all solutions were prepared using deionized water (Synergy UVR, EMD Millipore, 18.2 MΩ -cm resistivity). A  stock  AFFF  solution  was  obtained  from  a  U.S.  Air  Force  Base.
+        expected_Experiment_id: 
+          - 1. water_properties_stock AFFF  solution|NA
+        comment: "Unlike Example 1, only water sample context is provided for AFFF solution without adsorption protocol details, so Test_mode = water_properties_<WaterLabel>.  <WaterLabel> = stock  AFFF  solution, capture the author's label verbatim. Deionized water is not recorded because there is no relevant information are provided."
+
+      - id: "Example 3"
+        source_text: >
+          Unless otherwise stated, all solutions were prepared using deionized water (Synergy UVR, EMD Millipore, 18.2 MΩ -cm resistivity) and its pH was measured to be 7.2. 
+        expected_Experiment_id: 
+          - 1. water_properties_deionized water|NA
+        comment: "Unlike Example 2, deionized water is recorded because its property (pH = 7.2) is explicitly reported."
+
+      - id: "Example 4"
+        source_text: >
+          Groundwater was collected from two wells near military training sites in Pennsylvania (denoted as WA and AA) and a private well in New York (denoted as GW). Samples were taken in 1-L HDPE bottles, sealed, and shipped on ice. Trizma was added to WA-A, AAA, and GW-A (5 g/L, per EPA Method 537.1); WA-D had no Trizma. Upon receipt, samples were stored at 4 °C, handled with polypropylene syringes, and filtered through 0.22 µm PVDF before experiments/analysis.these water samples are used for both batch isotherms and RSSCTs tests to investigate the influence of water type on PFAS adsorption.
+        expected_Experiment_id: 
+          - 1. water_properties_WA-A|NA
+          - 2. water_properties_AAA|NA
+          - 3. water_properties_GW-A|NA
+          - 4. water_properties_WA-D|NA
+        comment: "1. unlike example 1, only water sampling site details are provided without adsorption test details; 2. Since the water sample is used in an in-scope batch isotherm test, it should be included despite also being used in out-of-scope RSSCT tests; WA, AA, and GW are base labels; WA-A, AAA, GW-A, and WA-D are their variants. When variants exist, suppress the base labels and output only the variants; although AAA looks different from other variant names, it is clearly the Trizma-amended AA sample, so it is kept exactly as written."
+
+      - id: "Example 5"
+        source_text: >
+          Adsorption experiments were performed at 25 °C, 160 rpm for 240 h in an orbital shaker, except for kinetic studies. A solid/liquid ratio of 0.1 g/L was used, except in the multi-solute system. Solutions were adjusted to pH 6 with NaOH and HCl, except in pH effect experiments. Isotherm tests used 100 mL PFAS solutions (50–400 mg/L) with IRA910. Kinetic studies with single solutes used 250 mL PFAS solution (0.5 mmol/L) and IRA910. Competitive sorption of PFHxS with five PFASs was assessed in bisolute (0.5 mmol/L each) and multi-solute (0.1 mmol/L each, 0.05 g/L solid/liquid ratio) systems. pH effect experiments were conducted at pH 6 and 9 under the same conditions as single-solute kinetics. The effects of ionic strength and Ca²⁺ on PFAS adsorption were investigated by adding 1–100 mM NaCl and 0.1–2 mM CaCl₂ to the solution. In Ca²⁺ experiments, the ionic strength was maintained at 7 mM by adjusting NaCl concentration (0–5.7 mM) to isolate Ca²⁺ effects. 
+        expected_Experiment_id: 
+          - 1. isotherm|NA
+          - 2. kinetic|NA
+          - 3. snapshot|pH
+          - 4. snapshot|inorganic_matter
+        comment: "1. competitive sorption is excluded because fall outside the defined Experimental design scope; 2. pH and influence of inorganic matter tests are labeled as snapshot because only a few combinations of key experimental variables were used (25 °C, 160 rpm for 240 h, solid/liquid ratio of 0.1 g/L, assume the general protocols applies); 3. only one snapshot|inorganic_matter even though two different inorganic species (NaCl and Ca²⁺) were tested, as both fall under the same parameter category."
+
+      - id: "Example 6"
+        source_text: >
+          Sorption experiments were conducted to assess the competitive effects of co-contaminants on PFAS adsorption onto GAC. Kerosene (Ker; 0.1 mg/L), trichloroethylene (TCE; 1 mg/L), and ethanol (Et; 1 mg/L) were tested separately as model co-contaminants. Experiments, performed in duplicate, used a PFOA–PFOS mixture (1 mg/L each) and two GAC types (F400 and CBC) at two carbon masses (5 and 15 mg) plus a zero-carbon control. Tests were conducted in 125 mL polypropylene reactors with DI water, solution pH was adjusted with 0.1 M HCl or NaOH, tumbled at 145 rpm for 7 days. The chosen masses matched those from prior isotherm experiments for comparison (Table 1).
+        expected_Experiment_id: 
+          - 1. snapshot|organic_matter
+        comment: "Test_mode = snapshot because the experiments used a fixed PFAS concentration, a limited set of adsorbent doses, and a single contact time, rather than a full kinetic or isotherm series. Although multiple organic co-contaminants (kerosene, TCE, ethanol) were tested, they all fall under the same parameter category, so only one entry (snapshot|organic_matter) is recorded. The use of the word “competitive” refers to co-contaminant effects, not competitive adsorption between PFAS, which would be out of scope."
+
+      - id: "Example 7"
+        source_text: >
+         Adsorption studies were performed at 25 °C over a pH range of 2–10 using initial PFOS concentrations of 1 ppb, with a fixed MOF adsorbent concentration of 100 ppm. pH was adjusted using 0.1 M NaOH and HCl. Suspensions were shaken at 150 rpm for 24 h, then centrifuged at 4000 rpm for 3 min to separate the MOF. 
+        expected_Experiment_id: 
+          - 1. snapshot|pH
+        comment: "Batch adsorption test protocols can still be included even when described with an out-of-scope adsorbent (MOF); a fixed PFAS concentration, adsorbent dosage, and contact time, therefore snapshot test, pH is the changing factor."
+
+      - id: "Example 8"
+        source_text: >
+         Batch experiments were conducted as previously described (Ching et al., 2022). Briefly, PFAAs (1 µg L⁻¹) were spiked into 15 mL polypropylene tubes containing Milli-Q water, salt solutions (1–2 mM), or SRNOM solution (1 mg L⁻¹, pH 5.6–6.6). Tubes were rotated at 40 rpm, 23 °C. Adsorbents (10 mg) were pre-activated by sonication (1 min) and stirring (60 min) in Milli-Q water (1 g L⁻¹), then dosed into tubes (1, 5, 10 mg L⁻¹). Samples were rotated for 0.5, 9, or 48 h, filtered (0.45 µm), spiked with ILIS (375 ng L⁻¹), and stored at 4 °C. Controls without adsorbent were included. All tests were run in triplicate. 
+        expected_Experiment_id: 
+          - 1. snapshot|organic_matter
+          - 2. snapshot|inorganic_matter
+          - 3. snapshot|NA
+        comment: "Test_mode = snapshot because adsorption was evaluated at only 1 PFAS concentration, 3 time points, and 3 adsorbent doses, fewer than the ≥5 levels required for kinetic or isotherm classification; salt solutions correspond to inorganic_matter, and the SRNOM solution corresponds to organic_matter."
+

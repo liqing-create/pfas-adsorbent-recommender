@@ -1,0 +1,33 @@
+output_format:
+    Value standardization rules:
+      description: >
+        • For <descriptors>
+           a. If a shortlist is provided for a key and the extracted value falls within it, select the value from the shortlist. If no shortlist is provided and the descriptor is a chemical entity, apply the normalization rules in b when applicable; otherwise, record the value verbatim.
+           b. For chemical entities (including Inorganic_matter, Organic_matter), they might appear as names (e.g., sodiume chloride) or symbols/formulas (e.g., NaCl). To keep outputs consistent, prefer a plain-text symbol when the paper provides one; otherwise, use the name. Apply the following rules for normalization. 
+           A. Plain-text symbol formatting rules
+           1. Subscripts → inline digits: Write subscripts as normal digits. Examples: Na2SO4 (sodium sulfate).
+           2. Charges/superscripts → caret notation: Use ^ for charge, oxidation state, or any superscripted sign/number. Examples: SO3^2- (sulfite), Fe^2+ (ferrous iron).
+           Note: 1. Parenthetical descriptions in the examples are explanatory only and are not part of the normalized symbol. 2. Use ASCII forms consistently: use - and + (not unicode minus/plus), and use ^ for superscripts.
+           B. Name vs abbreviation rule (when no reliable symbol is used)
+           1. If the text use a well established abbreviations (HA = humic acid, FA = fulvic acid, NOM = natural organic matter), use the abbreviation.
+           2. For novel or non-standard abbreviations (i.e., not covered above):
+              a) If the text uses an abbreviation without defining it, keep the abbreviation as-is.
+              b) If the abbreviation is explicitly defined in the text or captions, use the full name. 
+
+        • For <measurement>
+           a. When extracting numeric values from tables, always interpret them in the context of their headers, parameter names, or footnotes. These may specify scaling factors (e.g., ×10⁻³, %) or transformations (e.g., logK, lnK) that alter the raw numbers. Apply these adjustments before recording the final value.
+           b. Do not report the standard deviation (SD); retain only the central value (e.g., 12.3 ± 0.2 → 12.3). If the SD appears in a separate column rather than in the “mean ± SD” format, simply ignore it.  
+           c. Convert log-scale data (log (base 10) or ln (natural log)) to linear, such as logK (e.g., logK = 2 → KF = 100), keep 3 significant figures, using scientific notation for sufficiently small values. 
+           d. Map descriptive words to canonical numbers (e.g., “neutral pH” → 7.0; “ambient/room temperature” → 25; "overnight" = 12 h). Note: these conversions are defined here for consistency and may not be universally accepted. For example, overnight might mean more than or less than 12 hours; we map it to 12 to standardize the dataset.   
+           e. Multiple statistics (e.g., median, mean, 5th percentile, 95th percentile for particle size) for one parameter → record the median (else mean).
+           f. If a value represents a range or interval (e.g.,"0-5"), preserve the range format. 
+           g. If a comma is used as a thousands separator, record the number without the comma. For example, record “5,348” as “5348”.
+
+        • For <unit>
+           a. Normalize Unicode and symbols (e.g., “\u03BC m” → “µm”, “um” → “µm”, “m 2 g /C0 1” → “m2/g”).  
+           b. Remove encoding artifacts (e.g., “mÂ²/g” → “m2/g”).  
+           c. Collapse extra spaces and fix joins (e.g., “mg / L” → “mg/L”).  
+           d. Convert negative exponents to fractional notation (e.g., “kGy⁻¹” → “1/kGy”, "(μg/mg)(μg/L)^-n" → "(μg/mg)/(μg/L)^n").  
+
+        • For both <measurement> and <unit>
+           a.Interpret trailing “–n” as a negative exponent, not subtraction; if it applies to a <measurement>, convert it to scientific notation (e.g. 3.12 × 10 –7 → 3.12e-7); if it applies to a <unit> and n = -1, convert it to a fraction (e.g., mg L⁻¹ → mg/L); otherwise, rewrite it using exponent notation, add parentheses if necessary (e.g., (ng/L) –1/n → (ng/L)^(–1/n))

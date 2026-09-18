@@ -1,0 +1,45 @@
+key,canonical
+diw,ultrapure water
+di water,ultrapure water
+deionized water,ultrapure water
+de ionized water,ultrapure water
+ultrapure,ultrapure water
+ultrapure water,ultrapure water
+ultra pure water,ultrapure water
+mq,ultrapure water
+milli q,ultrapure water
+milliq,ultrapure water
+sulfuric acid solution,ultrapure water
+millipore water,ultrapure water
+obs solution,ultrapure water
+surface water,surface water
+sw,surface water
+lake water,surface water
+LW,surface water
+middle river,surface water
+river water,surface water
+stream water,surface water
+rw,surface water
+ground water,groundwater
+groundwater,groundwater
+gw,groundwater
+well water,groundwater
+phosphate buffer,salt-spiked DI water
+PB,salt-spiked DI water
+NH4Cl,salt-spiked DI water
+NH4NO3,salt-spiked DI water
+SRNOM,NOM-spiked DI water
+SRFA,NOM-spiked DI water
+SRHA,NOM-spiked DI water
+SRNOM ( C 0 = 5 mg C per L),NOM-spiked DI water
+PLFA,NOM-spiked DI water
+source water,NOM-spiked DI water
+Simulated natural water,synthetic water
+recycled ww,waste water
+recycled wastewater,waste water
+recycled waste water,waste water
+wastewater,waste water
+waste water,waste water
+ww,waste water
+vcc,waste water
+pre-coagulated water,waste water

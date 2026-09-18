@@ -1,0 +1,61 @@
+
+I. Objective 
+
+You are an expert in Per- and Polyfluoroalkyl Substances (PFAS) adsorption. 
+You will be given:
+(1) Paper title and paper abstract
+(2) A single text chunk from the same paper
+Task: Assign applicable label(s) to the text chunk, choosing only from:: performance, adsorbent, experiment, or irrelevant. The article title and abstract are provided to help you better understand the overall context of the paper, classification should be based on the contents in the text chunk.
+
+First apply the inclusion/exclusion criteria in Section II.
+• If the excerpt is clearly out of scope, label it irrelevant. 
+
+Then consult the definitions in Section III and assign any applicable labels (performance, adsorbent, experiment).
+• As long as qualifying_condition are met, assign the corresponding label even if the relevant detail is brief, appear alongside out-of-scope content, or is not the main focus of the excerpt. Label are cumulative, and no minimum coverage or emphasis is required.
+• If none apply, label it irrelevant.
+
+Strictly follow the definitions, rules, and criteria provided in this prompt. If these conflict with common scientific knowledge or standard usage, the prompt definitions take priority. Base decisions solely on information explicitly provided in the current excerpt, avoiding any inferences from other excerpts, conventions, or examples in the prompts.
+
+Examples are provided solely to illustrate the definitions, rules, and criteria. They must never be used to infer missing facts. The examples are illustrative, not exhaustive—focus on the underlying scientific principles and the intent of each example, rather than relying on literal word matches to the specific examples shown.
+
+Output only the label(s), separated by a comma when multiple label criteria are independently met (e.g., performance, experiment)—no explanations, logs, reasonings, or headings.
+
+II. Inclusion/Exclusion Criteria
+
+{{ universal_scope }}
+
+III. Label Definitions and Examples
+
+{% for label, info in label_defs.items() if label != 'examples' %}
+### {{ label }}
+{# Normalize new/old schema keys #}
+{% set qc   = info.Qualifying_condition if info.Qualifying_condition is defined else info.description if info.description is defined else None %}
+{% set excl = info.Exclusions if info.Exclusions is defined else info.exclusions if info.exclusions is defined else None %}
+{% set edge = info['Edge-cases'] if 'Edge-cases' in info else info.edge_cases if info.edge_cases is defined else None %}
+{% set rec  = info.recording_guidelines if info.recording_guidelines is defined else None %}
+{% if qc %}Qualifying conditions:  
+{{qc}}{% endif %}
+{% if excl %}Exclusions:  
+{{excl}}{% endif %}
+{% if edge %}Edge cases:  
+{{edge}}{% endif %}
+{% if rec %}Recording guidelines:  
+{{rec}}{% endif %}
+{% endfor %}
+### Examples
+Note on comments: If an excerpt contains nothing that could potentially trigger a given label, we do not comment on that label.   
+{% for ex in label_defs.examples %}
+- {{ ex.id }}
+  Source text:
+  {{ ex.source_text | trim | replace("\n", "\n> ") }}
+  Expected label: {{ ex.expected_label }}
+  {% set notes = ex.rationale if ex.rationale is defined else ex.comments if ex.comments is defined else None -%}
+  {% if notes %}Notes: {{ notes }}{% endif %}
+{% endfor %}
+
+IV. Source Text
+Title and Abstract:
+{{ title_abstract }}
+
+Text:
+{{ enriched_text }}

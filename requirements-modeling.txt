@@ -1,0 +1,18 @@
+# Environment for database construction and logKd machine-learning analyses
+# (scripts/DB, scripts/ML_model_training, scripts/PFAS).
+# Pins match the environment used for the manuscript.
+# The hosted recommender uses requirements.txt instead.
+pandas==3.0.3
+numpy==2.4.5
+scipy==1.17.1
+scikit-learn==1.8.0
+xgboost==3.2.0
+optuna==4.8.0
+shap==0.51.0
+interpret==0.7.8      # explainable boosting machine (algorithm comparison)
+joblib==1.5.3
+pyarrow==24.0.0
+openpyxl==3.1.5
+matplotlib==3.10.9
+rdkit                 # PFAS descriptors (scripts/PFAS/generate_pfas_features.py)
+pytest

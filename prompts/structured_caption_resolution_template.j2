@@ -1,0 +1,60 @@
+You will be given marked snippets reconstructed from a Docling JSON document stream. The snippets preserve local reading order: nearby text, captions, tables, pictures, and page-break markers. Your task is only to assign printed captions and table footnotes to the marked unresolved objects.
+
+Input format:
+- Objects are marked with HTML comments such as:
+  <!-- TABLE_OBJECT ref="#/tables/4" status="unresolved" missing="table_id,caption_text" page="10" -->
+  <!-- PICTURE_OBJECT ref="#/pictures/2" status="unresolved" missing="figure_id,caption_text" page="3" -->
+- Known context objects may also appear with status="known" or status="context". Use them to understand the local sequence, but do not rewrite known captions.
+- A marked unresolved picture may be another fragment of the same printed figure as nearby known/context picture objects. If the local sequence shows that unresolved and known/context pictures share one printed caption, assign that same figure_id and caption_text to the unresolved picture refs.
+- Object refs are routing handles. Copy them exactly from the input.
+- Tables are rendered as compact markdown previews. Use their columns and row content to decide which nearby caption describes which table.
+- Pictures are represented only by their marked object refs and stream position; OCR text inside pictures is intentionally omitted because it is often noisy.
+- Page-break comments are useful layout clues, but a caption may belong to an object on the next page.
+
+Return exactly one JSON object with no commentary and no extra keys:
+{
+  "study": "<study_id>",
+  "source_file": "<source_file>",
+  "figures": [
+    {
+      "object_refs": ["#/pictures/0", "#/pictures/1"],
+      "figure_id": "Figure 1, Figure S1, Scheme S1, Exhibit 3, or null",
+      "caption_text": "verbatim printed caption or null"
+    }
+  ],
+  "tables": [
+    {
+      "object_refs": ["#/tables/0", "#/tables/1"],
+      "table_id": "Table 1, Table S1, Exhibit 1, or null",
+      "caption_text": "verbatim printed caption or null",
+      "table_footnote": "verbatim printed table footnote/note/abbreviations or empty string"
+    }
+  ]
+}
+
+Rules:
+- Return records only for unresolved marked objects whose missing caption and/or footnote can be recovered from the snippet.
+- One caption should normally be assigned to only one logical object group. If a table is clearly split into continuation fragments, return one table record whose object_refs contains all corresponding table refs in reading order.
+- For a multi-panel figure split into several picture objects, return one figure record containing all unresolved picture refs that belong to the same printed figure, even if known/context picture refs from that figure appear between or beside them. Do not include known-only refs unless they are also marked unresolved.
+- If a caption is between two tables, decide which table it belongs to from reading order and table content. Do not assign the same caption to both sides unless they are clearly fragments of the same printed table.
+- If evidence only supports one object in a nearby group, return only that object's ref in object_refs.
+- Omit an unresolved object if the local snippet does not contain enough evidence to recover its missing field(s).
+- A table footnote may be introduced by Note:, Notes:, Abbreviations:, symbols, lettered notes, or unlabelled parameter/unit definitions immediately following the table. Capture only true table notes, not later prose.
+- Normalize identifiers only in figure_id and table_id fields:
+  - Fig. / Fig / Figure -> Figure.
+  - Tab. / Tabel / Table -> Table.
+  - Keep Scheme as Scheme.
+  - Keep Exhibit as Exhibit.
+  - Figure S.1, Figure S 1, Figure SI 1, Figure SM-1, Supplementary Figure 1, and Figure 1S -> Figure S1.
+  - Table S.1, Table SI 1, Table SM-1, Supplementary Table 1, and Table 1S -> Table S1.
+  - Appendix numbering such as Figure A.1 or Table A-1 -> Figure A1 or Table A1.
+- Exhibit is neutral. If the refs are pictures, put the record in figures; if the refs are tables, put the record in tables. Do not convert Exhibit to Figure or Table.
+- Keep caption_text and table_footnote verbatim as printed in the local text, except for normal whitespace cleanup.
+- If a caption identifier and caption title are split across adjacent lines, combine them as one caption_text with normal whitespace cleanup. Example: "Table S3" followed immediately by "Langmuir isotherm constants ..." becomes "Table S3 Langmuir isotherm constants ...".
+- Do not invent identifiers, captions, or footnotes.
+
+Study: {{ study_id }}
+Source file: {{ source_file }}
+
+Marked snippets:
+{{ snippets_text }}

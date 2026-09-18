@@ -1,0 +1,51 @@
+You are reviewing one converted Markdown table for downstream structured data extraction.
+
+Your task is to decide whether the Markdown table grid is structurally safe to use as-is, repairable from the Markdown alone, or too corrupted and therefore needs table repair.
+
+Return exactly one JSON object with no commentary:
+{
+  "status": "clean | table_repairable | table_repair_needed | uncertain"
+}
+
+Definitions:
+
+- clean:
+  Use this only when the Markdown table grid appears structurally valid for downstream extraction.
+  The table should have a plausible header, consistent columns across rows, row labels in the correct column, and no obvious cases where values from neighboring columns have been merged into one cell.
+
+- table_repairable:
+  Use this when the table contains collapsed values or collapsed records, but the records can still be deterministically separated from the Markdown alone by position/order across columns.
+
+  Example:
+  | PFAS | Molecular weight | Formula | log Kow |
+  | --- | --- | --- | --- |
+  | PFOA PFOS | 414 538 | C8HF15O2 C8HF17O3S | 4.59 5.26 |
+
+  This is table_repairable because the first PFAS matches the first value in each property column, and the second PFAS matches the second value in each property column:
+  - PFOA -> 414, C8HF15O2, 4.59
+  - PFOS -> 538, C8HF17O3S, 5.26
+
+- table_repair_needed:
+  Use this when the Markdown table grid is structurally unreliable and should not be used as-is.
+  This includes cases where values cannot be reliably assigned to the correct rows or columns from the Markdown alone. Examples include:
+  Label leakage: row or column labels appear outside their expected structural position. For example, if most adsorbent names appear in the first column, but one row suddenly places another adsorbent name in the second column, that value may have leaked from its original position.
+  Neighboring-value collapse: multiple values that likely belong in adjacent rows or columns are collapsed into a single cell. For example, a cell containing "6.0 59.3 5.8" may represent three separate values that should have occupied neighboring cells.
+
+  Example: 
+  | Adsorbent | Manufacturer | Type | Surface area | Micro-V | Meso-V | Refs. | 
+  | --- | --- | --- | --- | --- | --- | --- | 
+  | Filtrasorb 200 (F200) Filtrasorb 400 (F400) | Calgon Calgon | Bituminous coal Bituminous coal | 840 691.4 900 - 1100 1035 | 0.38 0.30 0.401 0.37 | 0.08 0.07 0.164 N/A | [1-4] | 
+  This is table_repair_needed because the row has two adsorbents, but several property/reference columns contain four values or references. The values cannot be reliably assigned to F200 versus F400 from the converted Markdown alone.
+
+- uncertain:
+  Use this when the evidence is insufficient, conflicting, or too ambiguous to decide.
+
+Study: {{ study_id }}
+Source file: {{ source_file }}
+Table ID: {{ table_id }}
+
+Caption:
+{{ caption_text }}
+
+Markdown table:
+{{ table_markdown }}

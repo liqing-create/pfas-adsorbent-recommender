@@ -1,0 +1,23 @@
+criteria:
+{% for item in extraction_scope -%}
+  - category: {{ item.category }}
+    include:
+    {%- for inc in item.include %}
+      - {{ inc }}
+    {%- endfor %}
+    exclude:
+    {%- for exc in item.exclude %}
+      - {{ exc }}
+    {%- endfor %}
+    {%- if item.edge_cases %}
+    edge_cases:
+    {%- for edge in item.edge_cases %}
+      - {{ edge }}
+    {%- endfor %}
+    {%- endif %}
+{% endfor %}
+
+apply_rules:
+{% for rule in apply_rules -%}
+  - {{ rule }}
+{% endfor %}

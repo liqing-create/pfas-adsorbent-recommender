@@ -1345,12 +1345,13 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
         choices,
         index=None,
         # One option per compound, shown by abbreviation; a full name, CAS
-        # number or SMILES typed and entered is resolved by the callback.
+        # number or SMILES typed and added is resolved by the callback.
         format_func=lambda choice: choice[2] if isinstance(choice, (tuple, list)) else str(choice),
         placeholder="e.g., PFOA, perfluorooctanoic acid, or 335-67-1",
         help=(
             "The list shows abbreviations. To search by full name, CAS number or SMILES, "
-            "type it and press Enter; a compound in the reviewed cache is matched automatically."
+            "type it and select the “Add” option below the box; a compound in the reviewed cache "
+            "is matched automatically."
         ),
         accept_new_options=True,
         key=PFAS_SEARCH_KEY,

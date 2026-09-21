@@ -498,12 +498,32 @@ def _clean_display_value(value: Any) -> str:
     return str(value).strip()
 
 
+def _alias_key(value: str) -> str:
+    """Normalize a name, abbreviation or CAS number for alias matching.
+
+    Case, spacing and punctuation vary freely in how these are written
+    ("PFOA", "pfoa", "335-67-1", "33567-1"), so only letters and digits count.
+    SMILES are matched verbatim instead, since their punctuation is structure.
+    """
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
 @st.cache_data(show_spinner=False)
-def _load_pfas_choices(path: str, sheet_name: str, modified_ns: int) -> list[PfasChoice]:
-    """Offer each identifier separately while retaining its compound metadata."""
+def _load_pfas_choices(
+    path: str, sheet_name: str, modified_ns: int,
+) -> tuple[list[PfasChoice], dict[str, PfasChoice]]:
+    """Return one dropdown option per compound plus an index of its aliases.
+
+    The dropdown lists each compound once, by abbreviation, because that is how
+    PFAS are usually named in practice; listing the full name and CAS number as
+    options of their own tripled the list.  Those identifiers stay searchable
+    through the alias index, which resolves a typed name, CAS number or SMILES
+    to the same cached compound.
+    """
     del modified_ns  # Part of the cache key so a replaced workbook is re-read.
     frame = pd.read_excel(path, sheet_name=sheet_name)
     choices: list[PfasChoice] = []
+    aliases: dict[str, PfasChoice] = {}
     seen: set[str] = set()
     for _, row in frame.iterrows():
         abbreviation = _clean_display_value(row.get("Abbreviation"))
@@ -511,31 +531,56 @@ def _load_pfas_choices(path: str, sheet_name: str, modified_ns: int) -> list[Pfa
         cas = _clean_display_value(row.get("CAS Number")) or _clean_display_value(row.get("CAS"))
         smiles = _clean_display_value(row.get("Canonical SMILES")) or _clean_display_value(row.get("SMILES"))
         cache_identity = smiles or abbreviation or cas or name
-        if not cache_identity:
+        if not cache_identity or cache_identity.casefold() in seen:
             continue
-        # Separate options keep the dropdown visually clean while still making
-        # the same PFAS discoverable by abbreviation, full name, or CAS number.
-        for identity_type, identity in (
-            ("abbreviation", abbreviation), ("name", name), ("cas", cas),
-        ):
-            if not identity:
-                continue
-            key = identity.casefold()
-            if key in seen:
-                continue
-            seen.add(key)
-            choices.append((
-                identity_type, identity, identity,
-                abbreviation, name, cas, cache_identity,
-            ))
-    return sorted(choices, key=lambda choice: choice[2].casefold())
+        seen.add(cache_identity.casefold())
+        # A compound without an abbreviation is listed under the next most
+        # recognisable identifier rather than dropped from the dropdown.
+        identity_type, identity = next(
+            (kind, value)
+            for kind, value in (
+                ("abbreviation", abbreviation), ("name", name), ("cas", cas), ("smiles", smiles),
+            )
+            if value
+        )
+        choice: PfasChoice = (
+            identity_type, identity, identity,
+            abbreviation, name, cas, cache_identity,
+        )
+        choices.append(choice)
+        for value in (abbreviation, name, cas):
+            if value and _alias_key(value):
+                aliases.setdefault(_alias_key(value), choice)
+        if smiles:
+            aliases.setdefault(smiles, choice)
+    # Abbreviations first; compounds listed under a long systematic name follow,
+    # rather than leading the list because their names start with locants.
+    choices.sort(key=lambda choice: (choice[0] != "abbreviation", choice[2].casefold()))
+    return choices, aliases
 
 
-def _pfas_choices(bundle: Any) -> list[PfasChoice]:
+def _pfas_choices(bundle: Any) -> tuple[list[PfasChoice], dict[str, PfasChoice]]:
     path, sheet_name = pfas_features_source(bundle)
     if not path.is_file() or not sheet_name:
-        return []
+        return [], {}
     return _load_pfas_choices(str(path), str(sheet_name), path.stat().st_mtime_ns)
+
+
+def _resolve_typed_pfas(aliases: dict[str, PfasChoice]) -> None:
+    """Swap a typed full name, CAS number or SMILES for its cached compound.
+
+    The dropdown only searches the abbreviations it displays, so any other
+    identifier arrives as free text.  When that text names a cached compound,
+    the selection becomes the compound itself, exactly as if its abbreviation
+    had been picked; unrecognised text is left as a custom entry.
+    """
+    selected = st.session_state.get(PFAS_SEARCH_KEY)
+    if not isinstance(selected, str) or not selected.strip():
+        return
+    text = selected.strip()
+    match = aliases.get(text) or aliases.get(_alias_key(text))
+    if match is not None:
+        st.session_state[PFAS_SEARCH_KEY] = match
 
 
 def _infer_identity_type(identity: str) -> str:
@@ -1292,20 +1337,31 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
         "PFAS mixture",
         "Search the reviewed cache or enter a name, CAS number, abbreviation, or SMILES.",
     )
-    choices = _pfas_choices(bundle)
+    choices, aliases = _pfas_choices(bundle)
     # The search gets the full card width to itself: at the themed type size a
     # three-way split leaves the button column too narrow for its own label.
     selected = st.selectbox(
         "Search or enter PFAS *",
         choices,
         index=None,
-        # Every cached identifier is its own option, so suggestions stay
-        # concise instead of concatenating abbreviation, name, and CAS.
+        # One option per compound, shown by abbreviation; a full name, CAS
+        # number or SMILES typed and entered is resolved by the callback.
         format_func=lambda choice: choice[2] if isinstance(choice, (tuple, list)) else str(choice),
         placeholder="e.g., PFOA, perfluorooctanoic acid, or 335-67-1",
+        help=(
+            "The list shows abbreviations. To search by full name, CAS number or SMILES, "
+            "type it and press Enter; a compound in the reviewed cache is matched automatically."
+        ),
         accept_new_options=True,
         key=PFAS_SEARCH_KEY,
+        on_change=_resolve_typed_pfas,
+        args=(aliases,),
     )
+    if isinstance(selected, (tuple, list)) and len(selected) == 7:
+        # Confirms which compound an abbreviation or a typed alias stands for.
+        details = [value for value in (selected[4], selected[5]) if value and value != selected[2]]
+        if details:
+            st.caption(f"{selected[2]} · {' · '.join(details)}")
     concentration_column, add_column = st.columns(
         PFAS_ROW_COLUMNS[1:], gap="small", vertical_alignment="bottom",
     )

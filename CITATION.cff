@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying article."
+title: "PFAS adsorbent recommender and literature-to-model workflow"
+authors:
+  - family-names: Yan
+    given-names: Liqing
+    affiliation: "School of Civil and Environmental Engineering, Cornell University"
+  - family-names: Helbling
+    given-names: Damian E.
+    affiliation: "School of Civil and Environmental Engineering, Cornell University"
+repository-code: "https://github.com/liqing-create/pfas-adsorbent-recommender"
+url: "https://pfas-adsorbent-recommender.streamlit.app"
+license: MIT
+preferred-citation:
+  type: article
+  title: "From Literature to Adsorbent Recommendation: LLM-Assisted Data Curation and Machine Learning Modeling of PFAS Adsorption"
+  authors:
+    - family-names: Yan
+      given-names: Liqing
+    - family-names: Helbling
+      given-names: Damian E.
+  status: submitted

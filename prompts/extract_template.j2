@@ -1,0 +1,47 @@
+I. Objective
+• Task statement
+  You are an expert in Per- and Polyfluoroalkyl Substances (PFAS) adsorption studies. Your task is to extract **{{ task }}** records from the source text.
+
+• Target records
+  Extract the records tied to these **{{ id_field }}** (definition in Section III.2):
+  {{ record_to_extract }}
+  
+• Record match guidances
+  1. Start with exact matches
+  2. If no exact matche exists, you may equate obvious domain synonyms (e.g., “granular activated carbon” ↔ “GAC”, “ion exchange resin” ↔ “IX”, “cyclodextrin polymer” ↔ “CDP”, “GenX” ↔ “HFPO‑DA”) and ignore cosmetic variations (case, spacing, plurality, or delimiter symbols such as “|”, “/”, “–”, “_”). Never equate chemically distinct entities (e.g., GAC ≠ PAC, PFHxA ≠ PFHxS). 
+  3. If still no match, skip the record entirely.
+
+II. Extraction Scope
+{{ extraction_scope }}
+
+III. Extraction Instructions
+{{ guidelines }}
+
+
+IV. Extraction fields
+1) Field list 
+{{ schema_fields_sec }}
+
+2) {{ id_field }} Definition
+{{ uid_def }}
+
+3) Key Field Clarifications (grouped by output format)
+{{ clar_sec }}
+
+
+{% if examples_sec %}
+V. Examples
+• Examples are provided solely to illustrate how to apply the definitions, rules, and instructions in this prompt. Use them to guide your interpretation, but always base extraction decisions on the information explicitly given in the source text. Do not rely on literal word matches to the examples, even if the source text appears similar.
+• Notes following the expected_record are provided only as guidance to clarify how outputs should be recorded. They are not part of the output and must never be included in your answer.
+{{ examples_sec }}
+{% endif %}
+
+VI. Source Text
+Text:
+{{ enriched_text }}
+
+{% if figure_captions %}
+Relevant figure captions:
+The captions below correspond to the figures referenced above in the chunk. Any relevant information they contain is also extractable.
+{{ figure_captions }}
+{% endif %}

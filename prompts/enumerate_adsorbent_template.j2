@@ -1,0 +1,112 @@
+I. Objective
+You will receive the abstract and text chunk(s) from the same paper. Your task is to enumerate all unique adsorbents used or evaluateed in the current study and classify them as either in-scope and out-of-scope. Treat both the abstract and the text chunks as valid sources of evidence. Extractable fields must be original to the current study. Adsorbents mentioned only in previous work should be ignored and excluded from the output unless they are also used or evaluated in the current study.
+
+II. Scope Classification
+Classify each candidate adsorbent as either in_scope or out_of_scope.
+
+1. In-scope adsorbents are limited to the following categories for this project:
+- Activated carbon, including AC, PAC, and GAC
+- Ion-exchange resins, includes anion exchange resins, cation exchange resins, mixed anion/cation exchange resins, and specialty ion exchange resins. 
+- Non-ionic resins, includes nonionic, neutral, hydrophobic, polar, nonpolar, hypercrosslinked, styrene-DVB, acrylic, or other synthetic polymeric adsorbent resins used for contaminant adsorption.
+- Cyclodextrin polymers, including CDP, StyDex, and DEXSORB
+- Modified clays/minerals
+- An adsorbent derived from an in-scope base material remains in scope after modifications such as amine grafting, functionalization, acid/base treatment, grinding, pulverization, or sieving into particle-size fractions. This does not override explicitly out-of-scope categories; for example, a composite remains out of scope even if one component is an in-scope material.
+
+2. Adsorbents outside these categories are out of scope, but should still be extracted under the out_of_scope object when they are used in the current study. Examples of out-of-scope adsorbents may include, but are not limited to:
+- Composite adsorbents, even when an in-scope adsorbent is one component, such as graphene oxide/activated carbon composites
+- Biochar
+- MOFs or MOF composites
+
+III. Output Format
+Return strict JSON only. Use this exact structure:
+
+{
+  "adsorbents": {
+    "in_scope": [
+      {
+        "Adsorbent_id": "",
+        "Name_Abbreviation": "",
+        "Name_Full": "",
+        "Name_Commercial": "",
+        "Adsorbent_category": "",
+        "Adsorbent_subcategory": "",
+        "Data_Source": ""
+      }
+    ],
+    "out_of_scope": [
+      {
+        "Adsorbent_id": "",
+        "Name_Abbreviation": "",
+        "Name_Full": "",
+        "Name_Commercial": "",
+        "Adsorbent_category": "",
+        "Adsorbent_subcategory": "",
+        "Data_Source": ""
+      }
+    ]
+  }
+}
+
+If no adsorbents are present, return:
+
+{
+  "adsorbents": {
+    "in_scope": [],
+    "out_of_scope": []
+  }
+}
+
+where:
+- Adsorbent_id: The unique identifier for one adsorbent. Assign it using this priority:
+  1. If Name_Abbreviation is extractable, use Name_Abbreviation.
+  2. Else if Name_Full is extractable, use Name_Full.
+  3. Else if Name_Commercial is extractable, use Name_Commercial.
+  4. Else, do not create the adsorbent record.
+- Name_Abbreviation: A concise acronym, code, or synonym that uniquely identifies an adsorbent and is typically a condensed or symbolic form of the full name or commercial name (e.g., "F400", "CBC-500", "amine-CDP"). Do not infer abbreviations, record only those explicitly provided by the authors.
+- Name_Full: The complete or descriptive name that uniquely identifies a single adsorbent, typically referring to its composition, source, or preparation (e.g., "coconut-based GAC", "virgin bituminous AC", "amine-functionalized CDP").   
+- Name_Commercial: The trade, product, model, or series name under which the adsorbent is sold by a supplier (e.g., "FILTRASORB 400", "AquaSorb Omni G, -12 × 40"). Record this name only when the commercial adsorbent is used as received. If the commercial adsorbent is further processed—such as by grinding, surface modification, or reactivation—do not retain the parent commercial name, because the resulting material is no longer commercially available under that name.   
+- Adsorbent_category: Broad classification based on evidence in the provided chunks. 
+  - For in_scope adsorbents, use exactly one of::
+    - Activated carbon
+    - Ion exchange resin
+    - Nonionic resin
+    - Cyclodextrin polymers
+    - Clay/mineral
+  - For out_of_scope adsorbents, use a concise descriptive category based on the source text.
+
+- Adsorbent_subcategory: A short, standardized label identifying the adsorbent's subtype or format. 
+  - For in_scope adsorbents, if the subtype is on the shortlist, use it verbatim (see below); else if the subtype is known but not on the shortlist, capture it verbatim (remove extraneous spaces around hyphen and symbol standardization are allowed); else if the subtype is not provided in the source, omit this key entirely, do not guess. Shortlist_by_category:
+    - Activated carbon: powdered activated carbon, granular activated carbon, specialty activated carbon
+    - Ion exchange resin: strong acid cation, weak acid cation, strong base anion, weak base anion, specialty resins
+    - Nonionic resin: nonpolar, polar
+    - Cyclodextrin polymers: β-CD polymer 
+    - Clay/mineral: bentonite, montmorillonite, kaolinite
+  - For out_of_scope adsorbents, use a concise descriptive subcategory based on the source text. If the subtype is not provided in the source, omit this key entirely.
+
+- Data_Source: Return only the visible chunk number after `Chunk` in the source header, not the `Data_Source=...` backend identifier. For example, for `Chunk 6 (Data_Source=table_0; labels=adsorbent)`, return `6`. If a record relies on multiple chunks, separate the chunk numbers with commas, such as `6, 7`.
+
+
+IV. Enumeration rules
+- Create one object per unique adsorbent identity across all provided chunks, not one object per mention. For example, if one chunk says "virgin coconut activated carbon (VC-AC)" and later chunks use "VC-AC", output one record with Name_Abbreviation = "VC-AC" and Name_Full = "virgin coconut activated carbon".
+- If a base adsorbent is processsed (e.g., modified with different functional groups, milled to different sized) to produce multiple distinct variants that were separately prepared, used, evaluated, or characterized in the current study, treat each variant as a separate adsorbent. If the variants have unique source-reported names or codes, extract those names in the appplicable name fields and assign Adsorbent_id accordingly. For example, if "AquaCarb 1230C activated carbon" is crushed into "granular activated carbon (GAC)" and "powder activated carbon (PAC)", create separate records for AquaCarb 1230C, GAC, and PAC. If only the base adsorbent name is available, append in parentheses the minimum source-reported attribute needed to distinguish the variants. Distinguishing attributes may include particle- or grain-size fraction, modification, treatment, grade, feedstock, structural feature, model or series, or another explicitly reported variant designation. Append the same distinguishing attribute to each name field that is otherwise extractable from the source so that all populated name fields identify the same variant. Do not infer a missing abbreviation, full name, or commercial name solely to include the distinguishing attribute. After constructing the variant-specific name fields, assign Adsorbent_id using the specified priority. For example, "CCAC is crushed and sieved into 10-75, 125-212, and 425-850 μm and their properties are characterized separately", record CCAC (10-75 μm), CCAC (125-212 μm), and CCAC (425-850 μm). Do not append an attribute that is merely descriptive and is not needed to distinguish adsorbents. For example, from "coal-based Filtrasorb 400 (F400)," record Name_Full as "Filtrasorb 400" and Name_Abbreviation as "F400", unless the paper distinguishes multiple Filtrasorb 400 variants by feedstock. 
+- Do not create separate adsorbent records for minor apparent typos, encoding artifacts, or formatting differences when the context strongly indicates they refer to the same adsorbent. Use the most explicitly defined and best-supported name/code for the record. However, do not merge similar-looking adsorbent names based only on literal similarity, because small differences may indicate genuinely different materials. If contextual evidence is insufficient, keep them separate.
+- If a shared prefix clearly applies to every item in a list, carry it over. For example, "FILTRASORB F100, F200, and F300" should be recorded as three commercial names: "FILTRASORB F100", "FILTRASORB F200", and "FILTRASORB F300".
+- Category terms can be used in two ways:
+  1. If a category term refers only to a broad group containing multiple adsorbents, record it only as Adsorbent_category and do not create a separate adsorbent record from the category term alone. For example, "ion exchange resins A532E, A520E, and IRA900 were tested" -> record A532E, A520E, and IRA900 separately; do not create an additional generic “ion exchange resins” record.
+  2. If a category term refers to one uniquely identifiable adsorbent sample, it may be used as a name field as well as Adsorbent_category. For example, “PAC and IX were selected as adsorbents” -> record PAC and IX as two adsorbent records because each term refers to one adsorbent identity/type in that context. 
+  Note: Do not decide broad-category vs. specific-identity use based only on whether the term is singular or plural. Plural wording may refer to a single adsorbent identity present as many particles, beads, or granules, or it may refer to multiple distinct adsorbents.  
+
+V. Source Text
+Abstract:
+{{ abstract}}
+
+{% if paper_chunks %}
+Text chunks:
+{{ paper_chunks }}
+{% else %}
+No adsorbent-labeled text chunks were available. Enumerate from the abstract only; do not infer details that are not stated there.
+{% endif %}
+
+
+
+

@@ -1,0 +1,28 @@
+You are reviewing the beginning of one converted scientific Markdown table for downstream data extraction.
+
+Your task is to identify the initial table rows that act as column header/context rows before the first data row.
+
+Return exactly one JSON object with no commentary and no extra keys:
+{
+  "header_rows": [<integer row numbers>]
+}
+
+Rules:
+- The input rows are numbered table rows. The Markdown alignment separator row has been omitted.
+- header_rows must be a contiguous prefix starting at ROW 1, for example [1], [1, 2], or [1, 2, 3, 4].
+- Include all initial rows needed to interpret columns: column names, grouped labels, units, dates/timepoints, adsorbents, matrices, conditions, sample groups, analytes, and other column context.
+- Stop before the first row containing actual observations, measurements, records, or analyte/sample entries.
+- If ROW 1 alone is the complete header, return {"header_rows": [1]}.
+- If you cannot confidently identify the header prefix, return {"header_rows": []}.
+- Do not include data rows, footnote rows, or explanatory prose.
+
+Study: {{ study_id }}
+Source file: {{ source_file }}
+Table ID: {{ table_id }}
+Docling header row count: {{ docling_header_rows }}
+
+Caption:
+{{ caption_text }}
+
+Numbered table rows:
+{{ numbered_rows }}

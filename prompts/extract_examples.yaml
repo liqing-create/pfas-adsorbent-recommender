@@ -1,0 +1,311 @@
+performance:
+  - id: "1"
+    requested_Performance_id: "PFBA|GAC-1|NA"
+    source_text: |
+      Table S8. Adsorption isotherms parameters for the adsorption of PFASs on ACs (pH = 7, PFAS initial concentration = 100 ng L-1).
+      | Compounds   | Type of AC   | Langmuir model   | Langmuir model   | Langmuir model   | Freundlich model   | Freundlich model   | Freundlich model   |
+      |-------------|--------------|------------------|------------------|------------------|--------------------|--------------------|--------------------|
+      | Compounds   | Type of AC   | Q (μg mg /C0 1)  |  k L (10 3 Lmg -1 ) | R2            |   n - 1             | KF (/C2 10 - 3 (  /u1D707 g/mg) (  /u1D707 g/L) -n)  | R2  |
+      | PFBA        | GAC-1        | 51.8             | 193.0            | 0.98             | 0.89               | 3              | 0.99               |
+      | PFBA        | PAC-1        | 48.5             | 17.2             | 0.98             | 0.91               | 10               | 0.99               |
+    expected_record: |
+      Performance_id: PFBA|GAC-1|NA
+      PFAS_name: PFBA
+      Adsorbent_name: GAC-1
+      Specific_Condition: NA
+      Generic_Condition: pH_7; PFBA_100_ng/L
+      Parametric_impact: Adsorbent_type
+      Freundlich_equation_form: 1/n
+      Freundlich_KF_value: 0.003
+      Freundlich_KF_unit: (μg/mg)/(μg/L)^n
+      Freundlich_n_or_1/n_verbatim: 1/n_0.89
+      Freundlich_R2: 0.99
+      Langmuir_Qm_value: 51.8
+      Langmuir_Qm_unit: μg/mg
+      Langmuir_KL_value: 193000
+      Langmuir_KL_unit: L/mg
+      Langmuir_R2: 0.98
+    notes: |
+      Only fields with extractable values are included. Fields without (e.g., removal rate, Kd, etc) are ignored entirely.      
+      Units for Qm, KL and KF are explicitly provided provided, they are recorded after normalization (e.g., unicode fixes (/u1D707 → μ); fractional over exponent; collapse spacing).
+      Freundlich_KF_value and Langmuir_KL_value: The table header specifies that KF and KL are scaled by 10⁻³ and 10³, respectively. Therefore, the raw entries must be adjusted before recording: 3 × 10⁻³ = 0.003 and 193.0 × 10³ = 193000.
+      Freundlich_n_or_1/n_verbatim: trailing “–1” as a negative exponent, so n -1 is n^-1, convert to fration 1/n. 1/n_0.89 → Freundlich_equation_form = 1/n, while Freundlich_KF_unit: (μg/mg)/(μg/L)^n → Freundlich_equation_form = n, Freundlich_n_or_1/n_verbatim > Freundlich_KF_unit, 1/n was adopted.
+      Generic_condition: pH and PFAS initial concentration are identical to all records.
+      Parametric_impact: Marked Adsorbent_type because the table explicitly compares different adsorbents (GAC-1 vs PAC-1) for the same PFAS under the same conditions. 
+
+
+  - id: "2"
+    requested_Performance_id: "PFOA|HFAC (425-850 um)|calcium_0.1_mM&&sodium chloride_5.8_mM"
+    source_text: |
+      Table S9.  Performance metrics for PFOA with different salt solutions on HFAC (425-850 um).
+      | Ca 2 + (mM)  | NaCl (mM) | log KD    | Qe    |R (mg adsobed / mg in solution) |
+      |--------------|-----------|---------|-------|-------|
+      | 0            | 0         | 1.1± 0.2   | 4.2 ± 0.2 |576.5   | 
+      | 0            | 1         | 0.8± 0.4   | 3.1± 0.4 | 414.7   |  
+      | 0.1          | 5,8       | 0.5± 0.3   | 2.7± 0.1 |327.6   | 
+    expected_record: |
+      Performance_id: PFOA|HFAC (425-850 um)|calcium_0.1_mM&&sodium chloride_5.8_mM
+      PFAS_name: PFOA
+      Adsorbent_name: HFAC (425-850 um)
+      Specific_Condition: calcium_0.1_mM&&sodium chloride_5.8_mM
+      Generic_Condition: NA
+      Parametric_impact: inorganic_matter
+      Kd_value: 3.16
+       Qe_value: 2.7
+    notes: |
+      Generic_Condition: NA is a valid extractable value for Generic_Condition, indicating no universally applicable conditions exists in the current excerpt.
+      Parametric_impact: The effects of inorganic matter is examined, based on the entire table rather than solely the specified Performance_id.
+      Kd_value: logKd is provided, ignore SD, convert to linear form (10^0.5=3.16).  
+       Qe_value: Qe is provided directly, so ignore SD and record the equilibrium value. 
+       No units are reported for Kd and Qe, do not hallucinate the unit, omit Qe_unit and Kd_unit fields. 
+      R (mg adsorbed/mg in solution) is not a removal rate, as its values are not within the 0–1 range; it is also not Qe, which represents the equilibrium amount adsorbed on the solid phase; nor is it Kd, since the units do not match those of Kd. Therefore, it cannot be mapped to any requested field and was omitted entirely. 
+
+  - id: "3"
+    requested_Performance_id: "PFOA|HFAC (425-850 um)|calcium_0.1_mM&&sodium chloride_5.8_mM"
+    source_text: |
+      Table 2. S. Pseudo second-order parameters of the adsorption of PFOS from Leuna groundwater.
+      | ACF adsorbent   | Adsorbate   |   qecal ( μg m /C0 2 )  |    k2 (m 2 μg /C0 1 min /C0 1 ) |    R2 |
+      |-----------------|-------------|-----------|------|-------|
+      | FC15            | PFOS        |       1.545 | 4.846 | 0.991 |
+    expected_record: |
+      Performance_id: PFOS|FC15|NA
+      PFAS_name: PFOS
+      Adsorbent_name: FC15
+      Specific_Condition: NA
+      Generic_Condition: Leuna groundwater
+      Parametric_impact: NA
+      PSO_Qe_value: 1.545
+      PFO_Qe_unit: μg/m2
+      PSO_k2_value: 4.846
+      PSO_k2_unit: m2/μg/min
+    notes: |
+      The excerpt contains a single Performance record, Specific_Condition = NA as no condition is needed to distinguish it from others. Generic_Condition captures the reported experimental conditions (in this case, the table provides Water_matrix information, which should be recorded verbatim).
+      Kinetic parameters are normalized to specific spefic surface area (m2) here, record as provided.
+      Parametric_impact: NA is recorded (rather than omitted) because it is explicitly prescribed to indicate that no adsorption performance is tied to a parameter sweep. This typically applies to tables with only a single performance record, where no parameter variation is involved. 
+
+  - id: "4"
+    requested_Performance_id: "unit"
+    source_text: |
+      Langmuir (Cs = Qm · KL · Ce / (1 + KL · Ce)), Freundlich, and Temkin models were used for adsorption mechanism analysis[28]. Cs is the adsorbed level (mg/g) and Ce is the concentration (mg / l) adsorbed at equilibrium. KL and kf are Langmuir and Freundlich constants, respectively, 1/n is an empirical constant that specifies the adsorption intensity of the system, and q is the maximum adsorption capacity of the adsorbent. B and KT in the Temkin equation represent constant related to the heat of sorption (J/mol) Temkin isotherm equilibrium binding constant (L/g)
+    expected_record: |
+      Performance_id: unit 
+      Langmuir_Qm_unit: mg/g 
+      Langmuir_KL_unit: L/mg 
+      Qe_unit: mg/g
+    notes: |
+      The unit for Qe was explicitly reported. In this case, Cs was used instead of Qe, but since it represents the equilibrium adsorbed level, it is equivalent to Qe.
+      No information (Freundlich_n_or_1/n_verbatim, explicit equation text, Freundlich_KF_unit) is present to determine of Freundlich_equation_form, so the field is omitted. 
+      Langmuir_Qm_unit and Langmuir_KL_unit were not provided explictly but can be derived from the governing equations together with the reported units of Ce and Qe. From the linear form of Langmuir isotherm, 1/Qe = 1/(Qm.KL.Ce)+1/Qm, each term must share the same unit as 1/Qe. Since Qe and Qm are both given in mg/g, the product Qm.KL.Ce must also yield mg/g. threfore, KL.Ce is dimensionless. with Ce in mg/L, so Langmuir_KL_unit: L/mg.
+      The unit for Freundlich_KF_unit is not explictly provided and no governing equation is provided in the excerpt, so the field is omitted.  
+
+adsorbent:
+  - id: "1"
+    requested_Adsorbent_id: "1230C, StyDex D2"
+    source_text: |
+      We selected two StyDex polymers each crosslinked with two molar equivalents of styrene derivatives bearing either quaternary ammonium (StyDex D2) or quaternary phosphonium (StyDex E2) ions per mole of StyDex monomer. We also obtained commercially available CCAC AquaCarb ® (1230C, Westates Carbon, Siemens, Roseville, MN), AWAC Filtrasorb ® (400M, Calgon Carbon Co., Pittsburgh, PA), and HFAC (granular activated carbon used at a local drinking water treatment facility to process PFAS-contaminated groundwater). Each AC was pulverized with a mortar and pestle and sieved into different particle size bins (10 e 75, 125 e 212, 425 e 850, and 1000 e 1700 m m); the two smaller size bins are representative of PAC and the two larger size bins are representative of GAC. Specific surface areas and porosity are measured and shown in Table S1. 
+    expected_record: |
+      Adsorbent_id: 1230C
+      Name_Commercial: CCAC AquaCarb ®
+      Name_Full: NA
+      Name_Abbreviation: 1230C
+      Adsorbent_category: Activated carbon
+      Adsorbent_subcategory: powdered activated carbon (PAC); granular activated carbon (GAC)
+      Vendor: Westates Carbon, Siemens (Roseville, MN)
+      Particle_size: 10-75_µm; 125-212_µm; 425-850_µm; 1000-1700_µm
+
+      Adsorbent_id: StyDex D2
+      Name_Commercial: NA
+      Name_Full: NA
+      Name_Abbreviation: StyDex D2
+      Adsorbent_category: Cyclodextrin polymers
+      Raw_Material: StyDex monomer
+      Functional_group: quaternary ammonium
+    notes: |
+      Only fields with extractable values are included. Fields without extractable values (e.g., surface area and porosity) are ignored entirely.
+
+
+  - id: "2"
+    requested_Adsorbent_id: "PAC"
+    source_text: |
+      The coal-based activated carbons were first rinsed with deionized water for several times and then washed in 80 /C14 Cdeionized water for 2 h to remove the impurities. After being dried in an oven at 105 /C14 C for 48 h, they were crushed by a mortar and screened. The activated carbons in the size range of 0.9-1.0 mm were used as the granular activated carbon (GAC), while the powder activated carbon (PAC) in this paper represented the particles below 0.1 mm. 
+    expected_record: |
+      Adsorbent_id: coal-based activated carbons
+      Name_Commercial: NA
+      Name_Full: coal-based activated carbons
+      Name_Abbreviation: NA
+      Adsorbent_category: Activated carbon
+      Raw_Material: coal
+
+      Adsorbent_id: PAC
+      Name_Commercial: NA
+      Name_Full: powdered activated carbon
+      Name_Abbreviation: PAC
+      Adsorbent_category: Activated carbon
+      Adsorbent_subcategory: powdered activated carbon (PAC)
+      Particle_size: <0.1_mm
+      Raw_Material: coal-based activated carbons
+      Vendor: lab-made
+    notes: |
+      "Coal-based activated carbons" were processed to produce named adsorbents (PAC and GAC). Both the original adsorbent (coal-based activated carbons) and the derived adsorbents (PAC, GAC) should be recorded as separate adsorbent entries.  
+      "Coal-based activated carbons" describes the activated carbon’s precursor material within its name, this information is parsed out and entered in the Raw_Material field. For the derived adsorbents, the original coal-based activated carbon is listed under Raw_Material.  
+      Since PAC (and GAC) was prepared in-house from coal-based activated carbons, the Vendor field is recorded as "lab-made". Because no vendor information is explictly provided for the original coal-based activated carbons or the resins, the Vendor field is omitted for those entries. 
+
+  - id: "3"
+    requested_Adsorbent_id: "granular activated carbon"
+    source_text: |
+      Table 1. The property of the granular activated carbon.
+      | Pore volume       | 0.375 cm 3 g - 1 |
+      |-------------------------|------------------|
+      | Average pore diameter   | 2.5 nm           |
+      | Surface area            | 534 m 2 g - 1    |
+      | Vmicro+meso (cm3/g)     |   0.512          |
+      | Diameter                | 20-40 mesh       | 
+      | Total surface N content by XPS | 2.66%     | 
+
+    expected_record: |
+      Adsorbent_id: granular activated carbon
+      Name_Commercial: NA
+      Name_Full: granular activated carbon
+      Name_Abbreviation: NA
+      Adsorbent_category: Activated carbon
+      Adsorbent_subcategory: granular activated carbon (GAC)
+      Particle_size: 20-40_mesh
+      Average_pore_diameter_(Angstrom): 25
+      SSA_(m2/g): 534
+      Total_pore_volume_(cm3/g): 0.375
+      N%: 0.0266
+      Elemental_composition_method: XPS
+    notes: |
+      SSA_(m2/g) and Average_pore_diameter_(Angstrom) were recorded using only the numeric value for <measurement>. Conversion was conducted (2.5 nm → 25 Angstrom) to meet the specified unit. 
+      Particle_size was recorded as <measurement>_<unit> format.   
+      Total_pore_volume_(cm3/g) was recorded as a numeric value in cm3/g without a pore-type prefix.
+      Total surface N content is 2.66%, convert percentage to decimal, N%: 0.0266. 
+      Vmicro+meso (cm3/g) = 0.512 Vmicro+meso (cm³/g) = 0.512 was not recorded because it represents the combined volume of micropores and mesopores, which is not among the requested fields. Only total, micro, meso, or macro pore volumes should be recorded in the specific split pore-volume fields, so this value was omitted. 
+   
+experiment:
+  - id: "1"
+    requested_Experiment_id: "snapshot|organic_matter"
+    source_text: |
+       Sorption experiments were carried out in the presence of co -contaminants to determine their influence on the sorption of PFAS onto GAC. Co contaminants -included kerosene (Ker; 0.1 mg/L) as a model fuel extinguished by AFFF, trichloroethylene (TCE; 1 mg/L) as a model solvent that can be present at AFFF sites, and ethanol (Et; 1 mg/L) as an AFFF additive. Experiments were carried out in duplicate with a mixture of PFOA and PFOS and two types of GAC, F400 and CBC. Co contaminants were -added, each separately. Sorption of 0.1 mg of each PFOA and PFOS in the mixture, in the presence of co contaminants, different carbon masses (5 to 15 mg) of each of the two carbon types and a zero control were evaluated in 125 ml of DI water in 150 ml polypropylene reactors. The sample pH was controlled at 7.2 using 0.1 M phosphate buffer. Reactors were tumbled at 145 rpm at room temperature and 1 mL of solution were sampled at 7 days (Table 1).
+    expected_record: |
+      Experiment_id: snapshot|organic_matter
+      Test_mode: snapshot
+      Parametric_impact: organic_matter
+      Adsorbent_dosage: F400_5-15_mg; CBC_5-15_mg
+      Water_type: ultrapure water
+      pH: 7.2
+      PFAS_initial_concentration: PFOA_0.1_mg; PFOS_0.1_mg
+      Organic_matter: kerosene (Ker)_0.1_mg/L; trichloroethylene (TCE)_1_mg/L; ethanol (Et)_1_mg/L
+      Background_species: phosphate buffer_0.1_M
+      Solution_volume_(mL): 125
+      Contact_time_(h): 168
+      Temperature_(°C): 25
+      Mixing_speed_(rpm): 145
+    notes: |
+      Only fields with extractable values are included. Fields without extractable values are ignored entirely.
+      DI water belongs to ultrapure water.
+      Room temperature was converted to 25 °C, 7 days was converted to 168 h.
+      Test_mode = snapshot because one PFAS initial concentration, one contact time, and adsorbent dosage is a range (assume <5).
+      125 mL is the solution volume while 150 mL is the container volume and 1 ml is the sampling volume. 
+      Although the original connector for adsorbent dosage is "to", normalize to hyphen because both bounds are intergers.  
+
+  - id: "2"
+    requested_Experiment_id: "snapshot|organic_matter"
+    source_text: |
+       Batch adsorption experiments with PFOA and PFOS were carried out in 25 mL vessels containing 10 mL solution and 2.5 mg ACFs. The pH of the system was then adjusted to the desired value by adding 0.1 M HCl or NaOH solution. In general, the concentration of Na + in all solutions increased due to pH adjustment by (60 ± 30) µM, which is negligible compared to 10 mM Na2SO4 background electrolyte. The vessels were then shaken overnight by the reciprocal shaker at 120 spm  at room temperature (22 /C14 C). The pH of the solutions containing adsorbent was checked and adjusted again to the desired value; certain concentrations of PFOA and PFOS in the solution were then prepared by adding specific volumes of their 200 mg/L aqueous stock solutions. In the case of NOM experiments, 100 mg/L stock solutions of NOM in 10 mM Na2SO4 adjusted to pH 7 were prepared and used.
+    expected_record: |
+      Experiment_id: snapshot|organic_matter
+      Test_mode: snapshot
+      Parametric_impact: organic_matter
+      Adsorbent_dosage: ACFs_2.5_mg
+      PFAS_initial_concentration: PFOA; PFOS
+      Organic_matter: NOM
+      Background_species: sodium sulfate_10_mM; hydrochloric acid_0.1_M; sodium hydroxide_0.1_M
+      Solution_volume_(mL): 10
+      Contact_time_(h): 12
+      Temperature_(°C): 22
+      Mixing_speed_(rpm): 120
+    notes: |
+      Adsorbent_dosage is provided in mass, record with this unit.
+      For PFAS_initial_concentration, and Organic_matter, only the <descriptor> was provided, no <measurement> values (stock concentrations are not working concentrations), NA is not prescribed for the missing <measurement> values here, so the entire _<measurement>_<unit> portion is omitted. 
+      Background_species, Na2SO4 is the background electrolytes while NaOH and HCl are pH adjusting agents (The text indicates that pH adjustment was performed for all experiments, not just those with Parametric_impact = pH). The sodium ion increase (~60 µM) is excluded because it is secondary byproduct of pH adjustment.
+      /C14 C is the unicode form of °C.  
+
+
+  - id: "3"
+    requested_Experiment_id: "isotherm|matrix_effect_synthetic water, isotherm|matrix_effect_natural waters, kinetic|matrix_effect_synthetic water, kinetic|matrix_effect_natural waters"
+    source_text: |
+       For isotherm studies, 10 -1000 mg of resins (221 mg dry weight of resin = 1 mL of wet resin) were mixed for 24 h (equilibrium) with 1 L of synthetic water having 0.1 -100 μ g GenX (or PFMOPrA/PFMOBA)/L and 5 mg C/L initial concentration of SRNOM, or natural waters (surface/ wastewaters). The initial inorganic ion concentration for all the synthetic water tests were between 5 -100 mg/L for all the species (sulphate, nitrate, and bicarbonate). After 24 h, the resins were filtered from the treated water using a 0.45 μ mpre-rinsed syringe filters, prior to determining the final DOC and PFASs concentrations. For kinetic studies, 0.45 mL of resin was mixed with 1 L of water in circular beakers agitated with a Phipps & Bird 9900 Jar tester operated at 150 rpm for contact times varying from 2 min up to 24 h. All synthetic water studies were performed at pH 7.0 ± 0.2, while the studies with natural waters was performed at natural pH (see effect of pH in SI). Triplicate experiments were performed for every experimental condition, and a control test involving contaminant solution without resin was included. Each sample was analyzed in triplicate. 
+    expected_record: |
+      Experiment_id: isotherm|matrix_effect_synthetic water
+      Test_mode: isotherm
+      Parametric_impact: matrix_effect_synthetic water
+      Adsorbent_dosage: resins_10-1000_mg
+      Water_type: synthetic water
+      Solution_volume_(mL): 1000
+      Contact_time_(h): 24
+      PFAS_initial_concentration: GenX_0.1-100_µg/L; PFMOPrA_0.1-100_µg/L; PFMOBA_0.1-100_µg/L
+      Background_species: sulfate_5-100_mg/L; nitrate_5-100_mg/L; bicarbonate_5-100_mg/L; SRNOM_5_mg C/L       
+
+      Experiment_id: isotherm|matrix_effect_natural waters
+      Test_mode: isotherm
+      Parametric_impact: matrix_effect_natural waters
+      Adsorbent_dosage: resins_10-1000_mg
+      Water_type: surface water; wastewater
+      Solution_volume_(mL): 1000
+      Contact_time_(h): 24
+
+      Experiment_id: kinetic|matrix_effect_synthetic water
+      Test_mode: kinetic
+      Parametric_impact: matrix_effect_synthetic water
+      Adsorbent_dosage: resin_99.45_mg
+      Water_type: synthetic water
+      pH: 7
+      PFAS_initial_concentration: GenX_0.1-100_µg/L; PFMOPrA_0.1-100_µg/L; PFMOBA_0.1-100_µg/L
+      Background_species: sulfate_5-100_mg/L; nitrate_5-100_mg/L; bicarbonate_5-100_mg/L; SRNOM_5_mg C/L       
+      Solution_volume_(mL): 1000
+      Contact_time_(h): 0.033-24
+      Mixing_speed_(rpm): 150
+
+      Experiment_id: kinetic|matrix_effect_natural waters
+      Test_mode: kinetic
+      Parametric_impact: matrix_effect_natural waters
+      Adsorbent_dosage: resin_99.45_mg
+      Water_type: surface water; wastewater
+      Solution_volume_(mL): 1000
+      Contact_time_(h): 0.033-24
+      Mixing_speed_(rpm): 150
+    notes: |
+      Isotherm and kinetic experiments were performed in both synthetic water and natural waters, resulting in two records each and 4 records in total.  
+      For the synthetic water, PFAS (0.1–100 µg/L), SRNOM (5 mg/L), and inorganic ions (sulfate, nitrate, bicarbonate, each 5–100 mg/L) were explicitly spiked but they aren’t the parameter under study. So they belong under Background_species, not under Added_*.
+      The excerpt does not report PFAS concentrations or water composition for the natural waters (surface water, wastewater). Do not infer these values from the synthetic water entries, as no explicit statement links them.
+      0.45 mL resin was converted to 99.45 mg using the conversion factor provided in the excerpt (0.45 mL * 221 mg/ml).
+
+  - id: "4"
+    requested_Experiment_id: "water_properties_surface water (SW)|NA, water_properties_organic-free water|NA"
+    source_text: |
+       Organic-free water was prepared from distilled water buffered with a 1 × 10 -3 mol/L sodium bicarbonate solution. The surface water used in all the experiments was collected from the Finger Lake in New York (denoted as SW). It is characterized by an organic content of 5.0 ± 0.1 mg/L DOC, a conductivity of 736 ± 17 μ S/ cm, a pH of 7.5 ± 0.2, a specific UV absorbance at 254 nm (SUVA254) value of 2.1 ± 0.2 L/(mg·m). For both batch isotherms and RSSCTs tests, these water samples were spiked with a PFAS stock solution containing 10 mg/L each of the eight PFAS to adjust their concentrations at 1 μ g/L each in the test solutions.
+    expected_record: |
+      Experiment_id: water_properties_surface water (SW)|NA
+      Test_mode: water_properties_surface water (SW)
+      Parametric_impact: NA
+      Water_sample_source: Finger Lake
+      Water_sample_location: New York
+      Water_type: surface water
+      pH: 7.5
+      DOC_(mg/L): 5
+      Conductivity_(µS/cm): 736
+      PFAS_initial_concentration: general_1_μg/L
+
+      Experiment_id: water_properties_organic-free water|NA
+      Test_mode: water_properties_organic-free water
+      Parametric_impact: NA
+      Water_type: ultrapure water
+      PFAS_initial_concentration: general_1_μg/L
+      Background_species: sodium bicarbonate_1e-3_mol/L
+
+    notes: |
+      Water_type is chosen from the predefined shortlist. Water_type for organic-free water is ultrapure water because it derives from distilled water before adding buffer agent.  
+      surface water (SW) is used as the <WaterLabel> in water_properties_<WaterLabel> because both “surface water” and “SW” refer to the same water sample, <WaterLabel> is constructed as Long name (Short name).
+      The 1 µg/L value is recorded under PFAS_initial_concentration because it represents the working concentration in the test solutions. Note the stock solution concentration (10 mg/L) is still excluded. Since the excerpt does not name the individual PFAS species, the concentration is captured as general_1_µg/L. 
+      NaHCO3 was added to the organic-free water as a buffer agent, so it is recorded under Background_species for the organic-free water entry. For the surface water, no background species, pH adjustment agents, or buffers were explicitly reported, so the Background_species field is omitted. Do not infer that NaHCO₃ was added to surface water simply because it was present in the organic-free water; no such statement is provided.  

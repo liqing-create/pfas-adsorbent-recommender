@@ -1,0 +1,88 @@
+I. Objective
+You are an expert in PFAS adsorption studies. Your task is to extract all in-scope experiment records from the source chunks. Each record is identified by Experiment_id (see definitions in Section III).
+
+Your extraction is based on:
+(1) Multiple text chunks from the same paper that describe PFAS batch adsorption protocols, operating conditions, water samples, or water properties. 
+(2) Figure captions for figures that were mentioned in the provided chunks. if no figure was mentioned, this field will be empty.
+(3) Water_type_list, a controlled vocabulary used only to standardize water matrix labels when the provided chunks support the match. each entry include the full name, abbreviation, and water type for a single water matrix, if a field is not shown, it means it was not extracted. you can look up all fields to match. The provided Water_type_list is a controlled vocabulary for standardizing water labels; it is not evidence by itself. 
+(4) Adsorbent_list, a controlled vocabulary used only to standardize adsorbent names when the provided chunks support the match. each entry include the adsorbent_id, full name, abbreviation, commercial name and category for that adsorbent. if a field is not shown, it means it was not extracted. you can look up all fields to match. The provided Adsorbent_list is a controlled vocabulary for standardizing water labels; it is not evidence by itself.  
+
+II. Scope of Extraction
+A candidate experiment record is in scope only if it satisfies both conditions below:
+1. The experimental protocol, design, or operating condition of a PFAS batch adsorption experiment. A PFAS batch adsorption experiment means a closed-vessel test in which PFAS-containing liquid is contacted with a freshly prepared adsorbent to measure PFAS uptake/removal by adsorption under defined conditions without energy input.
+
+2. Base decisions only on evidence provided in the source chunks and relevant figure captions. The extractable fields must be original to the source chunks or relevant figure captions. Do not extract any values from previous work in the literature unless the same experimental protocols are applied in the current study and solid values are extractable.  
+
+III. Fields to Extract
+For EACH record, output a contiguous block of lines with NO blank lines inside the record, no headings, explanations, reasoning steps, logs, notes, warnings, or any other extra text:
+
+Experiment_id: <Test_mode>|<Parametric_impact>
+Test_mode: <value>
+Parametric_impact: <value>
+<Field_1>: <value>
+<Field_2>: <value>
+...
+--- (record separator)
+
+Field keys: Use only the keys from the list below. Do not introduce any additional keys:
+{{ schema_fields_sec }}
+
+If a field has no extractable value for that record, omit the field. Do not output blank values, null, "not found", or explanatory placeholders.
+
+IV. Definition of Experiment_id and an experiment record
+Experiment_id is the unique identifier for each distinct experimental scenario. one unique Experiment_id correspond to one experimental record. no two record should be assigned the same Experiment_id, if you feel you need to do that, it means yous should extract them in the same record. 
+Build Experiment_id as: <Test_mode>|<Parametric_impact>
+where Test_mode describes how the experiment is conducted, and Parametric_impact describes the experimental purpose or variable being tested. Record separate Experiment_id values whenever either Test_mode or Parametric_impact differs. On the other hand, if the same Test_mode and Parametric_impact combo is described multiple times in different chunks, output one record for that Experiment_id and output the extractable fields in the same record.
+
+A. Test_mode
+Allowed values:
+- isotherm:
+  Batch adsorption experiments at constant temperature where either PFAS concentration or adsorbent dosage is varied across multiple levels to evaluate equilibrium adsorption.
+
+- kinetic:
+  Batch adsorption experiments where samples are collected at multiple time intervals to evaluate adsorption rate or kinetic behavior.
+
+- snapshot:
+  Batch adsorption tests that measure uptake under only a few combinations of key variables, not enough to construct an isotherm or kinetic curve.
+
+Test_mode rules:
+- If the authors explicitly state the test mode, follow it.
+- If not stated, determine the mode from the number and type of varied experimental levels: if less than 5 levels, use snapshot; else if 5 or more PFAS concentration or adsorbent dosage levels, use isotherm; else if 5 or more time levels, use kinetic. If a range is reported without the number of tested points, assume fewer than 5 levels.
+
+B. Parametric_impact
+Parametric_impact describes the experimental purpose or variable being tested. It should capture why otherwise similar adsorption tests were run under different conditions. For example, snapshot experiments conducted to study pH effects and snapshot experiments conducted to study inorganic-matter effects should be recorded as two Experiment_id values: snapshot|pH and snapshot|inorganic_matter. allowed values are the experimetnal fields, when no parameter is varied to investigate its influence on adsorption, or just showing the water properties without experimental details, use NA. 
+
+Parametric_impact rules:
+- Record a non-NA Parametric_impact value only when the source text indicates that a condition, constituent, matrix, or material choice was intentionally varied, added, or compared to evaluate its influence on PFAS adsorption. Do not assign a Parametric_impact merely because a condition is present. For example, background constituents or fixed solution chemistry, such as a buffer, salt, pH adjuster, preservative, or background electrolyte used uniformly across experiments, should not be recorded as inorganic_matter, organic_matter, mixed_matter, or matrix_effect_<WaterLabel> unless the authors vary or compare it as part of the experimental design.
+- For a single-parameter sweep, create one Experiment_id per parameter category, regardless of how many levels or specific species are tested.
+- For Inorganic_matter and Organic_matter to qualify as a parametric impact, they need to be added at a non-zero level.
+- Do not use pH merely because a fixed pH is adjusted or maintained.
+- For experiments conducted in synthetic waters that are prepared by adding chemicals to ultrapure water, classify by author framing. If the authors treat the prepared solution as a named water matrix, such as synthetic groundwater, simulated natural water, artificial wastewater, or reconstituted water, use matrix_effect_<WaterLabel>. If the authors frame the same constituents as co-added inorganic and organic matter to test constituent effects, use mixed_matter. When both framings are present, prefer matrix_effect_<WaterLabel> if distinct water matrices are compared; otherwise use mixed_matter.
+
+
+V. Field Explanations
+The meaning and recommended output format for each field are specified below. Overall, it is combinations of <descriptor>, <measurement>, <unit>, where <descriptor> specifies what the value refers to (e.g., chemical name, water matrix), and <measurement> and <unit> denote the reported numeric value and its unit. For fields whose unit is part of the field name, convert to that unit when the conversion is unambiguous. Different fields may require different combinations of these components, the grouping provided below are recommended and should be applied when the source text supports them, but they are not mandatory. If any component is not supported by evidence in the provided source chunks, omit that component rather than inferring it. For example, although Organic_matter is typically formatted as <descriptor>_<measurement>_<unit>, the source may report only the identity without a dosage. In that case, output only the <descriptor> (e.g., HA). Do not introduce any additional components or formatting (e.g., parenthetical notes, alternative encodings, or free-form sentences) beyond these three components. 
+
+{{ clar_sec }}
+
+VI. Extraction Guidelines
+- Experimental information may be scattered across multiple chunks. Combine fields from different chunks only when they clearly describe the same Experiment_id.
+- Each record must have more than one extractable field. If no experimental conditions can be extracted, do not output it. If an extraction field has multiple reported values (e.g., pH 3/5/7/10; Fe^2+ 1/2/3/5 mM; time 10/60 min), record all levels as a comma-separated <measurement> list within a single value (e.g., Fe^2+_1,2,3,5_mM). 
+- Evaluate evidence separately for each record and assign a condition only when the text unambiguously scopes it to that record (or its named trial group). Carryover of component is allowed only when the text explicitly makes it clear that the same component applies to both scenarios.
+- If a field is not supported by evidence in the provided source chunks or figure caption, omit that field line entirely—do not output null, blanks/placeholders, or inferred values. 
+- Apply the following standardization rules for each component when applicable.
+  {{ guidelines }}
+
+
+VII. Input
+Water_type_list:
+{{ water_type_list }}
+
+Adsorbent_list:
+{{ adsorbent_list }}
+
+Source chunks:
+{{ experiment_chunks }}
+
+Relevant figure captions:
+{{ figure_captions }}

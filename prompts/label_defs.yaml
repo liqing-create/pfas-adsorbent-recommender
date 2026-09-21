@@ -1,0 +1,212 @@
+# prompts/label_defs.yaml
+
+performance:
+  Qualifying_condition: >
+    Label “performance” if the excerpt meets **either** of the following conditions:
+      1. Numeric values. It reports at least one numeric value for the following batch adsorption performance metric of PFAS on target adsorbents:
+         - Freundlich isotherm parameters (KF and 1/n as in Qe = KF · Ce^(1/n))
+         - Langmuir isotherm parameters (Qm and KL as in Qe = Qm · KL · Ce / (1 + KL · Ce))
+         - Linear isotherm (Kd as in Kd = Qe / Ce)
+         - Equilibrium adsorption amount (Qe as in Qe = (C0 - Ce) · V / m).  
+         - Removal rate (R as in R = (C0 - Ce) / C0 · 100%)
+         - Pseudo-first-order (PFO) rate constant (k1 as in dQ/dt = k1 (Qe - Q))
+         - Pseudo-second-order (PSO) rate constant (k2 in dQ/dt = k2 (Qe-Q)^2)
+         Performance values must be uniquely attributed to a specific PFAS–adsorbent–experimental condition combination. Grouped statements are not acceptable. Do not identify these metrics solely by their symbols, because authors may use different notation across studies. Instead, rely on each parameter’s physical meaning, source model, and contextual cues. For example, Kd may be written as k1, K, or in another format; if it represents qe/Ce or the fitted coefficient in qe = Kd·Ce, map it to Kd regardless of notation. Conversely, symbols such as Qm and KL are out of scope when they come from Langmuir-Freundlich/Sips models, even if the same symbols would be in scope under a standard Langmuir model. 
+      2. Unit only. It reports explicit **units** for one or more adsorption-performance parameters. Some illustrative examples include:
+         - Langmuir: e.g., mg/g for Qm, L/mg for KL.
+         - Freundlich: e.g., (mg/g)/(mg/L)^(1/n) for KF.
+         - Kd: e.g., L/kg, L/g
+          - Qe: e.g., mg/g, mmol/g. The unit must be supported by the reported equilibrium uptake amount or an explicitly equivalent equilibrium term.
+         - PFO: e.g., min^-1 for k1
+         - PSO: e.g., g.mg^-1.min^-1 for k2         
+         Units presented in alternative formats also qualify, provided they correspond to the parameters listed above.
+  Exclusions: >
+    If criteria 1 is considered, Performance values must be reported as absolute numbers (raw form or in logarithmic form). Exclude relative metrics such as changes, differences, deltas, or increase/decrease ratios (e.g., “A shows 20% enhancement compared to B”), as well as ranges (e.g., “2.8–4.0”, “over 90%”, "<80%").
+    If criteria 2 is considered, Removal rate (R) is a dimensionless performance metric. The presence of a formula or a “%” symbol alone does not constitute a unit and should not be used to assign the performance label.
+    Do not label as performance if performance metrics are presented solely in the context of material characterization or instrumental analysis (e.g., PFOA loaded GAC (qe = 23.65 mg/g) was measured with XPS). Such values often result from pre-treated, enriched, or otherwise non-standard adsorption steps performed only to prepare samples for characterization rather than to evaluate adsorption performance.     
+    Exclude alternative kinetic (e.g., Elovich, Boyd, Biot) or isotherm (e.g., Temkin, Sips, Dual-mode-sorption, Langmuir-Freundlich) models.
+  Edge-cases: >
+    Treat Spelling variants/synonyms (e.g., “k d”, “KD”, “removal efficiency”, “rmvl”, “Removal_percentage”, “Removal_rate”) as equivalent.  
+    Do not rely on the symbols or names when deciding if a value represents a batch-adsorption performance metric: acronyms may be reused for different concepts (e.g., Kf may be the Freundlich adsorption coefficient or the external mass-transfer coefficient in a Biot calculation; KD may denote a single-point distribution coefficient or the Langmuir affinity constant; Qe might be called uptake, loading, adsorption capacity, or similar terms instead of equilibrium adsorption amount or use another symbol Cs instead of Qe), use the sematic meaning and contextual cues to ensure proper mapping.
+    When evaluating criterion 2, the presence of units for a predefined performance metric should still be labeled as performance, even if they appear in the context of adsorption onto an out-of-scope adsorbent.
+
+
+adsorbent:
+  Qualifying_condition: >
+    Label “adsorbent” if the excerpt meets either of the following conditions:
+      1. Report full/commercial name–abbreviation pairs for in-scope adsorbents (e.g., Coconut based carbon (CBC), cyclodextrin polymer - CDP, Aquasorb CX denoted as ACX, etc). The full/commercial name and its abbreviation must appear together in the excerpt to qualify.  
+      2. Report at least one of the qualitative attributes for in-scope adsorbents: vendor, starting/raw material, activation approaches for activated carbon (e.g. Physical_Steam, Chemical_KOH, Chemical_ZnCl₂), functional groups and polymer matrices for ion exchange resins, porosity (e.g., gel, macro, micro, mesoporous).
+      3. Report at least one of the quantitative attributes for in-scope adsorbents: particle size, surface area, pore volume, pore size distribution (e.g., micropores 34%, mesopores 52%, rather than simply indicating the presence), point of zero charge, zeta potential at certain pH, ion exchange capacity, or chemical composition (e.g., 80% C, 10% N, 10% O). 
+  Exclusions: >
+    - Exclude excerpt gives no absolute value for quantitative attributes or identifiable category for qualitiative attributes. For example, “X has 20 % more mesopores than Y” without any accompanying details to learn the exact mesoporosity value.  
+    - Exclude excerpt only describes how a property was measured (e.g., detailing sample preparation, characterization protocols, instruments used, etc) without reporting any actual result or value (numerical or qualitative).  
+    - Exclude functional group information derived solely from FTIR spectra.
+    - For XPS spectra, retain only the bulk elemental composition analysis (i.e., atomic % of C, O, N, etc.) and exclude all component-resolved peak fitting or deconvolution data (e.g., C 1s, O1s, or N 1s sub-peaks such as C-C/C-H, C=O, C-N, etc).
+    - The excerpt only name the adsorbent (whether abbreviations **or** full names) without a full/commercial - abbreviation pair or any qualifying properties to describe experimental procedures (e.g., “1 g/L PAC was added to the solution”) or to present performance metrics (e.g., used as table headers to show results across different adsorbents), the excerpt should not be labeled as "adsorbent".
+  Edge-cases: >
+    - For an in-scope adsorbent, assign the “adsorbent” label even if the excerpt does not explicitly state that it was used in a PFAS adsorption test, as long as at least one of the qualifying conditions above is satisfied.
+
+experiment:
+  Qualifying_condition: >
+    Label “experiment” if the excerpt meets either of the following conditions:
+      1. Water-sample properties. Report at least **one** of the following attributes about none-ultrapure water samples (e.g., environment water samples, synthetic water samples): water type (e.g., ground water, surface water, wastewater, AFFF solution, tap water, etc), water source (e.g., military site, firefighting training sites, well, river, etc), pH, conductivity, ionic strength, DOC, or chemical composition (e.g., NOM, ions, PFAS). Unless the excerpt explicitly states that the water sample was used solely for an out-of-scope purpose (e.g., in a column test or a regeneration experiment), include these details even when a batch adsorption test is not mentioned. Note: ultrapure water (e.g., DI water, Milli-Q water, deionized, distilled, double-distilled, reagent water) are often used as the baseline medium, so no need to label them experiment unless properties beyond purity specifications (e.g., 18.2 MΩ·cm resistivity) are reported (e.g., pH, conductivity). 
+      2. Batch-mode PFAS adsorption setups for isotherm, kinetic, or parametric studies (e.g., probing the effects of pH, PFAS concentration, ionic strength, coexisting species, etc). The excerpt must report at least one experiment parameter (e.g., contact time, the working adsorbent dose in the test solution, the PFAS initial concentration in the test solution, etc). 
+      The excerpt must give at least one concrete level—either an absolute numeric value (e.g., “pH 6.5”, “conductivity 200 µS/cm”, "contact time 24h") or a named category (e.g., “tap water water”,"wastewater facility", "20 mg/L NaCl")—for the parameter to qualify an experiment label. 
+  Exclusions: >
+    If water-sample properties or other experimental parameters appear within an excerpt that qualifies for a performance label under Performance Criteria 1 (e.g., a table reporting numeric performance values along with experimental details in titles, headers, or footnotes), do not assign the experiment label, assign only the performance label. However, if the excerpt qualifies for performance only under Criteria 2 (i.e., units for performance metrics are reported without numeric values), and experimental conditions are present, assign both performance and experiment.
+    Do not label "experiment" when it measures adsorbent properties (e.g., ion exchange capacity such as chloride capacity, specific surface area, point of zero charge).
+    If an adsorption test only pursues an out-of-scope objective (e.g., preliminary screening, regeneration/reuse, desorption, or competitive/non-competitive evaluation), do not assign the “experiment” label, even when the passage provides complete protocols.  
+  Edge-cases: >
+    When evaluating criteria 2, batch adsorption test protocols described with an out-of-scope adsorbent can still be labeled experiment.
+
+examples:
+  - id: "Example 1"
+    source_text: >
+      Separate batch reactions were conducted to confirm the noncompetitive adsorption of individual PFASs in diluted AFFF, which contains various nonquantifiable PFASs and high levels of uncharacterized organics. These reactions mirrored the AFFF adsorption conditions, with reactors spiked with six PFAAs (PFOA, PFHxA, PFBA, PFOS, PFHxS, PFBS) at initial concentrations matching those in the diluted AFFF (∑[PFAS]₀ = 0.27 μM).  Used adsorbent was combined with 200 mL of a desorption reagent consisting of 10 vol% methanol and 100 mmol/L ammonium acetate, then shaken at 200 rpm for 15 h at 25 °C. After desorption, the adsorbent was rinsed three times with ultrapure water and dried at 105 °C for 12 h. Each regeneration cycle was conducted in sequence, immediately after an adsorption step (5.00 mg·L⁻¹ PFOA, 0.025 g adsorbent, adsorption for 48 h), using the same conditions for both adsorption and desorption in all five cycles.
+    expected_label: "irrelevant"
+    comments: "only studies with out-of-scope objectives (adsorption–desorption/regeneration cycles; competitive/non-competitive verification) per Experimental design → Exclusions."
+
+  - id: "Example 2"
+    source_text: >
+       C s (mg PFAS/g GAC), K L(L/mg), K F [(mg PFAS/g GAC) (mg PFAS/L) -n], n for the adsorption of PFAS onto different GAC types at PFHxS.  
+    expected_label: "performance"
+    comments: "performance label: explicit units for performance metrics despite not having the standardized format (performance critieria 2)."
+
+  - id: "Example 3"
+    source_text: >
+      Equilibrium data were fitted to the Freundlich model:qe = KF.Ce^(1/n), where q e is the adsorbed amount, C e is the equilibrium concentration in solution, Kf is the Freundlich adsorption coefficient or capacity factor, and 1/n is the Freundlich exponent.  
+    expected_label: "irrelevant"
+    comments: "looks like performance but does not qualify - model definition only without units or values (fails performance criteria 1 & 2). ⇒ Irrelevant."
+
+  - id: "Example 4"
+    source_text: >
+      PFHxA, PFHpA, and PFOA were selected for testing, with solubilities of 260, 118, and 3.4 g/L, respectively. Uptake kinetics and equilibrium adsorption isotherms were measured in single-solute batch experiments. Polypropylene bottles, which showed negligible PFOS adsorption, were used as test vessels. Aqueous PFOS and PFOA concentrations were determined by LC-MS/MS, with adsorbent concentrations calculated from aqueous mass loss. Experiments covered equilibrium concentrations ranging from below to well above US EPA health advisory levels. Additional experimental details are provided in the ESI.  
+    expected_label: "irrelevant"
+    comments: "no experiment label: the solubility of PFAS does not reflect the working concentrations used in the tests. Although kinetics and isotherm are mentioned, no explicit experimental conditions are provided."
+
+  - id: "Example 5"
+    source_text: >
+      For competitive adsorption experiments, 8 mg IRA67 was added to 100 mL of 0.10 mmol/L PFHxA, 0.11 mmol/L PFHpA, or 0.29 mmol/L PFOA solutions. For comparison, the same amounts of adsorbents were added to a mixed solution containing all three PFCAs at those concentrations. The influence of inorganic ions was tested using the mixed PFCA solution with added salts: 0.59 mmol/L NaCl, 0.10 mmol/L KCl, 0.61 mmol/L Na₂SO₄, 0.04 mmol/L NaNO₃, 0.70 mmol/L CaCl₂, 1.31 mmol/L NaF, or 0.96 mmol/L MgCl₂.
+    expected_label: "experiment"
+    comments: "experiment label: While the excerpt includes out-of-scope competitive adsorption, it also contains detailed experimental conditions for in-scope inorganic ion influences (experiment criteria 2). Per the Mixed-Scope Case rule, the relevant content should be retained."
+
+  - id: "Example 6"
+    source_text: >
+      All experiments were performed with four GACs from Arkema Group collected in full-scale adsorbers at 17 DWTPs. The ACs differ by origin and their main properties are shown in Table S1. GAC stock suspensions (2 g L⁻¹) were prepared in ultra-pure water and stored overnight for full wetting. 
+    expected_label: "adsorbent"
+    comments: "adsorbent label: vendor info (Arkema Group) alone qualify for the adsorbent label (adsorbent criteria 2) although other properties are present in Table S1 and not shown here; No experiment label: preparing adsorbent/adsorbate stock solution does not count as adsorption protocols."
+
+  - id: "Example 7"
+    source_text: >
+      Isotherm experiment results from Siriwardena, 2017 were used to select time points for PFAS adsorption test. Batch sorption experiments were carried out with 1 mg/L of perfluorooctanoic acid (PFOA) individually and in mixture, sorbed onto five different carbon masses (0, 5, 10, 15, 20, and 25 mg) of each F400 and CBC (coconut-based carbon) carbon types at room temperature. These samples were prepared in 125 mL of deionized water in 125 mL polypropylene reactors. The sample pH was controlled around 7.2 using 0.1 M phosphate buffer. Reactors were tumbled at 145 rpm and sampled at 7 days. The Langmuir and Freundlich isotherm constants were calculated and are included in Supplementary Table S1.     
+    expected_label: "experiment"
+    comments: "experiment label: experimental protocols are described. no performance label: the actual isotherm parameters are not provided."
+
+  - id: "Example 8"
+    source_text: >
+      The experiments were performed at room temperature (22 /C14 C) and pH was also adjusted to 7.2 similar to the preliminary screening tests. Ambient PFOA or PFBA concentrations in the WW were initially determined to be below the MRL ( < 50 ng L /C0 1 ). One m g L /C0 1 of PFOA or PFBA was spiked into WW and mixed with each biochar at a ratio of biochar:PFAA solution of 1:3 mg/ml, and 1 mM phosphate buffer. Sample solutions were withdrawn from the shaker at specific time intervals of 0.25, 1, 3, 7, and 30 days to investigate the sorption kinetics.  Langmuir, Freundlich, and Temkin models were used for adsorption mechanism analysis as shown in equations (1) , (2) , and (3) [28]. Qe is the amount of PFOS adsorbed  (mg/g)  and  Ce  is  the  concentration  (mg  /  l)  adsorbed  at equilibrium.
+    expected_label: "experiment, performance"
+    comments: "per adsorbent scope edge case, out-of-scope adsorbent (biochar) can still be examined for experiment and performance label. experiment label: adsorption test was described with explicit experimental parameters (e.g., PFAS initial concentration = 1mg/L, pH =7.2, etc.); performance label: unit for performance metrics (mg/g for Qe) is provided, meet performance criteria 2; No adsorbent label: mentioned adsorbent (biochar) is explicitly out-of-scope. "
+
+
+  - id: "Example 9"
+    source_text: >
+      Specific surface area measurements and PFAS adsorption experiments were conducted with as-prepared KAC adsorbents. The BET surface area of KAC 4-900-1.5 was 30% higher than that of KAC 4-900-1.0, and its mesopore volume increased by 125% compared with KAC 4-900-1.0. However, the prolonged activation time in KAC 4-900-2.0 led to severe etching of the carbon surface, causing a collapse of the internal pore structure and reducing total pore volume by 15%. Consequently, KAC 4-900-1.5 demonstrated the highest removal efficiency, with at least 95% removal of 8 out of 10 PFASs, while the shorter-chain PFBA and GenX were removed at rates of at least 80%.  
+    expected_label: "irrelevant"
+    comments: "No adsorbent label: provide comparative discussion on adsorbent properties (e.g., 30% higher, reduce by 15%) but gives no absolute values; No experiment label: no batch test parameters; no performance label: Although removal rates are mentioned, they are presented as broad ranges across multiple adsorbent–PFAS pairs (e.g., >95% for 8 PFAS and >80% for PFBA and GenX), making it impossible to attribute them to specific PFAS–adsorbent combinations. ⇒ irrelevant."
+
+  - id: "Example 10"
+    source_text: >
+      Figure 1Sa shows a comparison between pore size distributions of the DEXSORB (Cyclopure Inc., Encinitas, CA) and that of a coal-derived commercial powder AC from Chemviron. The results show that the pore size distributions of the DEXSORB are predominantly in the micropore range, whereas Chemviron AC exposes a broader distribution, including micro-, meso- and macropores. Adsorption isotherm test were conducted to compare their adsorption capacities on PFAS.  
+    expected_label: "adsorbent"
+    comments: "adsorbent label: the excerpt supplies vendor (Cyclopure, Chemviron), raw material (Coal), and porosity (DEXSORB - microporous) info for two adsorbents, therefore meet adsorbent criteria 2; no experiment label, although the word adsorption isotherm is mentioned, no details are provided."
+
+  - id: "Example 11"
+    source_text: >
+      Effect of pH: The obtained slopes for the released chloride ions (meqs) for GenX is ~1. Therefore, it can be concluded that the uptake mechanism of MCLR via IX process is primarily through electrostatic exchange of ions with minimal influence of hydrophobic adsorption. The resin carries cationic charges below pH = 7.5, since the pHzpc (point of zero charge) of the resin is 7.5 [1], which is similar to the reported values of other strongly basic resins [13,14]. Consequently, as the pH increases the positively charged resin moves towards more neutral region resulting in a decrease in the overall GenX and other micropollutant uptake as previously observed. 
+    expected_label: "adsorbent"
+    comments: "adsorbent label: provided adsorbent properties (pHzpc of IX) (). no experiment label: The pH value provided refers to the resin’s pHzpc, not to an experimental condition or water-sample property used in the batch test; no performance label: qualitatively discussed adsorption performance and mechanism, but no concrete values or units are provided."
+
+  - id: "Example 12"
+    source_text: >
+       Table 2. Comparison of removal rates (%) for PFOA by various ACs.
+       | Adsorbents | Raw  material |Contact Time (h) | PFOA(%)                | 
+       |------------|---------------|-----------------|------------------------|
+       | GAC        | Coal          |  1OO            | 11 [18]                |
+       | PAC        | Coal          |  168            | 87 (Wang et al., 2018) |
+       | GAC-H3PO4  | Coal          |  48             | 75 a                   |
+       a Results obtained by the current work.
+    expected_label: "irrelevant"
+    comments: "Although the table presents detailed adsorbent properties (e.g., raw material) and experimental parameters (e.g., contact time), it also mixes adsorption performance data from the current study with literature values. While there is no dedicated reference column, the presence of citations such as [18], (Wang et al., 2018), and the footnote (a Results obtained by the current work.) clearly indicate that the performance data originates from both the current study and external sources. Note that the reference styles are intentionally varied here for demonstration purposes, though they are usually consistent within real excerpts. According to the Data Origin edge case rule, when performance values from internal and external sources are mixed in the same table, the entire table must be excluded. As a result, none of the adsorbent, experiment, or performance data should be retained—even though some data are in-scope individually."
+
+  - id: "Example 13"
+    source_text: >
+      Table 4. S. Surface chemical properties of the commercial ACFs from our previous study (Saeidi et al., 2020).
+      |   Sample   |  PZC   | AEC (Âµmol/m2) | CEC (Âµmol/m2) |
+      |------------|--------|----------------|----------------|
+      | VS         | 7.3    | 0.148          | 0.0714         |
+      | FC15       | 7.1    | 0.137          | 0.131          |
+      | FC10       | 6.5    | 0.0922         | 0.418          |
+    expected_label: "adsorbent"
+    comments: "adsorbent label: Although the presented properties (e.g., cation and anion exchange capacity, PZC) was originally published elsewhere, it was reproduced with details in the current excerpt."
+
+
+  - id: "Example 14"
+    source_text: >
+      Text: "Table S2. Characterisation of AFFF solution.
+      | Water quality Parameters           | Value |
+      | pH                                 | 7.5   |
+      | Conductivity (µS cm-1)             | 1400  |
+      | Concentration of AmPr-FEtSA (μg/L) | 16    |
+      | Concentration of PFBA (μg/L)      | 40    |
+    expected_label: "experiment"
+    comments: "experiment label: Water-sample properties (experiment criteria 1)."
+
+  - id: "Example 15"
+    source_text: >
+      Table II. Summary of Experimental Conditions in This Study
+      | Experiment | Adsorbent                               | Concentration of PFOS (mg/L)     | Sample volume (mL) | Shaking condition                                   | 
+      |------------|-----------------------------------------|----------------------------------|--------------------|-----------------------------------------------------|
+      | Isotherm   | PFA400 PFA444 Dow Marathon A IRA400 GAC | 0.01, 0.05, 0.10, 0.50, and 1.00 | 100                | 120 rpm, 25 C /C14 at 96 h                          |                                                                                                                      
+      | Kinetics   | PFA400 PFA444 Dow Marathon A IRA400 GAC | 0.50                             | 100                | 120 rpm, 25 C /C14 at 1, 3, 6, 12, 24, 48, and 72 h |                                                                                                                         
+    expected_label: "experiment"
+    comments: "experiment label: table lists batch test parameter such as PFOS concentrations, contact times, temperature, agitation conditions; No adsorbent label: adsorbent names appear only for contextualizing tests without any qualifying properties or full-name/abbreviation pairs."
+
+  - id: "Example 16"
+    source_text: >
+      Table S9-1. PFOA removal data of GAC under different pH.
+      |              | 0.5h         | 0.5h     | 4h       | 4h     |
+      |--------------|--------------|----------|----------|--------|
+      | compound     | avg rmvl     | stdev    | avg rmvl | stdev  |
+      | pH = 5       | 43.7%        | 0.1%     | 32.9%    | 2.7%   |
+      | pH = 7       | 28.4%        | 0.7%     | 35.3%    | 7.6%   | 
+      | pH = 9       | 46.6%        | 3.4%     | 29.4%    | 21.6%  |
+    expected_label: "performance"
+    comments: "performance label: removal rate (%) values provided (performance criteria 1); No experiment label: experimental parameters (time and pH) in a table that present performane metrics do not qualify an experiment label."
+
+  - id: "Example 17"
+    source_text: >
+      Table S4. Fitting results of the linear and Langmuir-Freundlich models on different adsorbents.
+      | Adsorbents    | Concentration range Ⅰ: 1 | Concentration range Ⅰ: 1 |    | Concentration range II+III: 2 | Concentration range II+III: 2 | Concentration range II+III: 2 | Concentration range II+III: 2 |
+      |---------------|---------------------------|--------------------------|----|-------------------------------|-------------------------------|-------------------------------|-------------------------------|
+      | Adsorbents    | k1, L/ug                  | Pearson’s r              |    | qm, μg/g                      | k2, (L/ug)-n                  | n                             | R2                            |
+      | RAC           | 2.1 ± 1.1                 | 0.699                    |    | --                            | --                            | --                            | --                            |
+      | KAC 1-900-1.5 | 9.0 ± 0.8                 | 0.993                    |    | 120 ± 2                       | 0.0106 ± 0.0030               | 4.4 ± 0.3                     | 0.997                         |
+       -- represents “not observed in the tested concentration range”.
+      1: linear isotherm model (Yang 2003).
+      2: Langmuir-Freundlich isotherm model (Cerofolini and Rudziński 1997).
+    expected_label: "performance"
+    comments: "no indication suggests it is non-PFAS although no name is provided,  it should not be excluded solely for this reason; performance label: Although Langmuir-Freundlich is out-of-scope, Linear isotherm is within scope; although k1 is used instead of Kd, they are equivalent since both represent the linear isotherm parameter (performance criteria 1)."
+
+  - id: "Example 18"
+    source_text: >
+      Table S3. Isotherm constants for the adsorption of PFOA onto different adsorbents in Milli-Q water.
+      | Adsorbent   | Langmuir Isotherm  | Langmuir Isotherm | Langmuir Isotherm | Freundlich Isotherm  | Freundlich Isotherm  | Freundlich Isotherm  |
+      |-------------|--------------------|-------------------|-------------------|----------------------|----------------------|----------------------|
+      | Adsorbent   | Qm                 | KL                | r 2               | KF                   | n                    | r 2                  |
+      | F300        | 370                | 0.038             | 0.99              | 73.6                 | 5.5                  | 0.98                 |
+      | CDP         | 344                | 0.133             | 0.99              | 135.5                | 3.4                  | 0.98                 |
+      note: F300: Filtrasorb F300, CDP: cyclodextrin polymer, PFOA initial concentration 1 mg/L, pH =7.  
+    expected_label: "performance, adsorbent"
+    comments: "performance label: table body lists absolute values of performance metrics (Qm, KL, KF, n) (performance criteria 1); no experiment label: experimental parameters (PFOA initial concentration, pH) appear in the table that presents performance metric data does not trigger experiment label; adsorbent label: the footnote explicitly provides abbreviation–full/commercial name pairs (e.g., “F300: Filtrasorb F300,” “CDP: cyclodextrin polymer”), satisfying adsorbent criteria 1. Note: if the footnote were absent and only abbreviations appeared without the corresponding full/commercial names, criteria 1 would no longer be met."
+

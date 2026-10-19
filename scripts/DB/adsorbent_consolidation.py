@@ -527,15 +527,53 @@ def _load_adsorbent_name_map(path: Path) -> dict[str, str]:
     return mapping
 
 
+def _known_product_names(online_properties_path: Path | None, sheet: str) -> list[str]:
+    """Commercial product names listed in the vendor online-properties workbook."""
+    if not online_properties_path or not os.path.exists(online_properties_path):
+        return []
+    props = pd.read_excel(online_properties_path, sheet_name=sheet)
+    if "Name_Commercial" not in props.columns:
+        return []
+    return [str(name).strip() for name in props["Name_Commercial"].dropna() if str(name).strip()]
+
+
+def _known_product_identities(
+    canonical_names: Iterable[str],
+    known_products: Iterable[str],
+    key_function: Callable[[Any], str],
+) -> dict[str, str]:
+    """Identity entries for curated product names: the map's canonicals, then vendor products.
+
+    These resolve a record whose full name, abbreviation, or identifier is itself
+    a curated product name.  Callers consult them only after the explicit map and
+    any reported ``name_commercial``, so explicit curation and reported names keep
+    precedence.
+    """
+    identities: dict[str, str] = {}
+    for name in [*canonical_names, *known_products]:
+        key = key_function(name)
+        if key and name:
+            identities.setdefault(key, name)
+    return identities
+
+
 def standardize_commercial_adsorbent_names(
     df: pd.DataFrame,
     mapping_path: Path,
+    known_products: Iterable[str] = (),
 ) -> None:
     """Canonicalize explicit commercial aliases in ``name_commercial``.
 
     ``adsorbent_id`` is considered only through the curated alias map.  This
     lets a performance-only identifier such as ``PFA694E`` resolve to its
     commercial product without treating arbitrary study-local IDs as brands.
+
+    When neither the map nor a reported ``name_commercial`` identifies the
+    product, a full name, abbreviation, or identifier that is itself a curated
+    product name (a canonical value of the map or a product in the vendor
+    online-properties workbook) identifies it.  Without this, a record that
+    gives only ``name_full = "Amberlite IRA410"`` was kept as a study-local
+    adsorbent and missed the product's properties.
     """
     source_cols = [
         "name_commercial",
@@ -549,6 +587,7 @@ def standardize_commercial_adsorbent_names(
         df["name_commercial_raw"] = df["name_commercial"]
 
     mapping = _load_adsorbent_name_map(mapping_path)
+    identities = _known_product_identities(mapping.values(), known_products, _norm_adsorbent_key)
     for idx, row in df.iterrows():
         canonical = None
         for col in source_cols:
@@ -558,6 +597,13 @@ def standardize_commercial_adsorbent_names(
             canonical = mapping.get(_norm_adsorbent_key(value))
             if canonical:
                 break
+        if not canonical and _blank(row.get("name_commercial", "")):
+            for col in source_cols:
+                value = row.get(col, "")
+                if isinstance(value, str) and value.strip():
+                    canonical = identities.get(_norm_adsorbent_key(value))
+                    if canonical:
+                        break
         if canonical:
             df.at[idx, "name_commercial"] = canonical
 
@@ -675,6 +721,8 @@ RAW_MATERIAL_ALIASES = {
     "agglomerated bituminous coal": "bituminous coal",
     "anthracite coal": "anthracite coal",
     "bamboo": "bamboo",
+    # Commercial carbons listed as bitumen-based are bituminous-coal carbons.
+    "bitumen": "bituminous coal",
     "bituminous coal": "bituminous coal",
     "bituminous coal (agglomerated)": "bituminous coal",
     "charcoal": "charcoal",
@@ -1177,7 +1225,11 @@ def enrich_adsorbent_fields(
     cleanup_adsorbent_subcategory(df_in)
     infer_adsorbent_category_from_name(df_in)
     infer_ac_raw_material_from_name(df_in)
-    standardize_commercial_adsorbent_names(df_in, config.mapping_path)
+    standardize_commercial_adsorbent_names(
+        df_in,
+        config.mapping_path,
+        _known_product_names(config.online_properties_path, config.online_properties_sheet),
+    )
     materialize_adsorbent_identity_fields(df_in)
     _ensure_columns(df_in, ADSORBENT_PROPERTY_COLUMN_MAP.values(), "")
     inject_commercial_adsorbent_properties(df_in, config)
@@ -1249,6 +1301,8 @@ def normalize_polymer_matrix(value: Any, adsorbent_category: Any) -> str:
         or "acrylic polymer" in compact
         or "aliphatic acrylic polymer" in compact
         or "acrylate resin" in compact
+        or "crosslinked acrylic" in compact
+        or "cross linked acrylic" in compact
     ):
         return "Polyacrylic"
 
@@ -1683,6 +1737,7 @@ def _variant_reason(row: pd.Series) -> str:
 def _resolve_identity(
     row: pd.Series,
     mapping: dict[str, str],
+    identities: dict[str, str] | None = None,
 ) -> tuple[str, str, str, str]:
     for column in IDENTITY_SOURCE_COLUMNS:
         value = _text(row.get(column))
@@ -1694,6 +1749,15 @@ def _resolve_identity(
     if commercial:
         canonical = clean_product_display(commercial)
         return canonical, normalize_product_key(canonical), "reported:name_commercial", commercial
+
+    # A full name, abbreviation or identifier that is itself a curated product name
+    # (see _known_product_identities); same precedence as standardize_commercial_adsorbent_names.
+    for column in (*IDENTITY_SOURCE_COLUMNS, "adsorbent_id"):
+        value = _text(row.get(column))
+        canonical = (identities or {}).get(normalize_product_key(value)) if value else None
+        if canonical:
+            canonical = clean_product_display(canonical)
+            return canonical, normalize_product_key(canonical), f"known_product:{column}", value
     return "", "", "unresolved", ""
 
 
@@ -1709,6 +1773,7 @@ def build_audit_dataframe(
     value_converter: Callable[
         [pd.Series, NumericProperty], tuple[list[float], str]
     ],
+    identities: dict[str, str] | None = None,
 ) -> tuple[pd.DataFrame, dict[int, dict[str, list[float]]]]:
     audit = raw.copy()
     if "source_row_index" not in audit.columns:
@@ -1739,7 +1804,7 @@ def build_audit_dataframe(
     parsed_by_row: dict[int, dict[str, list[float]]] = {}
     conversion_notes: list[str] = []
     for idx, row in audit.iterrows():
-        canonical, product_key, method, matched = _resolve_identity(row, mapping)
+        canonical, product_key, method, matched = _resolve_identity(row, mapping, identities)
         variant = _variant_reason(row)
         included = bool(product_key) and not variant
         exclusion = ""
@@ -2443,7 +2508,12 @@ def build_consolidated_adsorbent_database(
     """Normalize raw adsorbent properties and consolidate them across studies."""
     raw = pd.read_excel(config.raw_input_path, sheet_name=config.raw_input_sheet)
     mapping = load_adsorbent_map(config.mapping_path)
-    audit, parsed_by_row = build_audit_dataframe(raw, mapping, value_converter)
+    identities = _known_product_identities(
+        mapping.values(),
+        _known_product_names(config.online_properties_path, config.online_properties_sheet),
+        normalize_product_key,
+    )
+    audit, parsed_by_row = build_audit_dataframe(raw, mapping, value_converter, identities)
     database = build_database_dataframe(audit, parsed_by_row)
     write_workbook(database, audit, config.database_output_path)
     included = int(audit["included_in_database"].sum())

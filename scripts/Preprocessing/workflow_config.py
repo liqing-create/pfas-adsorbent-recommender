@@ -35,18 +35,18 @@ def _configured_path(environment_variable: str, default: Path) -> Path:
 #   ACTIVE_STUDIES = ["study_111"]                 # one explicit study
 #   ACTIVE_STUDIES = ["study_111", "study_122"]   # several explicit studies
 
-ACTIVE_STUDIES: list[str] = ["study_221"]
+ACTIVE_STUDIES: list[str] = ["external"]
 
 # RERUN CONTROLS --------------------------------------------------------------
 # Both stage scripts honor this setting. Set it back to False after the rerun.
-OVERWRITE_EXISTING_OUTPUTS: bool = True
+OVERWRITE_EXISTING_OUTPUTS: bool = False
 
 # Keep cached LLM table-repair/header decisions unless you deliberately changed
 # an LLM prompt or response schema. Deterministic routing fixes do not require
 # new LLM calls.
 FORCE_RERUN_LLM: bool = False
 
-StudyGroup = Literal["training", "validation", "application"]
+StudyGroup = Literal["training", "validation", "application", "external"]
 
 # Copied from ``web of science search/studies.txt``.  The registry is kept
 # locally so a preprocessing run never imports another workflow's config.
@@ -88,6 +88,7 @@ STUDY_GROUPS: Final[dict[StudyGroup, tuple[str, ...]]] = {
         "study_233", "study_236", "study_237", "study_240", "study_241", "study_245",
         "study_247", "study_249", "study_250", "study_254",
     ),
+    "external": ("study_255", "study_256", "study_257", "study_258", "study_259", "study_260"),
 }
 
 
@@ -214,7 +215,7 @@ def iter_active_study_paths() -> Iterable[StudyPaths]:
         if len(selection) != 1:
             raise ValueError(
                 "ACTIVE_STUDIES group selectors must be used alone; use ['all'], "
-                "['training'], ['validation'], or ['application']."
+                "['training'], ['validation'], ['application'], or ['external']."
             )
         normalized = normalized_selection[0]
         if normalized == "all":

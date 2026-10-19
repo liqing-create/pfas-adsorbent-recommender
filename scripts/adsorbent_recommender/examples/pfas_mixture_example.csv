@@ -1,0 +1,5 @@
+pfas,identity_type,concentration,unit,parent_smiles
+PFOA,abbreviation,100,ng/L,
+PFOS,abbreviation,0.25,ug/L,
+O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,smiles,0.0001,mg/L,
+375-22-4,cas,75,ng/L,

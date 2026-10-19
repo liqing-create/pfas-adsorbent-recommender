@@ -2513,7 +2513,23 @@ def scoreable_metrics(df: pd.DataFrame) -> pd.DataFrame:
         df["eval_status"].fillna("").astype(str) != "empty_gt_empty_pred"
     ].copy()
 
+def zero_filled_row_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """Per-row P/R/F1 with undefined values scored 0 (scikit-learn's zero_division=0).
+
+    Macro averages must use the same rows for all three metrics. Left undefined, a
+    predictions-only row drops out of the recall mean and a ground-truth-only row out of
+    the precision mean, while both still contribute F1 = 0, so macro F1 fell below both
+    macro P and macro R. Rows with neither ground truth nor predictions are already
+    removed by scoreable_metrics.
+    """
+    df = df.copy()
+    for column in ("precision", "recall", "f1"):
+        df[column] = pd.to_numeric(df[column], errors="coerce").fillna(0.0)
+    return df
+
+
 def macro_chunk_avg(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
+    df = zero_filled_row_metrics(df)
     return (
         df.groupby(group_cols, dropna=False)
         .agg(
@@ -2527,6 +2543,7 @@ def macro_chunk_avg(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
 
 
 def id_weighted_macro(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
+    df = zero_filled_row_metrics(df)
     weights = df["ground_count"].clip(lower=1)
 
     def weighted_mean(values: pd.Series) -> float:

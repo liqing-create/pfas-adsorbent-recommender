@@ -174,6 +174,17 @@ def standardize_pfas_names(df: pd.DataFrame) -> None:
         df["PFAS_name_raw"] = df["PFAS_name"]
 
     for idx, row in df.iterrows():
+        study = str(row.get("study_no", "") or "").strip().casefold()
+        override = next(
+            (PFAS_STUDY_OVERRIDES[(study, _norm_shorthand_key(row.get(col, "")))]
+             for col in source_cols
+             if isinstance(row.get(col, ""), str)
+             and (study, _norm_shorthand_key(row.get(col, ""))) in PFAS_STUDY_OVERRIDES),
+            None,
+        )
+        if override is not None:
+            df.at[idx, "PFAS_name"] = override
+            continue
         saw_non_compound_name = False
         for col in source_cols:
             canon = _canonical_pfas_name(row.get(col, ""))
@@ -362,18 +373,42 @@ def _canonical_fluorotelomer_name(s: str) -> Optional[str]:
     t = t.replace("_", " ").replace("-", " ")
     t = " ".join(t.split()).upper()
 
+    # "X:2 FTSA" is written for the fluorotelomer sulfonic acid in most studies
+    # (studies 01, 73 and 133), so both spellings resolve to X:2 FTS.  A study
+    # that means the sulfonamide is listed in pfas_study_overrides.csv.
     match = re.fullmatch(r"(\d{1,2})\s*:?\s*(\d)\s*(FTS|FTSA)", t)
     if match:
-        return f"{int(match.group(1))}:{match.group(2)} {match.group(3)}"
+        return f"{int(match.group(1))}:{match.group(2)} FTS"
 
     compact = re.sub(r"[^A-Z0-9]+", "", t)
     match = re.fullmatch(r"(\d{2,3})(FTS|FTSA)", compact)
     if match:
         digits = match.group(1)
-        return f"{int(digits[:-1])}:{digits[-1]} {match.group(2)}"
+        return f"{int(digits[:-1])}:{digits[-1]} FTS"
     return None
 
 
+def _load_pfas_study_overrides(filename: str = "pfas_study_overrides.csv") -> dict[tuple[str, str], str]:
+    """Study-scoped PFAS names: (study_no, shorthand key) -> canonical name.
+
+    Used where one abbreviation names different compounds in different studies
+    (6:2 FTSA is the sulfonic acid in most studies but the sulfonamide in study 38).
+    """
+    path = os.path.join(MAPPINGS_DIR, filename)
+    if not os.path.exists(path):
+        return {}
+    overrides = {}
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            study = str(row.get("study_no", "")).strip().casefold()
+            key = _norm_shorthand_key(row.get("raw_name", ""))
+            canon = str(row.get("canonical", "")).strip()
+            if study and key and canon:
+                overrides[(study, key)] = canon
+    return overrides
+
+
+PFAS_STUDY_OVERRIDES = _load_pfas_study_overrides()
 PFAS_SHORTHAND_MAP = load_mapping_csv("pfas_map.csv", norm_key_fn=_norm_shorthand_key)
 PFAS_SHORTHAND_MAP_NORM = {_norm_shorthand_key(k): v for k, v in PFAS_SHORTHAND_MAP.items()}
 CANON_NAME_BY_LABEL = {

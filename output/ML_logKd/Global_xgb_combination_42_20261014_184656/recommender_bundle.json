@@ -1,0 +1,765 @@
+{
+  "bundle_format": "adsorbent_recommender_bundle",
+  "bundle_version": 4,
+  "model_family": "Global",
+  "target": "Kd_final_log10(L/g)",
+  "artifacts": {
+    "run_config": "run_config.json",
+    "ensemble": "model_ensemble.joblib",
+    "feature_support": "optimizer_bounds.json"
+  },
+  "features": {
+    "selected": [
+      "PFAS_C0_value_mg/L",
+      "Adsorbent_dosage_value_mg/L",
+      "pH",
+      "Temperature_(\u00b0C)",
+      "Water_type",
+      "organic_carbon_mg/L",
+      "inorganic_matter_present",
+      "contains_Na",
+      "contains_K",
+      "contains_Ca",
+      "contains_Mg",
+      "contains_Cl",
+      "contains_HCO3",
+      "contains_SO4",
+      "organic_matter_present",
+      "rdkit_tpsa",
+      "rdkit_num_h_donors",
+      "rdkit_num_rotatable_bonds",
+      "rdkit_fraction_csp3",
+      "rdkit_N_count",
+      "rdkit_F_count",
+      "rdkit_nonfluorinated_C_count",
+      "rdkit_partially_fluorinated_C_count",
+      "rdkit_terminal_CF3_count",
+      "rdkit_fluorinated_segment_count",
+      "rdkit_carboxyl_group_count",
+      "rdkit_sulfonic_acid_group_count",
+      "rdkit_sulfonamide_group_count",
+      "rdkit_positive_charge_count",
+      "rdkit_negative_charge_count",
+      "Mw (g/mol)",
+      "adsorbent_subcategory",
+      "contains_mesoporous",
+      "contains_macroporous",
+      "contains_gel",
+      "Nominal_grain_size_value_mm",
+      "ssa_(m2/g)_avg",
+      "average_pore_diameter_(angstrom)",
+      "phpzc",
+      "pore_volume_total_value_cm3/g",
+      "pore_volume_micro_value_avg_cm3/g",
+      "pore_volume_meso_value_avg_cm3/g",
+      "element_C_value",
+      "element_N_value",
+      "element_O_value",
+      "adsorbent_category",
+      "AC_raw_material",
+      "ion_exchange_capacity_value_meq/L",
+      "contains_quaternary_ammonium",
+      "contains_sulfonic_acid",
+      "contains_carboxyl",
+      "contains_hydroxyl",
+      "contains_amine",
+      "polymer_matrix"
+    ],
+    "numeric": [
+      "PFAS_C0_value_mg/L",
+      "Adsorbent_dosage_value_mg/L",
+      "pH",
+      "Temperature_(\u00b0C)",
+      "organic_carbon_mg/L",
+      "inorganic_matter_present",
+      "contains_Na",
+      "contains_K",
+      "contains_Ca",
+      "contains_Mg",
+      "contains_Cl",
+      "contains_HCO3",
+      "contains_SO4",
+      "organic_matter_present",
+      "rdkit_tpsa",
+      "rdkit_num_h_donors",
+      "rdkit_num_rotatable_bonds",
+      "rdkit_fraction_csp3",
+      "rdkit_N_count",
+      "rdkit_F_count",
+      "rdkit_nonfluorinated_C_count",
+      "rdkit_partially_fluorinated_C_count",
+      "rdkit_terminal_CF3_count",
+      "rdkit_fluorinated_segment_count",
+      "rdkit_carboxyl_group_count",
+      "rdkit_sulfonic_acid_group_count",
+      "rdkit_sulfonamide_group_count",
+      "rdkit_positive_charge_count",
+      "rdkit_negative_charge_count",
+      "Mw (g/mol)",
+      "contains_mesoporous",
+      "contains_macroporous",
+      "contains_gel",
+      "Nominal_grain_size_value_mm",
+      "ssa_(m2/g)_avg",
+      "average_pore_diameter_(angstrom)",
+      "phpzc",
+      "pore_volume_total_value_cm3/g",
+      "pore_volume_micro_value_avg_cm3/g",
+      "pore_volume_meso_value_avg_cm3/g",
+      "element_C_value",
+      "element_N_value",
+      "element_O_value",
+      "ion_exchange_capacity_value_meq/L",
+      "contains_quaternary_ammonium",
+      "contains_sulfonic_acid",
+      "contains_carboxyl",
+      "contains_hydroxyl",
+      "contains_amine"
+    ],
+    "categorical": [
+      "Water_type",
+      "adsorbent_subcategory",
+      "adsorbent_category",
+      "AC_raw_material",
+      "polymer_matrix"
+    ],
+    "selected_by_bucket": {
+      "PFAS characteristics": [
+        "rdkit_tpsa",
+        "rdkit_num_h_donors",
+        "rdkit_num_rotatable_bonds",
+        "rdkit_fraction_csp3",
+        "rdkit_N_count",
+        "rdkit_F_count",
+        "rdkit_nonfluorinated_C_count",
+        "rdkit_partially_fluorinated_C_count",
+        "rdkit_terminal_CF3_count",
+        "rdkit_fluorinated_segment_count",
+        "rdkit_carboxyl_group_count",
+        "rdkit_sulfonic_acid_group_count",
+        "rdkit_sulfonamide_group_count",
+        "rdkit_positive_charge_count",
+        "rdkit_negative_charge_count",
+        "Mw (g/mol)"
+      ],
+      "Experimental conditions": [
+        "PFAS_C0_value_mg/L",
+        "Adsorbent_dosage_value_mg/L",
+        "pH",
+        "Temperature_(\u00b0C)",
+        "Water_type",
+        "organic_carbon_mg/L",
+        "inorganic_matter_present",
+        "contains_Na",
+        "contains_K",
+        "contains_Ca",
+        "contains_Mg",
+        "contains_Cl",
+        "contains_HCO3",
+        "contains_SO4",
+        "organic_matter_present"
+      ],
+      "Adsorbent properties": [
+        "adsorbent_subcategory",
+        "contains_mesoporous",
+        "contains_macroporous",
+        "contains_gel",
+        "Nominal_grain_size_value_mm",
+        "ssa_(m2/g)_avg",
+        "average_pore_diameter_(angstrom)",
+        "phpzc",
+        "pore_volume_total_value_cm3/g",
+        "pore_volume_micro_value_avg_cm3/g",
+        "pore_volume_meso_value_avg_cm3/g",
+        "element_C_value",
+        "element_N_value",
+        "element_O_value",
+        "adsorbent_category",
+        "AC_raw_material",
+        "ion_exchange_capacity_value_meq/L",
+        "contains_quaternary_ammonium",
+        "contains_sulfonic_acid",
+        "contains_carboxyl",
+        "contains_hydroxyl",
+        "contains_amine",
+        "polymer_matrix"
+      ]
+    }
+  },
+  "input_contract": {
+    "fields": [
+      {
+        "model_feature": "PFAS_C0_value_mg/L",
+        "source": "scenario",
+        "key": "initial_concentration_mg_l",
+        "label": "Initial PFAS concentration",
+        "unit": "mg/L"
+      },
+      {
+        "model_feature": "Adsorbent_dosage_value_mg/L",
+        "source": "test_control",
+        "label": "Adsorbent dose",
+        "unit": "mg/L"
+      },
+      {
+        "model_feature": "pH",
+        "source": "water",
+        "key": "pH",
+        "label": "pH",
+        "unit": ""
+      },
+      {
+        "model_feature": "Temperature_(\u00b0C)",
+        "source": "test_control",
+        "label": "Temperature",
+        "unit": "\u00b0C"
+      },
+      {
+        "model_feature": "Water_type",
+        "source": "water",
+        "key": "water_type",
+        "label": "Water type",
+        "unit": ""
+      },
+      {
+        "model_feature": "organic_carbon_mg/L",
+        "source": "water",
+        "key": "organic_carbon_mg_l",
+        "label": "Organic carbon",
+        "unit": "mg/L"
+      },
+      {
+        "model_feature": "inorganic_matter_present",
+        "source": "derived_water",
+        "key": "inorganic_matter_present",
+        "label": "inorganic matter present",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_Na",
+        "source": "water_ion",
+        "key": "Na",
+        "label": "Contains Na",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_K",
+        "source": "water_ion",
+        "key": "K",
+        "label": "Contains K",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_Ca",
+        "source": "water_ion",
+        "key": "Ca",
+        "label": "Contains Ca",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_Mg",
+        "source": "water_ion",
+        "key": "Mg",
+        "label": "Contains Mg",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_Cl",
+        "source": "water_ion",
+        "key": "Cl",
+        "label": "Contains Cl",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_HCO3",
+        "source": "water_ion",
+        "key": "HCO3",
+        "label": "Contains HCO3",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_SO4",
+        "source": "water_ion",
+        "key": "SO4",
+        "label": "Contains SO4",
+        "unit": ""
+      },
+      {
+        "model_feature": "organic_matter_present",
+        "source": "derived_water",
+        "key": "organic_matter_present",
+        "label": "organic matter present",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_tpsa",
+        "source": "pfas_cache",
+        "label": "rdkit_tpsa",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_num_h_donors",
+        "source": "pfas_cache",
+        "label": "rdkit_num_h_donors",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_num_rotatable_bonds",
+        "source": "pfas_cache",
+        "label": "rdkit_num_rotatable_bonds",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_fraction_csp3",
+        "source": "pfas_cache",
+        "label": "rdkit_fraction_csp3",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_N_count",
+        "source": "pfas_cache",
+        "label": "rdkit_N_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_F_count",
+        "source": "pfas_cache",
+        "label": "rdkit_F_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_nonfluorinated_C_count",
+        "source": "pfas_cache",
+        "label": "rdkit_nonfluorinated_C_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_partially_fluorinated_C_count",
+        "source": "pfas_cache",
+        "label": "rdkit_partially_fluorinated_C_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_terminal_CF3_count",
+        "source": "pfas_cache",
+        "label": "rdkit_terminal_CF3_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_fluorinated_segment_count",
+        "source": "pfas_cache",
+        "label": "rdkit_fluorinated_segment_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_carboxyl_group_count",
+        "source": "pfas_cache",
+        "label": "rdkit_carboxyl_group_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_sulfonic_acid_group_count",
+        "source": "pfas_cache",
+        "label": "rdkit_sulfonic_acid_group_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_sulfonamide_group_count",
+        "source": "pfas_cache",
+        "label": "rdkit_sulfonamide_group_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_positive_charge_count",
+        "source": "pfas_cache",
+        "label": "rdkit_positive_charge_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "rdkit_negative_charge_count",
+        "source": "pfas_cache",
+        "label": "rdkit_negative_charge_count",
+        "unit": ""
+      },
+      {
+        "model_feature": "Mw (g/mol)",
+        "source": "pfas_cache",
+        "label": "Mw (g/mol)",
+        "unit": ""
+      },
+      {
+        "model_feature": "adsorbent_subcategory",
+        "source": "catalog",
+        "label": "adsorbent_subcategory",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_mesoporous",
+        "source": "catalog",
+        "label": "contains_mesoporous",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_macroporous",
+        "source": "catalog",
+        "label": "contains_macroporous",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_gel",
+        "source": "catalog",
+        "label": "contains_gel",
+        "unit": ""
+      },
+      {
+        "model_feature": "Nominal_grain_size_value_mm",
+        "source": "catalog",
+        "label": "Nominal_grain_size_value_mm",
+        "unit": ""
+      },
+      {
+        "model_feature": "ssa_(m2/g)_avg",
+        "source": "catalog",
+        "label": "ssa_(m2/g)_avg",
+        "unit": ""
+      },
+      {
+        "model_feature": "average_pore_diameter_(angstrom)",
+        "source": "catalog",
+        "label": "average_pore_diameter_(angstrom)",
+        "unit": ""
+      },
+      {
+        "model_feature": "phpzc",
+        "source": "catalog",
+        "label": "phpzc",
+        "unit": ""
+      },
+      {
+        "model_feature": "pore_volume_total_value_cm3/g",
+        "source": "catalog",
+        "label": "pore_volume_total_value_cm3/g",
+        "unit": ""
+      },
+      {
+        "model_feature": "pore_volume_micro_value_avg_cm3/g",
+        "source": "catalog",
+        "label": "pore_volume_micro_value_avg_cm3/g",
+        "unit": ""
+      },
+      {
+        "model_feature": "pore_volume_meso_value_avg_cm3/g",
+        "source": "catalog",
+        "label": "pore_volume_meso_value_avg_cm3/g",
+        "unit": ""
+      },
+      {
+        "model_feature": "element_C_value",
+        "source": "catalog",
+        "label": "element_C_value",
+        "unit": ""
+      },
+      {
+        "model_feature": "element_N_value",
+        "source": "catalog",
+        "label": "element_N_value",
+        "unit": ""
+      },
+      {
+        "model_feature": "element_O_value",
+        "source": "catalog",
+        "label": "element_O_value",
+        "unit": ""
+      },
+      {
+        "model_feature": "adsorbent_category",
+        "source": "catalog",
+        "label": "adsorbent_category",
+        "unit": ""
+      },
+      {
+        "model_feature": "AC_raw_material",
+        "source": "catalog",
+        "label": "AC_raw_material",
+        "unit": ""
+      },
+      {
+        "model_feature": "ion_exchange_capacity_value_meq/L",
+        "source": "catalog",
+        "label": "ion_exchange_capacity_value_meq/L",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_quaternary_ammonium",
+        "source": "catalog",
+        "label": "contains_quaternary_ammonium",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_sulfonic_acid",
+        "source": "catalog",
+        "label": "contains_sulfonic_acid",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_carboxyl",
+        "source": "catalog",
+        "label": "contains_carboxyl",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_hydroxyl",
+        "source": "catalog",
+        "label": "contains_hydroxyl",
+        "unit": ""
+      },
+      {
+        "model_feature": "contains_amine",
+        "source": "catalog",
+        "label": "contains_amine",
+        "unit": ""
+      },
+      {
+        "model_feature": "polymer_matrix",
+        "source": "catalog",
+        "label": "polymer_matrix",
+        "unit": ""
+      }
+    ],
+    "unsupported_selected_features": []
+  },
+  "controls": {
+    "Adsorbent_dosage_value_mg/L": {
+      "kind": "numeric",
+      "count": 3732,
+      "hard_min": 0.5,
+      "hard_max": 20000.0,
+      "p01": 1.0,
+      "p05": 1.0,
+      "median": 50.0,
+      "p95": 1000.0,
+      "p99": 5000.0,
+      "role": "fixed",
+      "default": 25.0,
+      "transform": "log10",
+      "label": "Adsorbent dose",
+      "unit": "mg/L",
+      "default_basis": "held common across candidates for a fair affinity comparison; 25 mg/L is the published GAC carbon-usage feasibility threshold and sits inside the 2-50 mg/L full-scale PAC range, while keeping every adsorbent class represented in the training dose distribution",
+      "search_lower": 1.0,
+      "search_upper": 1000.0,
+      "default_within_observed_support": true
+    },
+    "Temperature_(\u00b0C)": {
+      "kind": "numeric",
+      "count": 2597,
+      "hard_min": 15.0,
+      "hard_max": 45.0,
+      "p01": 20.0,
+      "p05": 21.6,
+      "median": 23.0,
+      "p95": 25.0,
+      "p99": 30.0,
+      "role": "fixed",
+      "default": 25.0,
+      "label": "Temperature",
+      "unit": "\u00b0C",
+      "search_lower": 21.6,
+      "search_upper": 25.0,
+      "default_within_observed_support": true
+    }
+  },
+  "catalog": {
+    "available": true,
+    "category": [
+      "Activated carbon",
+      "Ion exchange resin",
+      "Nonionic resin",
+      "Cyclodextrin polymer",
+      "Cyclodextrin polymers"
+    ],
+    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\commercial_adsorbent_properties_authoritative.xlsx",
+    "source_sheet": "Adsorbent_Properties",
+    "snapshot_filename": "catalog_snapshot.csv",
+    "eligibility_filename": "catalog_eligibility.csv",
+    "identity_map_filename": "catalog_product_model_identity_map.csv",
+    "required_material_features": [
+      "adsorbent_subcategory",
+      "contains_mesoporous",
+      "contains_macroporous",
+      "contains_gel",
+      "Nominal_grain_size_value_mm",
+      "ssa_(m2/g)_avg",
+      "average_pore_diameter_(angstrom)",
+      "phpzc",
+      "pore_volume_total_value_cm3/g",
+      "pore_volume_micro_value_avg_cm3/g",
+      "pore_volume_meso_value_avg_cm3/g",
+      "element_C_value",
+      "element_N_value",
+      "element_O_value",
+      "adsorbent_category",
+      "AC_raw_material",
+      "ion_exchange_capacity_value_meq/L",
+      "contains_quaternary_ammonium",
+      "contains_sulfonic_acid",
+      "contains_carboxyl",
+      "contains_hydroxyl",
+      "contains_amine",
+      "polymer_matrix"
+    ],
+    "minimum_material_feature_count": 9,
+    "minimum_material_feature_basis": "median material-feature coverage of the fitted training rows",
+    "screened_product_count": 106,
+    "eligible_candidate_count": 65
+  },
+  "database_evidence": {
+    "available": true,
+    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_25mgL_search.xlsx",
+    "source_sheet": "Dose_25mgL_Search",
+    "rows": 1845,
+    "snapshot_filename": "reference_dose_evidence.csv",
+    "match_policy": {
+      "version": 1,
+      "reference_dose_mg_L": 25.0,
+      "hard_exact_matches": [
+        "PFAS",
+        "adsorbent",
+        "standardized water type"
+      ],
+      "numeric_tolerances": {
+        "initial_concentration_mg_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        },
+        "pH": {
+          "kind": "absolute",
+          "tolerance": 0.5,
+          "description": "\u00b10.5 pH unit"
+        },
+        "temperature_C": {
+          "kind": "absolute",
+          "tolerance": 2.0,
+          "description": "\u00b12 \u00b0C"
+        },
+        "organic_carbon_mg_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        },
+        "tds_mg_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        },
+        "ionic_strength_mol_L": {
+          "kind": "log10_absolute",
+          "tolerance": 0.3010299956639812,
+          "description": "within a factor of 2"
+        }
+      },
+      "selection_order": [
+        "isotherm-recalculated result before near-dose observation",
+        "smallest normalized condition distance",
+        "highest qualifying isotherm R\u00b2",
+        "stable standardized row identifier"
+      ]
+    }
+  },
+  "pfas_features": {
+    "available": true,
+    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
+    "sheet_name": "Sheet1",
+    "snapshot_filename": "pfas_features.xlsx",
+    "sha256": "f890e7aea3e7a096d84ed4f62a313f913954a900a0ac627755d24c437fab722b"
+  },
+  "training_support": {
+    "available": true,
+    "snapshot_filename": "training_support.csv",
+    "training_records": 3792,
+    "pfas_count": 128,
+    "validation_rmse": 0.40736179271295825,
+    "validation_rmse_basis": "best cross-validated RMSE of the tuned configuration (tuning_summary.json)"
+  },
+  "adsorbent_support": {
+    "available": true,
+    "version": 1,
+    "snapshot_filename": "adsorbent_training_support.csv",
+    "snapshot_sha256": "fddb88b7d61f8478eee680072945b0c760fafc6815af30f4704088e2d81cd9cc",
+    "policy": {
+      "version": 1,
+      "minimum_independent_studies": 2,
+      "minimum_source_records": 5,
+      "study_identity": "distinct normalized DOI; unverified study IDs do not satisfy the independent-study floor",
+      "source_identity": "distinct extraction_dataset/source_row_index; expanded siblings count once",
+      "basis": "screening policy, not a calibrated accuracy or confidence threshold"
+    },
+    "fitted_rows": 3792,
+    "identity_matching": "exact normalized curated product aliases against fitted record identities",
+    "study_count_basis": "distinct DOI; study_no aliases for the same DOI count once",
+    "source_count_basis": "distinct extraction_dataset/source_row_index; expanded siblings count once",
+    "default_ml_supported_products": 9
+  },
+  "capabilities": {
+    "catalog_screening": true,
+    "database_evidence_lookup": true,
+    "adsorbent_support_screening": true,
+    "unseen_pfas_prediction": true
+  },
+  "status": "ready",
+  "pfas_runtime": {
+    "available": true,
+    "enabled": true,
+    "snapshot_filename": "pfas_training_reference.csv",
+    "descriptor_version": "pfas-rdkit-v1",
+    "rdkit_version": "2026.03.5",
+    "required_features": [
+      "rdkit_tpsa",
+      "rdkit_num_h_donors",
+      "rdkit_num_rotatable_bonds",
+      "rdkit_fraction_csp3",
+      "rdkit_N_count",
+      "rdkit_F_count",
+      "rdkit_nonfluorinated_C_count",
+      "rdkit_partially_fluorinated_C_count",
+      "rdkit_terminal_CF3_count",
+      "rdkit_fluorinated_segment_count",
+      "rdkit_carboxyl_group_count",
+      "rdkit_sulfonic_acid_group_count",
+      "rdkit_sulfonamide_group_count",
+      "rdkit_positive_charge_count",
+      "rdkit_negative_charge_count",
+      "Mw (g/mol)"
+    ],
+    "unsupported_features": [],
+    "descriptor_parity": {
+      "rows_checked": 209,
+      "feature_count": 16,
+      "mismatch_count": 0,
+      "mismatch_examples": []
+    },
+    "training_structure_count": 128,
+    "fingerprint": {
+      "kind": "Morgan",
+      "radius": 2,
+      "bits": 2048,
+      "include_chirality": true,
+      "similarity": "Tanimoto"
+    },
+    "interpretation": "Structural resemblance only; not a confidence score or prediction interval.",
+    "validation_audit": {
+      "summary_filename": "pfas_validation/audit_summary.json",
+      "chemical_separation_passed": true,
+      "outer_splits": 10,
+      "heldout_pfas": 91,
+      "interpretation": "Separate outer testing evaluation; not prediction-specific confidence."
+    }
+  },
+  "water_support": {
+    "available": true,
+    "version": 1,
+    "snapshot_filename": "water_training_support.json",
+    "snapshot_sha256": "a64122045c9f258f49c114663bb95043222e3286126a9fe79321da4649013e15",
+    "population": "actual_fitted_records"
+  }
+}

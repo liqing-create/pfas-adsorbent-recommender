@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-14",
+  "tests": [
+    {
+      "tests": 199,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "source": "unseen_pfas_tests.xml"
+    },
+    {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source": "unseen_pfas_network_ui_test.xml"
+    }
+  ],
+  "total_passing_tests": 199,
+  "skipped_tests_note": "test_known_compound_rankings_equal_the_prechange_service needs the implementation-workspace service snapshot and does not apply to a retrained model.",
+  "descriptor_parity": {
+    "rows_checked": 209,
+    "feature_count": 16,
+    "mismatch_count": 0,
+    "mismatch_examples": []
+  },
+  "rdkit_version": "2026.03.5",
+  "training_structures": 128,
+  "result_schema_version": 5,
+  "bundle_version": 4,
+  "model_sha256": "63fc97a5cc444523c5508ba6cd6530b9f9cb0925d79ae0a9a4c8fc93f212755a",
+  "model_weights_unchanged": false,
+  "retraining": {
+    "reason": "Retrained 2026-10-14 on the database rebuilt after the commercial-adsorbent identity fix (adsorbent_consolidation.py, adsorbent_map.csv).",
+    "previous_bundle": "Global_xgb_combination_42_20260907_141359",
+    "previous_model_sha256": "5278de7e1925d10521e3ef2599fbcad2eafe982489883e04ae065b56f9fa7d3f",
+    "prechange_service_regression": "Not applicable: model weights and catalog changed by design."
+  },
+  "live_pubchem_smoke": {
+    "query": "335-67-1",
+    "resolved_cid": 9554,
+    "structure_received": true
+  },
+  "holdout_audit": {
+    "chemical_separation_passed": true,
+    "outer_splits": 10,
+    "heldout_pfAS": 91,
+    "testing_rows_including_repeats": 5782,
+    "per_compound_rows": 149,
+    "archive": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\ML_logKd\\Global_split_strategy_comparison_multi_strategy_20260904_031320",
+    "cache": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\ML_logKd\\Global_xgb_combination_42_20261014_184656\\pfas_features.xlsx",
+    "limitations": [
+      "The curated snapshot supplies structure mappings; the archive has no frozen structure snapshot.",
+      "Population-level errors are not individual prediction intervals.",
+      "Different allocation strategies have different test memberships; the metric differences are descriptive.",
+      "Ranking among commercial adsorbents is not independently validated by aggregate logKd error.",
+      "The archived outer splits were fitted on the database before the 2026-10-14 identity fix; the audit outputs are identical to those of the previous bundle."
+    ]
+  }
+}

@@ -19,8 +19,12 @@ from adsorbent_recommender.catalog import (
     catalog_eligibility,
     catalog_identity_map,
     load_authoritative_catalog,
+    normalized_key,
 )
+from adsorbent_recommender.material_support import export_support
+from adsorbent_recommender.water_support import export_support as export_water_support
 from adsorbent_recommender.evidence import (
+    ADSORBENT_RECORD_FIELDS,
     DEFAULT_EVIDENCE_PATH,
     DEFAULT_EVIDENCE_SHEET,
     DEFAULT_MATCH_POLICY,
@@ -29,10 +33,18 @@ from adsorbent_recommender.evidence import (
 )
 
 
+from adsorbent_recommender.pfas_support import export_runtime_support
+from adsorbent_recommender.pfas_descriptors import DESCRIPTOR_VERSION
+from rdkit import rdBase
+
+
 BUNDLE_FILENAME = "recommender_bundle.json"
 BUNDLE_FORMAT = "adsorbent_recommender_bundle"
 BUNDLE_VERSION = 4
 PFAS_FEATURES_SNAPSHOT_FILENAME = "pfas_features.xlsx"
+TRAINING_SUPPORT_FILENAME = "training_support.csv"
+TRAINING_PREDICTIONS_FILENAME = "all_predictions.csv"
+TUNING_SUMMARY_FILENAME = "tuning_summary.json"
 
 # The model keeps original dataset-column names.  This registry gives runtime
 # code a stable source and human label without changing historic data columns.
@@ -191,6 +203,61 @@ def _snapshot_pfas_features(output_dir: Path, source: Path | None, sheet_name: s
     return details
 
 
+def training_support_table(records: pd.DataFrame) -> pd.DataFrame:
+    """Count the training records and studies behind each PFAS and adsorbent name.
+
+    Keys are normalized the way the database matcher normalizes them, so a
+    catalog product counts as seen in training exactly when one of its aliases
+    names a training record.  Recording counts rather than a flag lets the app
+    say how thin the support is, not only whether it exists.
+    """
+    studies = records["study_no"] if "study_no" in records.columns else pd.Series(range(len(records)))
+    tables = []
+    for kind, fields in (("pfas", ("PFAS_name",)), ("adsorbent", ADSORBENT_RECORD_FIELDS)):
+        fields = [name for name in fields if name in records.columns]
+        if not fields:
+            continue
+        keys = records[fields].apply(lambda column: column.map(normalized_key))
+        keys["__study"] = studies.to_numpy()
+        keys["__row"] = np.arange(len(records))
+        long = keys.melt(id_vars=["__study", "__row"], value_name="key")
+        long = long[long["key"].ne("")].drop_duplicates(["__row", "key"])
+        table = long.groupby("key").agg(records=("__row", "nunique"), studies=("__study", "nunique")).reset_index()
+        table.insert(0, "kind", kind)
+        tables.append(table)
+    if not tables:
+        return pd.DataFrame(columns=["kind", "key", "records", "studies"])
+    return pd.concat(tables, ignore_index=True)
+
+
+def _validation_rmse(tuning_path: Path) -> float | None:
+    if not tuning_path.is_file():
+        return None
+    value = json.loads(tuning_path.read_text(encoding="utf-8")).get("best_validation_rmse")
+    return None if value is None else float(value)
+
+
+def _snapshot_training_support(output_dir: Path, records: pd.DataFrame | None) -> dict[str, Any]:
+    """Write which PFAS and adsorbents the deployed model was fitted on.
+
+    The app uses it to warn when a PFAS or catalog product has no training
+    record, and the tuned validation RMSE to say when two scores are too close
+    to rank.  Both describe the model itself, so they travel with the bundle.
+    """
+    if records is None or records.empty:
+        return {"available": False, "reason": "no training records were supplied"}
+    table = training_support_table(records)
+    table.to_csv(output_dir / TRAINING_SUPPORT_FILENAME, index=False)
+    return {
+        "available": True,
+        "snapshot_filename": TRAINING_SUPPORT_FILENAME,
+        "training_records": int(len(records)),
+        "pfas_count": int(table["kind"].eq("pfas").sum()),
+        "validation_rmse": _validation_rmse(output_dir / TUNING_SUMMARY_FILENAME),
+        "validation_rmse_basis": "best cross-validated RMSE of the tuned configuration (tuning_summary.json)",
+    }
+
+
 def _snapshot_evidence(output_dir: Path, source: Path, sheet_name: str) -> dict[str, Any]:
     evidence, details = load_reference_dose_evidence(source, sheet_name)
     if details.get("available"):
@@ -198,6 +265,49 @@ def _snapshot_evidence(output_dir: Path, source: Path, sheet_name: str) -> dict[
         details["snapshot_filename"] = EVIDENCE_SNAPSHOT_FILENAME
     details["match_policy"] = DEFAULT_MATCH_POLICY
     return details
+
+
+def _snapshot_material_support(output_dir: Path, records: pd.DataFrame | None) -> dict[str, Any]:
+    """Export fitted product support; bibliography is read only while packaging."""
+    if records is None or records.empty:
+        return export_support(output_dir, pd.DataFrame(), records)
+    catalog_path = output_dir / "catalog_snapshot.csv"
+    if not catalog_path.is_file():
+        return {"available": False, "reason": "No catalog snapshot was supplied."}
+    catalog = pd.read_csv(catalog_path)
+    identity_path = output_dir / "catalog_product_model_identity_map.csv"
+    if identity_path.is_file():
+        catalog = catalog.merge(pd.read_csv(identity_path), on="Product_key", validate="one_to_one")
+    # Study DOIs come from the database's Standardized_Full sheet, which lists every study. The path in
+    # run_config is the one on the machine that trained the model, so the project's own copy of the
+    # database is tried next. The reference-dose evidence snapshot only covers studies with records near
+    # 25 mg/L and is a last resort; its use would undercount DOI-identified studies.
+    candidates = []
+    config_path = output_dir / "run_config.json"
+    if config_path.is_file():
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        if config.get("input_path"):
+            candidates.append(Path(config["input_path"]))
+    candidates.append(Path(cfg.DEFAULT_INPUT))
+    references, bibliography = None, None
+    for source in candidates:
+        if not source.is_file():
+            continue
+        try:
+            references = pd.read_excel(source, sheet_name="Standardized_Full", usecols=lambda name: name in {"study_no", "DOI"})
+            bibliography = f"Standardized_Full of {source.name}"
+            break
+        except (ValueError, OSError):
+            continue
+    if references is None:
+        evidence = output_dir / EVIDENCE_SNAPSHOT_FILENAME
+        if evidence.is_file():
+            references = pd.read_csv(evidence, usecols=lambda name: name in {"study_no", "DOI"})
+            bibliography = f"{EVIDENCE_SNAPSHOT_FILENAME} (partial: studies with reference-dose records only)"
+    metadata = export_support(output_dir, catalog, records, references)
+    if bibliography:
+        metadata["bibliography_source"] = bibliography
+    return metadata
 
 
 def export_recommender_bundle(
@@ -217,6 +327,7 @@ def export_recommender_bundle(
     evidence_sheet: str = DEFAULT_EVIDENCE_SHEET,
     pfas_features_path: Path | None = None,
     pfas_features_sheet: str = cfg.DEFAULT_PFAS_FEATURES_SHEET,
+    training_records: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """Write the stable runtime manifest and catalog artifacts for one run.
 
@@ -264,11 +375,15 @@ def export_recommender_bundle(
 
     evidence_details = _snapshot_evidence(output_dir, evidence_path or DEFAULT_EVIDENCE_PATH, evidence_sheet)
     pfas_details = _snapshot_pfas_features(output_dir, pfas_features_path, pfas_features_sheet)
+    training_details = _snapshot_training_support(output_dir, training_records)
+    material_support = _snapshot_material_support(output_dir, training_records)
+    water_support = export_water_support(output_dir, training_records)
 
     contract = _input_contract(selected, selected_by_bucket, bounds.get("controls", {}))
     capabilities = {
         "catalog_screening": bool(catalog_details.get("available") and catalog_details.get("eligible_candidate_count", 0) > 0 and not contract["unsupported_selected_features"]),
         "database_evidence_lookup": bool(evidence_details.get("available")),
+        "adsorbent_support_screening": bool(material_support.get("available")),
     }
     manifest = {
         "bundle_format": BUNDLE_FORMAT,
@@ -286,6 +401,9 @@ def export_recommender_bundle(
         "catalog": catalog_details,
         "database_evidence": evidence_details,
         "pfas_features": pfas_details,
+        "training_support": training_details,
+        "adsorbent_support": material_support,
+        "water_support": water_support,
         "capabilities": capabilities,
         "status": "ready" if capabilities["catalog_screening"] else "not_ready",
     }
@@ -299,6 +417,9 @@ def export_recommender_bundle(
             f"({catalog_details.get('minimum_material_feature_count')} of "
             f"{len(material_features)})."
         )
+    runtime = export_runtime_support(output_dir, manifest, training_records if training_records is not None else pd.DataFrame())
+    manifest["pfas_runtime"] = runtime
+    manifest["capabilities"]["unseen_pfas_prediction"] = bool(runtime.get("enabled"))
     (output_dir / BUNDLE_FILENAME).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest
 
@@ -316,7 +437,7 @@ def load_bundle_manifest(bundle_dir: Path) -> dict[str, Any]:
     declared = dict(manifest.get("artifacts", {}))
     # A snapshot the manifest declares but the directory lacks would otherwise
     # fall back silently to a path on the training machine.
-    for section in ("pfas_features", "database_evidence"):
+    for section in ("pfas_features", "database_evidence", "training_support", "pfas_runtime", "adsorbent_support", "water_support"):
         snapshot = manifest.get(section, {}).get("snapshot_filename")
         if snapshot is not None:
             declared[section] = snapshot
@@ -332,14 +453,18 @@ def make_bundle_self_contained(
     pfas_features_path: Path | None = None,
     evidence_path: Path | None = None,
     evidence_sheet: str = DEFAULT_EVIDENCE_SHEET,
+    refresh_adsorbent_support: bool = False,
 ) -> dict[str, Any]:
     """Copy runtime data into a bundle exported before bundles carried it.
 
     The model, catalog snapshot and feature support are not touched.  The PFAS
     feature cache defaults to the workbook recorded in run_config; the evidence
     snapshot is taken from the workbook as it is now, which is also what such a
-    bundle was reading at run time.  Sections already present are left alone, so
-    running this twice changes nothing.
+    bundle was reading at run time.  Training support is counted from the
+    bundle's own all_predictions.csv, the rows the deployed model was fitted on.
+    Sections already present are left alone, so running this twice changes
+    nothing; ``refresh_adsorbent_support`` rebuilds the adsorbent training-support
+    snapshot regardless, for example after its study bibliography was incomplete.
     """
     bundle_dir = Path(bundle_dir)
     manifest = load_bundle_manifest(bundle_dir)
@@ -355,13 +480,44 @@ def make_bundle_self_contained(
         )
         retrofitted.append("pfas_features")
     if not manifest.get("database_evidence", {}).get("snapshot_filename"):
-        manifest["database_evidence"] = _snapshot_evidence(
+        evidence_details = _snapshot_evidence(
             bundle_dir, Path(evidence_path or DEFAULT_EVIDENCE_PATH), evidence_sheet,
         )
+        if evidence_details != manifest.get("database_evidence"):
+            retrofitted.append("database_evidence")
+        manifest["database_evidence"] = evidence_details
         manifest.setdefault("capabilities", {})["database_evidence_lookup"] = bool(
             manifest["database_evidence"].get("available")
         )
-        retrofitted.append("database_evidence")
+    predictions_path = bundle_dir / TRAINING_PREDICTIONS_FILENAME
+    if not manifest.get("water_support", {}).get("available") and predictions_path.is_file():
+        manifest["water_support"] = export_water_support(bundle_dir, pd.read_csv(predictions_path, low_memory=False))
+        if manifest["water_support"].get("available"):
+            retrofitted.append("water_support")
+    if (refresh_adsorbent_support or not manifest.get("adsorbent_support", {}).get("available")) and predictions_path.is_file():
+        records = pd.read_csv(predictions_path, low_memory=False)
+        if "data_split" in records and records.data_split.eq("all_data_refit_apparent").all():
+            manifest["adsorbent_support"] = _snapshot_material_support(bundle_dir, records)
+            manifest.setdefault("capabilities", {})["adsorbent_support_screening"] = bool(manifest["adsorbent_support"].get("available"))
+            retrofitted.append("adsorbent_support")
+    if not manifest.get("training_support", {}).get("available") and predictions_path.is_file():
+        manifest["training_support"] = _snapshot_training_support(
+            bundle_dir, pd.read_csv(predictions_path, low_memory=False),
+        )
+        retrofitted.append("training_support")
+    previous_runtime = manifest.get("pfas_runtime", {})
+    runtime_needs_refresh = (
+        not previous_runtime.get("available")
+        or previous_runtime.get("descriptor_version") != DESCRIPTOR_VERSION
+        or previous_runtime.get("rdkit_version") != rdBase.rdkitVersion
+        or "descriptor_parity" not in previous_runtime
+    )
+    if runtime_needs_refresh and predictions_path.is_file():
+        runtime = export_runtime_support(bundle_dir, manifest, pd.read_csv(predictions_path, low_memory=False))
+        if runtime != manifest.get("pfas_runtime"):
+            retrofitted.append("pfas_runtime")
+        manifest["pfas_runtime"] = runtime
+        manifest.setdefault("capabilities", {})["unseen_pfas_prediction"] = bool(runtime.get("enabled"))
     if retrofitted:
         manifest.setdefault("retrofits", []).append({
             "sections": retrofitted,
@@ -376,16 +532,19 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Copy the PFAS feature cache and reference-dose evidence into an existing bundle.",
+        description="Copy the PFAS feature cache, reference-dose evidence and training support into an existing bundle.",
     )
     parser.add_argument("bundle_dir", type=Path)
     parser.add_argument("--pfas-features-path", type=Path, help="defaults to the workbook recorded in run_config.json")
     parser.add_argument("--evidence-path", type=Path, help=f"defaults to {DEFAULT_EVIDENCE_PATH}")
+    parser.add_argument("--refresh-adsorbent-support", action="store_true",
+                        help="rebuild the adsorbent training-support snapshot even if the bundle already has one")
     arguments = parser.parse_args()
     result = make_bundle_self_contained(
         arguments.bundle_dir, arguments.pfas_features_path, arguments.evidence_path,
+        refresh_adsorbent_support=arguments.refresh_adsorbent_support,
     )
     print(json.dumps({
         section: {key: result.get(section, {}).get(key) for key in ("available", "snapshot_filename", "reason")}
-        for section in ("pfas_features", "database_evidence")
+        for section in ("pfas_features", "database_evidence", "training_support", "adsorbent_support")
     }, indent=2))

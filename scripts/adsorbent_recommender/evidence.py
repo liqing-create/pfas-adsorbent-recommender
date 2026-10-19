@@ -92,7 +92,7 @@ NUMERIC_FIELDS: dict[str, dict[str, Any]] = {
     },
     "ionic_strength_mol_L": {
         "columns": ("Ionic_strength_(mol/L)",),
-        "water_keys": ("ionic_strength_mol_l", "ionic_strength_mol_L"),
+        "water_keys": ("ionic_strength_mol_l", "ionic_strength_mol_L", "ionic_strength", "ionic_strength_with_unit"),
     },
 }
 
@@ -163,7 +163,7 @@ def requested_conditions(
     normalized_water: dict[str, Any],
     screening_conditions: dict[str, Any],
 ) -> dict[str, float]:
-    """Return numeric constraints explicitly supplied for this request."""
+    """Match supplied chemistry and the effective common screening temperature."""
     water_input = scenario.get("water", {}) if isinstance(scenario.get("water"), dict) else {}
     requested: dict[str, float] = {}
     for label, spec in NUMERIC_FIELDS.items():
@@ -176,10 +176,26 @@ def requested_conditions(
         if number is not None:
             requested[label] = number
 
+    if "temperature_C" not in requested:
+        fixed = screening_conditions.get("fixed_conditions", {})
+        temperature = _first_present(fixed, NUMERIC_FIELDS["temperature_C"]["columns"])
+        number = _as_float(temperature)
+        if number is not None:
+            requested["temperature_C"] = number
+
+    if water_input.get("inorganic_additives") and _truthy(normalized_water.get("inorganic_matter_present")):
+        derived = _as_float(normalized_water.get("Ionic_strength_(mol/L)"))
+        if derived is not None:
+            requested.setdefault("ionic_strength_mol_L", derived)
     return requested
 
 
-def _candidate_keys(material: dict[str, Any]) -> set[str]:
+# Record fields that name an adsorbent; a catalog product is the same material
+# as a record when any of its aliases equals any of these.
+ADSORBENT_RECORD_FIELDS = ("adsorbent_id", "name_abbreviation", "name_commercial", "name_full")
+
+
+def candidate_keys(material: dict[str, Any]) -> set[str]:
     fields = (
         "Product_key",
         "Name_Commercial",
@@ -190,7 +206,7 @@ def _candidate_keys(material: dict[str, Any]) -> set[str]:
     return {normalized_key(material.get(field)) for field in fields if normalized_key(material.get(field))}
 
 
-def _pfas_keys(feature_row: dict[str, Any], cache_key: str | None) -> set[str]:
+def pfas_keys(feature_row: dict[str, Any], cache_key: str | None) -> set[str]:
     fields = ("PFAS_name", "Compound Full Name", "Name", "Abbreviation")
     values = [cache_key, *(feature_row.get(field) for field in fields)]
     return {normalized_key(value) for value in values if normalized_key(value)}
@@ -201,12 +217,16 @@ def _row_alias_keys(row: pd.Series, fields: Iterable[str]) -> set[str]:
 
 
 def _numeric_distance(observed: float, requested: float, rule: dict[str, Any]) -> float | None:
+    if not math.isfinite(observed) or not math.isfinite(requested):
+        return None
     tolerance = float(rule["tolerance"])
     if rule["kind"] == "absolute":
         delta = abs(observed - requested)
     elif rule["kind"] == "log10_absolute":
-        if observed <= 0 or requested <= 0:
+        if observed < 0 or requested < 0:
             return None
+        if observed == 0 or requested == 0:
+            return 0.0 if observed == requested else None
         delta = abs(math.log10(observed) - math.log10(requested))
     else:
         raise ValueError(f"Unsupported numeric tolerance kind: {rule['kind']}")
@@ -286,6 +306,90 @@ def _evidence_record(row: pd.Series, requested: dict[str, float]) -> dict[str, A
     }
 
 
+CONDITION_LABELS = {
+    "water_type": "Water type", "initial_concentration_mg_L": "Initial PFAS concentration (mg/L)",
+    "pH": "pH", "temperature_C": "Temperature (°C)", "organic_carbon_mg_L": "Organic carbon (mg/L)",
+    "tds_mg_L": "TDS (mg/L)", "ionic_strength_mol_L": "Ionic strength (mol/L)",
+}
+
+
+def _required_presence(scenario: dict[str, Any], normalized_water: dict[str, Any] | None = None) -> list[str]:
+    water = scenario.get("water", {}) if isinstance(scenario.get("water"), dict) else {}
+    ions = water.get("ions", {}) if isinstance(water.get("ions"), dict) else {}
+    required = [f"contains_{ion}" for ion, value in ions.items() if bool(value)]
+    if water.get("inorganic_additives") and _truthy((normalized_water or {}).get("inorganic_matter_present")):
+        required.append("inorganic_matter_present")
+        for ion in ("Na", "K", "Ca", "Mg", "Cl", "HCO3", "SO4", "phosphate"):
+            if _truthy((normalized_water or {}).get(f"contains_{ion}")) and f"contains_{ion}" not in required:
+                required.append(f"contains_{ion}")
+    if water.get("organic_matter_present") is True:
+        required.append("organic_matter_present")
+    return required
+
+
+def _related_evidence(
+    identities: pd.DataFrame, comparable_indices: pd.Index, *, water_type: str,
+    requested: dict[str, float], required_presence: list[str], policy: dict[str, Any], max_records: int,
+) -> dict[str, Any]:
+    """Same curated PFAS/product, but outside comparison requirements; never a score."""
+    related = identities.loc[~identities.index.isin(comparable_indices)].copy()
+    rows, reasons = [], {}
+    study_keys = set()
+    for index, row in related.iterrows():
+        differences = []
+        if normalized_key(row.get("Water_type")) != normalized_key(water_type):
+            differences.append({"field": "water_type", "label": "Water type", "observed": _python_value(row.get("Water_type")),
+                                "requested": water_type, "reason": "different or unreported"})
+        distance_sum = 0.0
+        for field, value in requested.items():
+            column = next((name for name in NUMERIC_FIELDS[field]["columns"] if name in row.index), None)
+            observed = _as_float(row.get(column)) if column is not None else None
+            distance = _numeric_distance(observed, value, policy["numeric_tolerances"][field]) if observed is not None else None
+            if distance is None or distance > 1 + 1e-12:
+                differences.append({"field": field, "label": CONDITION_LABELS.get(field, field), "observed": observed,
+                                    "requested": value, "reason": "unreported" if observed is None else "outside tolerance",
+                                    "tolerance": policy["numeric_tolerances"][field]["description"]})
+            distance_sum += distance if distance is not None else 1_000_000
+        for field in required_presence:
+            if not _truthy(row.get(field)):
+                differences.append({"field": field, "label": field.replace("contains_", "Ion: ").replace("_", " "),
+                                    "observed": _python_value(row.get(field)), "requested": "present", "reason": "not confirmed present"})
+        if not differences:
+            differences.append({"field": "logKd", "label": "Reference-dose logKd", "observed": None,
+                                "requested": "finite value", "reason": "unreported or unusable"})
+        for difference in differences:
+            field = difference["field"]
+            reasons[field] = reasons.get(field, 0) + 1
+        study_key = clean_text(row.get("DOI")) or clean_text(row.get("study_no"))
+        if study_key:
+            study_keys.add(study_key)
+        record = _evidence_record(row, requested)
+        record["condition_differences"] = differences
+        record["used_for_ranking"] = False
+        # Choose representative records by condition agreement and stable ID,
+        # without inspecting or favoring their adsorption score.
+        rows.append((len(differences), distance_sum, clean_text(row.get("standardized_row_id")), index, study_key, record))
+    rows.sort(key=lambda item: item[:4])
+    selected, seen_studies = [], set()
+    limit = max(1, min(int(max_records), 10))
+    for item in rows:
+        if item[4] and item[4] not in seen_studies:
+            selected.append(item)
+            seen_studies.add(item[4])
+        if len(selected) == limit:
+            break
+    for item in rows:
+        if len(selected) == limit:
+            break
+        if not any(item[3] == prior[3] for prior in selected):
+            selected.append(item)
+    labels = [CONDITION_LABELS.get(field, field.replace("_", " ")) for field in reasons]
+    return {"scope": "same_pfas_same_product", "used_for_ranking": False,
+            "record_count": len(related), "study_count": len(study_keys), "excluded_by_condition": reasons,
+            "summary": "Conditions differ or are unreported: " + ", ".join(labels) + "." if labels else "No additional related records.",
+            "records": [item[5] for item in selected], "records_shown": len(selected)}
+
+
 def match_candidate_evidence(
     evidence: pd.DataFrame,
     *,
@@ -300,13 +404,13 @@ def match_candidate_evidence(
 ) -> dict[str, Any]:
     """Find comparable rows for one catalog product under the request conditions."""
     policy = policy or DEFAULT_MATCH_POLICY
-    product_keys = _candidate_keys(material)
-    pfas_keys = _pfas_keys(pfas_feature_row, pfas_cache_key)
+    product_keys = candidate_keys(material)
+    requested_pfas_keys = pfas_keys(pfas_feature_row, pfas_cache_key)
     water_key = normalized_key(normalized_water.get("Water_type"))
     missing_gates = []
     if not product_keys:
         missing_gates.append("adsorbent identity")
-    if not pfas_keys:
+    if not requested_pfas_keys:
         missing_gates.append("PFAS identity")
     if not water_key:
         missing_gates.append("water type")
@@ -319,21 +423,24 @@ def match_candidate_evidence(
             "missing_exact_gates": missing_gates,
         }
 
-    candidates = evidence.copy()
-    adsorbent_fields = ("adsorbent_id", "name_abbreviation", "name_commercial", "name_full")
-    candidates = candidates[
-        candidates.apply(lambda row: bool(product_keys & _row_alias_keys(row, adsorbent_fields)), axis=1)
-    ]
-    candidates = candidates[candidates["PFAS_name"].map(normalized_key).isin(pfas_keys)]
+    material_rows = evidence[evidence.apply(lambda row: bool(product_keys & _row_alias_keys(row, ADSORBENT_RECORD_FIELDS)), axis=1)]
+    identities = material_rows[material_rows["PFAS_name"].map(normalized_key).isin(requested_pfas_keys)]
+    candidates = identities.copy()
     candidates = candidates[candidates["Water_type"].map(normalized_key).eq(water_key)]
+    requested = requested_conditions(scenario, normalized_water, screening_conditions)
+    required_true = _required_presence(scenario, normalized_water)
+    def context(indices: pd.Index) -> dict[str, Any]:
+        return {"identity_record_counts": {"same_product": len(material_rows), "same_pfas_same_product": len(identities)},
+                "related_evidence": _related_evidence(identities, indices, water_type=clean_text(normalized_water.get("Water_type")),
+                    requested=requested, required_presence=required_true, policy=policy, max_records=3)}
     if candidates.empty:
         return {
             "status": "no_match",
             "reason": "no row passed the exact PFAS, adsorbent, and water-type gates",
             "missing_exact_gates": [],
+            **context(candidates.index),
         }
 
-    requested = requested_conditions(scenario, normalized_water, screening_conditions)
     distances = pd.Series(0.0, index=candidates.index)
     compared_fields = 0
     for label, requested_value in requested.items():
@@ -357,14 +464,6 @@ def match_candidate_evidence(
         if candidates.empty:
             break
 
-    water_input = scenario.get("water", {}) if isinstance(scenario.get("water"), dict) else {}
-    required_true = []
-    ions = water_input.get("ions", {}) if isinstance(water_input.get("ions"), dict) else {}
-    required_true.extend(f"contains_{ion}" for ion, value in ions.items() if bool(value))
-    if clean_text(water_input.get("inorganic_matter") or water_input.get("inorganic_additives")):
-        required_true.append("inorganic_matter_present")
-    if clean_text(water_input.get("organic_matter") or water_input.get("organic_additives")):
-        required_true.append("organic_matter_present")
     for column in required_true:
         if column not in candidates.columns:
             candidates = candidates.iloc[0:0]
@@ -382,6 +481,7 @@ def match_candidate_evidence(
             "missing_exact_gates": [],
             "requested_conditions": requested,
             "numeric_tolerances": tolerance_text,
+            **context(candidates.index),
         }
 
     candidates = candidates.copy()
@@ -422,6 +522,7 @@ def match_candidate_evidence(
             "status": "no_match",
             "reason": "matched rows do not contain a valid normalized logKd value",
             "missing_exact_gates": [],
+            **context(candidates.iloc[0:0].index),
         }
     score_pool["__study_key"] = score_pool.apply(
         lambda row: clean_text(row.get("DOI"))
@@ -455,4 +556,5 @@ def match_candidate_evidence(
         "citations": citations,
         "match_policy": policy,
         "selection_note": "Primary evidence was selected without using logKd magnitude.",
+        **context(candidates.index),
     }

@@ -23,11 +23,11 @@ from typing import Final, Iterable, Literal
 #
 # Keep the current explicit batch as the default.  Stages make LLM calls, so
 # switch to ["all"] or a group deliberately when running a larger batch.
-ACTIVE_STUDIES: list[str] = ["study_221"]
+ACTIVE_STUDIES: list[str] = ["external"]
 
 # Safe default: existing terminal artifacts are reused.  Turn this on only
 # when deliberately regenerating a selected study.
-OVERWRITE_EXISTING_OUTPUTS: bool = True
+OVERWRITE_EXISTING_OUTPUTS: bool = False
 
 
 # Repository paths are derived from this file:
@@ -54,7 +54,7 @@ STUDY_REGISTRY_REFERENCE: Final[Path] = (
 )
 
 
-StudyGroup = Literal["training", "validation", "application"]
+StudyGroup = Literal["training", "validation", "application", "external"]
 
 # This is intentionally copied from ``web of science search/studies.txt``.
 # Keep that text file as the human-readable reference, and edit this mapping
@@ -97,6 +97,7 @@ STUDY_GROUPS: Final[dict[StudyGroup, tuple[str, ...]]] = {
         "study_233", "study_236", "study_237", "study_240", "study_241", "study_245",
         "study_247", "study_249", "study_250", "study_254",
     ),
+    "external": ("study_255", "study_256", "study_257", "study_258", "study_259", "study_260"),
 }
 
 
@@ -139,6 +140,14 @@ GROUP_DIRECTORIES: Final[dict[StudyGroup, GroupDirectories]] = {
         classification_ground_truth=OUTPUT_ROOT / "Classification" / "Application" / "Ground_truth",
         enumeration_ground_truth=OUTPUT_ROOT / "Enumeration" / "Application" / "Ground_truth",
         extraction_ground_truth=OUTPUT_ROOT / "Extraction" / "Application" / "Ground_truth",
+    ),
+    "external": GroupDirectories(
+        classification=OUTPUT_ROOT / "Classification" / "External" / "LLM_prediction" / "GPT4.1_20261013",
+        enumeration=OUTPUT_ROOT / "Enumeration" / "External" / "LLM_prediction" / "GPT4.1_20261013",
+        extraction=OUTPUT_ROOT / "Extraction" / "External" / "LLM_prediction" / "GPT4.1_20261013",
+        classification_ground_truth=OUTPUT_ROOT / "Classification" / "External" / "Ground_truth",
+        enumeration_ground_truth=OUTPUT_ROOT / "Enumeration" / "External" / "Ground_truth",
+        extraction_ground_truth=OUTPUT_ROOT / "Extraction" / "External" / "Ground_truth",
     ),
 }
 
@@ -262,7 +271,7 @@ def iter_active_study_paths() -> Iterable[StudyPaths]:
         if len(selection) != 1:
             raise ValueError(
                 "ACTIVE_STUDIES group selectors must be used alone; use ['all'], "
-                "['training'], ['validation'], or ['application']."
+                "['training'], ['validation'], ['application'], or ['external']."
             )
         normalized = normalized_selection[0]
         if normalized == "all":
@@ -282,6 +291,7 @@ def active_studies_by_group() -> dict[StudyGroup, list[StudyPaths]]:
         "training": [],
         "validation": [],
         "application": [],
+        "external": [],
     }
     for paths in iter_active_study_paths():
         grouped[paths.group].append(paths)

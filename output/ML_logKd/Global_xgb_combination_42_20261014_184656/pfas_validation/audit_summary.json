@@ -1,0 +1,15 @@
+{
+  "chemical_separation_passed": true,
+  "outer_splits": 10,
+  "heldout_pfAS": 91,
+  "testing_rows_including_repeats": 5782,
+  "per_compound_rows": 149,
+  "archive": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\ML_logKd\\Global_split_strategy_comparison_multi_strategy_20260904_031320",
+  "cache": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\ML_logKd\\Global_xgb_combination_42_20261014_184656\\pfas_features.xlsx",
+  "limitations": [
+    "The curated snapshot supplies structure mappings; the archive has no frozen structure snapshot.",
+    "Population-level errors are not individual prediction intervals.",
+    "Different allocation strategies have different test memberships; the metric differences are descriptive.",
+    "Ranking among commercial adsorbents is not independently validated by aggregate logKd error."
+  ]
+}

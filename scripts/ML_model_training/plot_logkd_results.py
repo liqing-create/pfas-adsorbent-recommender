@@ -61,58 +61,42 @@ from matplotlib.text import Text
 import numpy as np
 import pandas as pd
 
+from backend import manuscript_palette as mp
+
 
 # -----------------------------------------------------------------------------
 # Shared manuscript style
 # -----------------------------------------------------------------------------
-# These colors are copied from the manuscript Sankey figure.  The extensions
-# retain its clean cyan/coral/green/yellow character while avoiding a run of
-# visually similar yellow-brown categories in larger comparisons.
+# Colors come from the manuscript color registry (backend/manuscript_palette.py,
+# a mirror of Manuscript/Results/plot scripts/figure_palette.py). Adsorbent
+# subsets and ablation arms have fixed colors; every other comparison group is
+# a one-off and takes the muted one-off palette.
 SANKY_PALETTE = {
-    "blue": "#12A8D8",
-    "coral": "#E64B5D",
-    "green": "#8CCB78",
-    "yellow": "#F2D34F",
-    "purple": "#B784CC",
-    "navy": "#79BFE3",
-    "magenta": "#E895B7",
-    "teal": "#77C8BC",
-    "slate": "#B4B9C1",
-    "indigo": "#A69ACF",
-    "gray": "#5A5A5A",
-    "light_gray": "#EDEDED",
-    "grid": "#D9D9D9",
-    "ink": "#111111",
+    "gray": mp.MUTED,
+    "slate": mp.SLATE,
+    "light_gray": mp.PANEL_FILL,
+    "grid": mp.GRID,
+    "ink": mp.INK,
 }
-# Default sequence for every categorical comparison. It begins with the four
-# Sankey colors and then adds cool and purple accents that remain distinct.
-MANUSCRIPT_CATEGORY_COLORS = (
-    SANKY_PALETTE["blue"],
-    SANKY_PALETTE["coral"],
-    SANKY_PALETTE["green"],
-    SANKY_PALETTE["yellow"],
-    SANKY_PALETTE["purple"],
-    SANKY_PALETTE["navy"],
-    SANKY_PALETTE["magenta"],
-    SANKY_PALETTE["teal"],
-    SANKY_PALETTE["slate"],
-    SANKY_PALETTE["indigo"],
-)
-FALLBACK_MARKERS = ("o", "s", "^", "D", "P", "X", "v", "<", ">")
-# Start with the four manuscript Sankey colors, then use compatible companion
-# colors that remain visually distinct when all ten outer repeats are overlaid.
-REPEAT_COLORS = (
-    SANKY_PALETTE["blue"],
-    SANKY_PALETTE["coral"],
-    SANKY_PALETTE["green"],
-    SANKY_PALETTE["yellow"],
-    SANKY_PALETTE["purple"],
-    SANKY_PALETTE["navy"],
-    SANKY_PALETTE["magenta"],
-    SANKY_PALETTE["teal"],
-    SANKY_PALETTE["slate"],
-    SANKY_PALETTE["indigo"],
-)
+# One-off palette, then its lighter tints for a sixth to tenth group; outer
+# repeats are exchangeable and use the same sequence.
+MANUSCRIPT_CATEGORY_COLORS = (*mp.ONE_OFF, *(mp.shade(color, 0.45) for color in mp.ONE_OFF))
+FALLBACK_MARKERS = mp.ONE_OFF_MARKERS
+REPEAT_COLORS = MANUSCRIPT_CATEGORY_COLORS
+# Outer repeats use distinct dark point colors.  Repeated records still overlap,
+# but changing test membership remains visible at the cloud edges and through a
+# compact legend; color is reinforced by the repeat labels.
+# Registry colors for groups whose meaning recurs across figures.
+FIXED_CATEGORY_COLORS = {
+    **mp.SUBSET,
+    "both_included": mp.ABLATION_ARMS["Both included"],
+    "no_dosage": mp.ABLATION_ARMS["No dosage"],
+    "no_initial_concentration": mp.ABLATION_ARMS["No C0"],
+    "neither": mp.ABLATION_ARMS["Neither"],
+    # The configuration the paper carries forward is the reference (ink).
+    "xgb": mp.ONE_OFF[0],
+    "xgb_native": mp.ONE_OFF[0],
+}
 PANEL_FONT_SCALE = 1.4
 
 PERFORMANCE_METRICS = ("mae", "rmse", "r2", "spearman")
@@ -226,7 +210,7 @@ METRIC_AXIS_LABELS = {
     "mae": "MAE",
     "rmse": "RMSE",
     "r2": "R²",
-    "spearman": "Spearman",
+    "spearman": "ρ",
 }
 DISPLAY_LABELS = {
     "random_row": "Random row",
@@ -241,18 +225,27 @@ DISPLAY_LABELS = {
     "extra_trees": "Extra Trees",
     "hist_gradient_boosting": "Hist. Gradient Boosting",
     "xgb": "XGBoost",
+    "ebm": "EBM",
+    "rbf_svr": "RBF-SVR",
+    "ridge": "Ridge regression",
+    "xgb_native": "XGBoost native",
+    "median_indicator": "Median imputation + indicator",
+    "both_included": "Both included",
+    "no_dosage": "No dosage",
+    "no_initial_concentration": "No C₀",
+    "neither": "Neither",
     # Model-family scopes are acronyms; the title-case fallback would render
     # them as "Ac" and "Cdp".
     "AC": "AC",
     "CDP": "CDP",
+    # Dosage/C0 ablation arms, labelled as in the manuscript.
+    "both_included": "Both included",
+    "no_dosage": "No dosage",
+    "no_initial_concentration": "No C₀",
+    "neither": "Neither",
 }
-STRATEGY_COLORS = {
-    "random_row": SANKY_PALETTE["blue"],
-    "pfas": SANKY_PALETTE["coral"],
-    "adsorbent": SANKY_PALETTE["green"],
-    "study": SANKY_PALETTE["yellow"],
-    "combination": SANKY_PALETTE["gray"],
-}
+# Split strategies are a one-off comparison, in their preferred order.
+STRATEGY_COLORS = dict(zip(("random_row", "pfas", "adsorbent", "study", "combination"), mp.ONE_OFF))
 STRATEGY_MARKERS = {
     "random_row": "o",
     "pfas": "s",
@@ -349,13 +342,37 @@ def ordered_categories(
     )
 
 
+ABLATION_KEYS = {
+    "both_included": "Both included",
+    "no_dosage": "No dosage",
+    "no_initial_concentration": "No C0",
+    "neither": "Neither",
+}
+ABLATION_FILLS = {
+    "both_included": "#72C7C9",
+    "no_dosage": "#C790BE",
+    "no_initial_concentration": "#9BDDE5",
+    "neither": "#F4CD69",
+}
+
+
+def category_hatches(categories: Sequence[str]) -> dict[str, str]:
+    """Use solid fills when the categories already have distinct colors."""
+
+    return {category: "" for category in categories}
+
+
 def category_styles(categories: Sequence[str]) -> dict[str, tuple[str, str]]:
     """Assign stable color and marker pairs to categorical result groups."""
 
     styles: dict[str, tuple[str, str]] = {}
-    assigned_colors: set[str] = set()
+    # Reserve fixed colors first so a fallback never reuses, e.g., the ink
+    # reserved for the reference configuration later in the list.
+    assigned_colors: set[str] = {
+        FIXED_CATEGORY_COLORS[category] for category in categories if category in FIXED_CATEGORY_COLORS
+    }
     for index, category in enumerate(categories):
-        color = STRATEGY_COLORS.get(category)
+        color = FIXED_CATEGORY_COLORS.get(category, STRATEGY_COLORS.get(category))
         if color is None:
             color = next(
                 (
@@ -375,6 +392,22 @@ def category_styles(categories: Sequence[str]) -> dict[str, tuple[str, str]]:
         styles[category] = (color, marker)
         assigned_colors.add(color)
     return styles
+
+
+def category_fill_color(category: str, color: str) -> str:
+    """Use lighter fills for broad bar/column marks while retaining hue."""
+
+    if category in mp.SUBSET:
+        return mp.SUBSET_LIGHT[category]
+    if category in ABLATION_KEYS:
+        return ABLATION_FILLS[category]
+    return color
+
+
+def category_edge_color(category: str, color: str) -> str:
+    """Keep a darker same-hue outline on light categorical bars."""
+
+    return color if category in mp.SUBSET or category in ABLATION_KEYS else SANKY_PALETTE["ink"]
 
 
 def read_summary(path: Path) -> pd.DataFrame:
@@ -1250,7 +1283,7 @@ def plot_predicted_vs_actual(
         left=0.13,
         right=0.97,
         bottom=0.11,
-        top=0.72 if standalone and len(repeats) > 1 else 0.84 if standalone else 0.98,
+        top=0.84 if standalone else 0.98,
     )
     values = subset[["y_true", "y_pred"]].to_numpy(dtype=float).ravel()
     lower, upper = float(np.min(values)), float(np.max(values))
@@ -1269,21 +1302,50 @@ def plot_predicted_vs_actual(
     )
 
     if repeats:
+        repeat_handles: list[Line2D] = []
         for repeat in repeats:
             repeat_subset = subset.loc[subset[repeat_column].astype(str).eq(repeat)]
             if repeat_subset.empty:
                 continue
+            repeat_color = repeat_colors[repeat]
             axis.scatter(
                 repeat_subset["y_true"],
                 repeat_subset["y_pred"],
-                color=repeat_colors[repeat],
+                color=repeat_color,
                 marker=marker,
-                s=35,
-                alpha=0.55,
+                s=30,
+                alpha=0.28,
                 edgecolor="none",
                 rasterized=True,
                 zorder=3,
             )
+            repeat_handles.append(
+                Line2D(
+                    [0], [0],
+                    linestyle="none",
+                    marker=marker,
+                    markersize=8.0,
+                    markerfacecolor=repeat_color,
+                    markeredgecolor="none",
+                    label=f"Repeat {repeat}",
+                )
+            )
+        axis.legend(
+            handles=repeat_handles,
+            title="Outer repeat",
+            loc="lower right",
+            bbox_to_anchor=(0.985, 0.12),
+            ncol=2,
+            frameon=True,
+            facecolor="white",
+            edgecolor=mp.LIGHT,
+            framealpha=0.90,
+            fontsize=11.5,
+            title_fontsize=12.0,
+            handletextpad=0.25,
+            columnspacing=0.65,
+            borderpad=0.40,
+        )
     else:
         axis.scatter(
             subset["y_true"],
@@ -1382,27 +1444,8 @@ def plot_predicted_vs_actual(
             bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.84, "pad": 1.7},
             zorder=6,
         )
-    if standalone and len(repeats) > 1:
-        repeat_handles = [
-            Line2D(
-                [],
-                [],
-                color=color,
-                marker="o",
-                linestyle="None",
-                markersize=6,
-                label=f"Repeat {display_label(repeat)}",
-            )
-            for repeat, color in repeat_colors.items()
-        ]
-        add_figure_legend(
-            figure,
-            repeat_handles,
-            title="Outer repeat",
-            y=0.945,
-        )
     if standalone:
-        repeat_note = "Color identifies outer repeat; " if len(repeats) > 1 else ""
+        repeat_note = "All outer repeats pooled; " if len(repeats) > 1 else ""
         count_note = f"n = {len(subset):,} {data_split_label.casefold()} predictions"
         if repeats:
             count_note += f" across {len(repeats)} outer repeats"
@@ -1499,6 +1542,7 @@ def plot_group_comparison(
             "contain the individual outer-repeat values."
         )
     styles = category_styles(categories)
+    hatches = category_hatches(categories)
     figure, axis = plt.subplots(
         figsize=(10.8, 5.8) if standalone else (6.6, 6.6)
     )
@@ -1524,10 +1568,13 @@ def plot_group_comparison(
                 errors.append(0.0)
         positions = metric_positions + category_offsets[category_index]
         color, marker = styles[category]
+        fill_color = category_fill_color(category, color)
+        edge_color = category_edge_color(category, color)
         axis.bar(
             positions,
             means,
             width=bar_width,
+            hatch=hatches[category],
             yerr=errors if error_bars != "none" else None,
             capsize=3.5,
             error_kw={
@@ -1535,9 +1582,9 @@ def plot_group_comparison(
                 "elinewidth": 1.0,
                 "capthick": 1.0,
             },
-            color=color,
-            edgecolor=SANKY_PALETTE["ink"],
-            linewidth=0.85,
+            color=fill_color,
+            edgecolor=edge_color,
+            linewidth=0.95,
             zorder=2,
         )
         if show_runs:
@@ -1583,8 +1630,9 @@ def plot_group_comparison(
     axis.set_ylabel("Metric value")
     legend_handles = [
         Patch(
-            facecolor=styles[category][0],
-            edgecolor=SANKY_PALETTE["ink"],
+            facecolor=category_fill_color(category, styles[category][0]),
+            edgecolor=category_edge_color(category, styles[category][0]),
+            hatch=hatches[category],
             label=comparison_legend_label(category),
         )
         for index, category in enumerate(categories)
@@ -1613,29 +1661,34 @@ def plot_group_comparison(
         )
         figure.subplots_adjust(top=0.76, bottom=0.14, left=0.09, right=0.98)
     else:
-        # Short feature-family labels fit three columns without stretching the
-        # legend across the panel width, keeping it aligned with other panels.
-        legend_columns = min(3, len(legend_handles))
-        legend_rows = math.ceil(len(legend_handles) / legend_columns)
-        figure.subplots_adjust(
-            top=max(0.69, 0.94 - 0.03 * legend_rows),
-            bottom=0.16,
-            left=0.14,
-            right=0.98,
-        )
-        figure.legend(
-            handles=row_major_legend_handles(legend_handles, ncol=legend_columns),
-            loc="upper left",
-            bbox_to_anchor=(axis.get_position().x0, 0.99),
-            bbox_transform=figure.transFigure,
-            ncol=legend_columns,
-            frameon=False,
-            fontsize=8.5,
-            columnspacing=1.1,
-            handletextpad=0.45,
-            borderaxespad=0.0,
-            borderpad=0.0,
-        )
+        # Keep the legend on one line when it fits above the axes; wrap to
+        # more rows only if a single row would overrun the panel width.
+        enlarge_panel_text(figure)
+        figure.subplots_adjust(top=0.91, bottom=0.16, left=0.14, right=0.98)
+        left_edge = axis.get_position().x0
+        legend = None
+        for legend_columns in range(len(legend_handles), 0, -1):
+            if legend is not None:
+                legend.remove()
+            legend = figure.legend(
+                handles=row_major_legend_handles(legend_handles, ncol=legend_columns),
+                loc="upper left",
+                bbox_to_anchor=(left_edge, 0.99),
+                bbox_transform=figure.transFigure,
+                ncol=legend_columns,
+                frameon=False,
+                fontsize=8.5 * PANEL_FONT_SCALE,
+                columnspacing=1.1,
+                handletextpad=0.45,
+                borderaxespad=0.0,
+                borderpad=0.0,
+            )
+            figure.canvas.draw()
+            box = legend.get_window_extent().transformed(figure.transFigure.inverted())
+            if box.x1 <= 0.99 or legend_columns == 1:
+                break
+        # Sit the axes just below the legend, whatever its final row count.
+        figure.subplots_adjust(top=max(0.69, box.y0 - 0.035))
         enlarge_panel_text(figure)
     return figure
 
@@ -1694,12 +1747,7 @@ def plot_group_comparison_with_retention(
             + ", ".join(missing_retention_groups)
         )
 
-    metric_colors = (
-        SANKY_PALETTE["blue"],
-        SANKY_PALETTE["coral"],
-        SANKY_PALETTE["green"],
-        SANKY_PALETTE["yellow"],
-    )
+    metric_colors = mp.ONE_OFF[:4]
     metric_hatches = ("", "//", "..", "xx", "\\\\", "oo", "--", "++")
     figure, axis = plt.subplots(
         figsize=(11.2, 6.1) if standalone else (7.0, 4.8)
@@ -1940,7 +1988,7 @@ def plot_reference_retention_profile(
     )
     color_map = LinearSegmentedColormap.from_list(
         "reference_retention",
-        ("#F7F7F7", "#BFE8F5", SANKY_PALETTE["blue"]),
+        ("#F7F8F9", *mp.PROCESS_RAMP[1::2]),
     )
     image = axis.imshow(
         means,
@@ -2206,7 +2254,7 @@ def plot_allocation_comparison(
             yerr=reference_errors if error_bars != "none" else None,
             capsize=4,
             error_kw={"ecolor": SANKY_PALETTE["ink"], "elinewidth": 1.0, "capthick": 1.0},
-            color=SANKY_PALETTE["blue"],
+            color=mp.ONE_OFF[0],
             edgecolor=SANKY_PALETTE["ink"],
             linewidth=0.9,
             zorder=2,
@@ -2219,7 +2267,7 @@ def plot_allocation_comparison(
             yerr=challenger_errors if error_bars != "none" else None,
             capsize=4,
             error_kw={"ecolor": SANKY_PALETTE["ink"], "elinewidth": 1.0, "capthick": 1.0},
-            color=SANKY_PALETTE["coral"],
+            color=mp.ONE_OFF[1],
             edgecolor=SANKY_PALETTE["ink"],
             linewidth=0.9,
             hatch="//",
@@ -2259,8 +2307,8 @@ def plot_allocation_comparison(
         figure.subplots_adjust(top=0.95, bottom=0.14, left=0.09, right=0.98)
         return figure
     allocation_handles = [
-        Patch(facecolor=SANKY_PALETTE["blue"], edgecolor=SANKY_PALETTE["ink"], label="Seeded random"),
-        Patch(facecolor=SANKY_PALETTE["coral"], edgecolor=SANKY_PALETTE["ink"], label="Evidence-balanced"),
+        Patch(facecolor=mp.ONE_OFF[0], edgecolor=SANKY_PALETTE["ink"], label="Seeded random"),
+        Patch(facecolor=mp.ONE_OFF[1], edgecolor=SANKY_PALETTE["ink"], label="Evidence-balanced"),
     ]
     figure.suptitle(
         title or "Paired inner-allocation comparison",
@@ -2342,7 +2390,7 @@ def plot_retention_relationship(
         axis.scatter(
             plotted[retention_column],
             plotted[performance_metric],
-            color=SANKY_PALETTE["blue"],
+            color=mp.ONE_OFF[0],
             edgecolor=SANKY_PALETTE["ink"],
             linewidth=0.5,
             s=52,

@@ -2,7 +2,7 @@
 
 `workflow_config.py` is the only file to edit when selecting a normal run.
 Set `ACTIVE_STUDIES` to the study IDs to process.  The file maps each ID to
-exactly one of Training, Validation, or Application and resolves the correct
+exactly one of Training, Validation, Application, or External and resolves the correct
 classification, enumeration, extraction, annotation, and artifact locations.
 
 The current run directories are deliberately explicit because the historical
@@ -41,6 +41,16 @@ directory's selected studies.
 
 All internal support modules are kept in `helpers/`; the root folder contains
 the runnable stages, evaluators, review UIs, configuration, and documentation.
+
+## Held-out external studies
+
+`ACTIVE_STUDIES = ["external"]` processes `study_255` through `study_260`.
+Classification, enumeration, and extraction write under their own
+`External/LLM_prediction/GPT4.1_20261013` directories. The default
+`DB/build_database.py` dataset list includes Training, Validation, and
+Application only. For an external-only normalization run, explicitly pass
+the External extraction directory as a dataset and set a separate
+`--merge-output-dir`; keep the benchmark outputs out of the modeling database.
 
 ## Debugging evaluator rows
 

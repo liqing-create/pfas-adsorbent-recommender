@@ -28,6 +28,66 @@ is applied. A model bundle is self-contained: everything the app reads at run
 time is inside its directory. The app loads the most recent bundle under
 `output/ML_logKd/`; set `ADSORBENT_BUNDLE_DIR` to use a different one.
 
+## Investigating PFAS outside the database
+
+PFAS concentrations can be entered in ng/L, µg/L, or mg/L. Use **Import a PFAS
+mixture from CSV** to upload a quantified mixture, preview all rows, and append
+it after validation. **Download example CSV** provides the expected columns
+and a working example. The model continues to use mg/L internally; changing
+a displayed unit preserves the concentration. See
+`scripts/adsorbent_recommender/README.md` for the CSV format and validation rules.
+
+Search the reviewed PFAS list as usual. For an identifier outside that list,
+choose whether it is a name, CAS number, or SMILES. Names and CAS numbers can
+be resolved through PubChem; select the intended result, inspect its structure,
+and choose **Confirm structure and add PFAS**. Direct SMILES input is always
+available, including when PubChem cannot find a compound or is unavailable.
+Supply one defined PFAS parent molecule, without salt counterions, mixture
+components, wildcard atoms, or undefined polymer repeat units.
+
+The existing XGBoost ensemble can use RDKit features computed from that
+structure without running OPERA or adding it to the reviewed workbook. The
+**PFAS support** panel distinguishes reviewed versus runtime features from
+whether the compound was actually present in model training. Both cached and
+newly computed unseen PFAS receive exploratory-prediction warnings. Descriptor
+range warnings and the three nearest training PFAS provide additional context;
+structural similarity and ensemble SD are not calibrated confidence estimates.
+Mixture scores still evaluate every entered PFAS and retain the maximin rule.
+
+The bundle remains version 4; result downloads use schema version 5. Older
+bundles retain cached screening. Repackage an existing bundle without refitting:
+
+```bash
+python -m adsorbent_recommender.bundle <bundle-directory>  # run with PYTHONPATH=scripts
+```
+
+Repackaging links actual fitted records to curated structures, checks descriptor
+parity, and records the descriptor/RDKit versions. Unseen-PFAS generation is
+enabled only when the selected PFAS inputs are computable and parity passes;
+the runtime RDKit version must match the packaged check.
+
+## Interpreting recommendations
+
+The app is for preliminary adsorbent screening. It compares catalog materials
+under the entered conditions at a common 25 mg/L dose; a high ranking is not
+evidence that a treatment system will meet a site's removal target. Validate
+shortlisted materials using the relevant water and operating conditions before
+selection.
+
+The **Basis** column distinguishes comparable database records from XGBoost
+estimates. The **Caveats** column points to limitations for each ranked score;
+open **Candidate details** to read them. Model predictions are less reliable for
+unseen PFAS, adsorbents and study conditions or at very low and high log Kd. The
+ensemble standard deviation is model disagreement, not a calibrated prediction
+interval. Mixture rankings evaluate PFAS separately and do not account for
+competitive adsorption. The app does not predict breakthrough, media lifetime,
+removal targets, or cost.
+
+The study manuscript has not yet been submitted, so the app does not display a
+paper link. When a public manuscript or publication URL is available, set
+`ADSORBENT_PAPER_URL` to its full HTTPS URL; the app will show a **Read the study**
+link in its scope and limitations panel.
+
 ## Repository contents
 
 | Path | What it is |

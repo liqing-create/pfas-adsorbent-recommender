@@ -191,7 +191,8 @@ def load_predicted(
     return out, text_map
 
 # ─────────────────────────────────────────────────────────────────────────────
-# EVALUATE FIELD‐LEVEL WITH TN, ACCURACY, AND CORRECTED F1
+# EVALUATE FIELD‐LEVEL CONFUSION COUNTS (per-row metrics are diagnostics only;
+# summaries pool the counts in summarize_by_field)
 # ─────────────────────────────────────────────────────────────────────────────
 def evaluate_fields(gt, pred, study, model, text_map):
     rows = []
@@ -278,31 +279,31 @@ def evaluate_fields(gt, pred, study, model, text_map):
 # ─────────────────────────────────────────────────────────────────────────────
 # SUMMARIZE BY FIELD (INCLUDING ACCURACY)
 # ─────────────────────────────────────────────────────────────────────────────
+def _pooled_summary(field_df, keys):
+    """Pool TP/FP/FN/TN over the rows of each group, then compute the metrics.
+
+    Metrics must not be averaged from the per-row values: a row's F1 is NaN whenever it is
+    a pure FP or a pure FN, so a mean of per-row F1 ignores those errors and can exceed
+    both precision and recall.
+    """
+    summary = (
+        field_df
+        .groupby(keys)
+        .agg(occurrences=("field_name", "size"),
+             tp=("tp", "sum"), fp=("fp", "sum"), fn=("fn", "sum"), tn=("tn", "sum"))
+        .reset_index()
+    )
+    tp, fp, fn, tn = (summary[c].astype(float) for c in ("tp", "fp", "fn", "tn"))
+    summary["accuracy"] = (tp + tn) / summary["occurrences"]
+    summary["precision"] = (tp / (tp + fp)).where(tp + fp > 0)
+    summary["recall"] = (tp / (tp + fn)).where(tp + fn > 0)
+    summary["f1"] = (2 * tp / (2 * tp + fp + fn)).where(tp + fp + fn > 0)
+    return summary
+
+
 def summarize_by_field(field_df):
-    study_summary = (
-        field_df
-        .groupby(["model", "study", "field_name"])  
-        .agg(
-            occurrences=("f1", "size"),
-            accuracy=("accuracy", "mean"),
-            precision=("precision", "mean"),
-            recall=("recall", "mean"),
-            f1=("f1", "mean")
-        )
-        .reset_index()
-    )
-    overall_summary = (
-        field_df
-        .groupby(["model", "field_name"])  
-        .agg(
-            occurrences=("f1", "size"),
-            accuracy=("accuracy", "mean"),
-            precision=("precision", "mean"),
-            recall=("recall", "mean"),
-            f1=("f1", "mean")
-        )
-        .reset_index()
-    )
+    study_summary = _pooled_summary(field_df, ["model", "study", "field_name"])
+    overall_summary = _pooled_summary(field_df, ["model", "field_name"])
     return study_summary, overall_summary
 
 # ─────────────────────────────────────────────────────────────────────────────

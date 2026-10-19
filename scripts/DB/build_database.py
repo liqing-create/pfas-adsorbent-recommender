@@ -83,6 +83,8 @@ DATASETS = [
 
 REVIEW_DECISION_COLUMNS = ("source_row_index", "decision")
 REVIEW_OUTCOME_COLUMN = "review_outcome"
+# Read by ML training (ML_model_training/backend/logkd_config.HUMAN_REVIEW_UNRELIABLE_FLAG).
+HUMAN_REVIEW_UNRELIABLE_FLAG_COLUMN = "human_review_unreliable_flag"
 VALID_HUMAN_REVIEW_DECISIONS = {"reliable", "unreliable"}
 
 
@@ -192,6 +194,7 @@ def apply_human_review_decisions(
     updated_rows = 0
     unreliable_rows = 0
     sheets_updated = 0
+    model_ready_rows_flagged = 0
     for worksheet in workbook.worksheets:
         headers = {
             str(cell.value).strip(): cell.column
@@ -204,10 +207,24 @@ def apply_human_review_decisions(
 
         outcome_column = headers.get(REVIEW_OUTCOME_COLUMN)
         if outcome_column is None:
-            # Do not add review metadata to the model-ready projection, which
-            # intentionally omits status fields.  All source-record sheets and
-            # the compact review queue include record_status.
+            # The model-ready projections (Equilibrium_Data, Dose_25mgL_Search)
+            # intentionally omit status fields.  They carry only the
+            # human-review flag that ML training reads (logkd_config
+            # HUMAN_REVIEW_UNRELIABLE_FLAG); data_mode="drop_unreliable" then
+            # removes those rows and reports them as
+            # rows_removed_human_review_unreliable.
             if "record_status" not in headers:
+                flag_column = headers.get(HUMAN_REVIEW_UNRELIABLE_FLAG_COLUMN)
+                if flag_column is None:
+                    flag_column = worksheet.max_column + 1
+                    worksheet.cell(row=1, column=flag_column, value=HUMAN_REVIEW_UNRELIABLE_FLAG_COLUMN)
+                for row_number in range(2, worksheet.max_row + 1):
+                    source_key = _source_row_key(worksheet.cell(row=row_number, column=source_column).value)
+                    unreliable = decisions.get(source_key) == "unreliable"
+                    if unreliable:
+                        found_source_keys.add(source_key)
+                    worksheet.cell(row=row_number, column=flag_column, value=unreliable)
+                    model_ready_rows_flagged += int(unreliable)
                 continue
             outcome_column = worksheet.max_column + 1
             worksheet.cell(row=1, column=outcome_column, value=REVIEW_OUTCOME_COLUMN)
@@ -232,6 +249,7 @@ def apply_human_review_decisions(
         "worksheets_updated": sheets_updated,
         "rows_updated": updated_rows,
         "unreliable_rows": unreliable_rows,
+        "model_ready_rows_flagged": model_ready_rows_flagged,
     }
 
 
@@ -848,7 +866,8 @@ def main() -> None:
         print(
             "\n[3/4] Applied human-review decisions: "
             f"{review_summary['unreliable_decisions']} unreliable source decisions, "
-            f"{review_summary['unreliable_rows']} worksheet rows flagged."
+            f"{review_summary['unreliable_rows']} worksheet rows flagged, "
+            f"{review_summary['model_ready_rows_flagged']} model-ready rows flagged for ML exclusion."
         )
         if review_summary["unmatched_decisions"]:
             print(

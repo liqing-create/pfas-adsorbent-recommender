@@ -1,0 +1,5 @@
+﻿scenario_name,row_type,pfas,identity_type,inorganic_species,concentration,unit,parent_smiles,label,water_type,ph,temperature_c,organic_carbon_mg_l,organic_matter_present,tds_mg_l,ionic_strength_mol_l,ion_na,ion_k,ion_ca,ion_mg,ion_cl,ion_hco3,ion_so4,ion_phosphate,include_exploratory_adsorbents
+Example groundwater mixture,pfas,PFOA,abbreviation,,100.0,ng/L,O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFOA,groundwater,7.2,25.0,3.0,false,500.0,,false,false,false,false,false,false,false,false,false
+Example groundwater mixture,pfas,PFOS,abbreviation,,0.25,µg/L,O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFOS,groundwater,7.2,25.0,3.0,false,500.0,,false,false,false,false,false,false,false,false,false
+Example groundwater mixture,inorganic_additive,,,NaCl,1.0,mM,,,groundwater,7.2,25.0,3.0,false,500.0,,false,false,false,false,false,false,false,false,false
+Example groundwater mixture,inorganic_additive,,,CaCl2,2.0,mM,,,groundwater,7.2,25.0,3.0,false,500.0,,false,false,false,false,false,false,false,false,false

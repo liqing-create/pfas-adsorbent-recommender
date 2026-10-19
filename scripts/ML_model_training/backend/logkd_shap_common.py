@@ -16,6 +16,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from . import manuscript_palette as mp
+
 
 ANALYSIS_FORMAT = "logkd_shap_v4"
 PREPROCESS_STEP = "preprocess"
@@ -24,21 +26,11 @@ MODEL_STEP = "model"
 # the additivity guard while allowing a negligible 0.0001-logKd numerical gap.
 SHAP_ADDITIVITY_TOLERANCE = 1e-4
 
-# Shared manuscript palette from Manuscript/Results/plot scripts/plot_sankey.py.
-# Keep the SHAP figures visually aligned with the paper's Fig. 1 Sankey.
-MANUSCRIPT_PALETTE = (
-    "#12A8D8",  # PFCA cyan
-    "#E64B5D",  # PFSA rose
-    "#8CCB78",  # PFECA green
-    "#F2D34F",  # PASF yellow
-    "#B784CC",  # Lavender
-    "#79BFE3",  # Sky blue
-    "#E895B7",  # Soft rose
-    "#77C8BC",  # Soft teal
-    "#B4B9C1",  # Light slate
-    "#A69ACF",  # Periwinkle
-)
-IMPORTANCE_BAR_COLOR = MANUSCRIPT_PALETTE[0]
+# Colors from the manuscript color registry (backend/manuscript_palette.py).
+# Outer repeats are exchangeable, so they take the one-off palette; the bars
+# carry no category and stay neutral.
+MANUSCRIPT_PALETTE = mp.ONE_OFF
+IMPORTANCE_BAR_COLOR = mp.MUTED
 # Match the near-square 1961 x 1754 px performance-comparison figure while
 # retaining enough vertical space for 15 ranked features and a top legend.
 MANUSCRIPT_FIGURE_ASPECT_RATIO = 1961 / 1754
@@ -46,11 +38,11 @@ SHAP_IMPORTANCE_FIGURE_WIDTH = 8.8
 # The beeswarm keeps the bar figure's plotting height, and widens only enough to
 # hold the feature-value colour bar without narrowing the ranked feature rows.
 SHAP_BEESWARM_FIGURE_WIDTH = 9.8
-# Low-to-high feature values follow the conventional SHAP cool-to-warm ramp,
-# expressed with the manuscript palette's cyan, lavender, and rose.
-BEESWARM_COLORMAP_STOPS = (MANUSCRIPT_PALETTE[0], MANUSCRIPT_PALETTE[4], MANUSCRIPT_PALETTE[1])
+# Low-to-high feature values run along the registry's diverging poles (slate to
+# clay), which are not domain or subset hues.
+BEESWARM_COLORMAP_STOPS = (mp.DIVERGING_STOPS[-1][1], mp.DIVERGING_STOPS[3][1], mp.DIVERGING_STOPS[1][1], mp.DIVERGING_STOPS[0][1])
 # Categorical features and missing values carry no low/high position on the ramp.
-BEESWARM_UNSCALED_COLOR = MANUSCRIPT_PALETTE[8]
+BEESWARM_UNSCALED_COLOR = mp.LIGHT
 # Feature-value colours are scaled between these percentiles so that a single
 # extreme value cannot flatten the colour contrast of the remaining rows.
 BEESWARM_COLOR_PERCENTILES = (5.0, 95.0)
@@ -754,7 +746,7 @@ def save_importance_bar(
             y_positions,
             xerr=xerr,
             fmt="none",
-            ecolor="#111827",
+            ecolor=mp.INK,
             elinewidth=1.4,
             capsize=3,
             zorder=4,
@@ -1061,7 +1053,7 @@ def save_beeswarm(
             zorder=3,
         )
 
-    axis.axvline(0.0, color="#111827", linewidth=0.9, zorder=1)
+    axis.axvline(0.0, color=mp.INK, linewidth=0.9, zorder=1)
     tick_labels = (
         [manuscript_beeswarm_feature_label(feature) for feature in plotted]
         if panel_ready
@@ -1089,7 +1081,7 @@ def save_beeswarm(
             ha="center",
             va="bottom",
             fontsize=8,
-            color="#374151",
+            color=mp.MUTED,
         )
     axis.grid(axis="x", color="#D1D5DB", linewidth=0.8)
     axis.set_axisbelow(True)

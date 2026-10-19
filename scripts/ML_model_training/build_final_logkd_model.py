@@ -231,6 +231,7 @@ def export_final_deployment(context: dict[str, Any]) -> dict[str, Any]:
         evidence_sheet=args.evidence_sheet,
         pfas_features_path=None if args.skip_pfas_features_join else args.pfas_features_path,
         pfas_features_sheet=args.pfas_features_sheet,
+        training_records=frame,
     )
     return {
         "protocol": (

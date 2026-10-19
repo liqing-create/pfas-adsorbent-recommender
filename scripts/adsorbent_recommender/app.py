@@ -75,6 +75,7 @@ from adsorbent_recommender.scenarios import (
 from adsorbent_recommender.warning_labels import (
     SEVERITIES, column_options as warning_column_options, legend_labels, warning_labels, warning_values,
 )
+from adsorbent_recommender.ranking_table import render_ranking_table
 from rdkit import Chem
 
 # Importing the service puts the DB package on the path, which is what makes the
@@ -1135,7 +1136,9 @@ def _render_usage_guidance() -> None:
             "otherwise the Global XGBoost model estimates logKd at the common reference dose. "
             "The **Basis** column identifies the source. The **Top-performing tier** contains scores within "
             "the cross-validated error of a predicted difference between two adsorbents (about 0.5 log units) of the top score; "
-            "this is a screening heuristic, not a confidence interval. "
+            "it is enclosed separately from the remaining candidates while rank numbers remain visible. "
+            "Row color identifies AC, resin, or CDP, and diagonal hatching identifies thin rather than "
+            "moderate product support. These are screening and evidence-coverage cues, not confidence grades. "
             "**Warnings** shows concise labels for recorded score caveats: rose ! labels mark critical alerts, "
             "while teal i labels provide supporting context. The legend below the table explains each label."
         )
@@ -1577,21 +1580,85 @@ def _excluded_materials(result: dict[str, Any]) -> pd.DataFrame:
 def _shortlist_table(result: dict[str, Any], items: list[dict[str, Any]]) -> pd.DataFrame:
     frame = _ranking_table(result, items)
     score = "Worst-case logKd" if result.get("mixture", {}).get("pfas_count", 1) > 1 else "logKd at reference dose"
-    columns = ["Product", score]
+    columns = ["Overall rank", "Product", score]
     if "Limiting PFAS" in frame:
         columns.append("Limiting PFAS")
     columns += ["Basis", "Warnings"]
     compact = frame.reindex(columns=columns).copy()
-    # Training studies behind each product, so thinly supported products are visible next to the score.
-    compact.insert(2, "Studies", [(item.get("adsorbent_support") or {}).get("study_ids") for item in items])
-    threshold = _resolution_threshold(result)
-    top = float(items[0]["ranking_score"]) if items else None
-    compact.insert(1, "Shortlist group", [
-        "Top-performing tier" if threshold is not None and top - float(item["ranking_score"]) <= threshold
-        else "Other" if threshold is not None else "Unassessed"
+    # Distinct DOI-identified studies are the support policy's study unit.
+    compact.insert(2, "Studies", [
+        (item.get("adsorbent_support") or {}).get("independent_studies")
         for item in items
     ])
     return compact
+
+
+def _material_family(item: dict[str, Any], category_groups: list[dict[str, Any]]) -> str:
+    """Map the catalog category to the broad family used by the visual key."""
+    category = str(item.get("product", {}).get("adsorbent_category") or "").casefold()
+    for group in category_groups:
+        categories = {str(value).casefold() for value in group.get("categories", [])}
+        if category in categories:
+            return str(group.get("key") or "Other")
+    return "Other"
+
+
+def _shortlist_sections(
+    result: dict[str, Any],
+    items: list[dict[str, Any]],
+    category_groups: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], str, bool]:
+    """Build component-safe rows and split the top tier from the remainder."""
+    is_mixture = result.get("mixture", {}).get("pfas_count", 1) > 1
+    score_label = "Min log Kd" if is_mixture else "log Kd"
+    rows = []
+    for item in items:
+        support = item.get("adsorbent_support") or {}
+        performance = item.get("performance") or item.get("prediction") or {}
+        mixture = item.get("mixture_performance") or {}
+        rows.append({
+            "key": str(item.get("product", {}).get("Product_key") or _product_name(item["product"])),
+            "rank": item.get("rank"),
+            "product": _product_name(item["product"]),
+            "family": _material_family(item, category_groups),
+            "support": "moderate" if support.get("meets_default_ml_policy") else "thin",
+            "studies": support.get("independent_studies"),
+            "score": mixture.get("worst_case_logKd") if is_mixture else performance.get("mean_logKd"),
+            "limitingPfas": mixture.get("limiting_pfas") if is_mixture else None,
+            "basis": _basis_label(item.get("performance_source")),
+            "warnings": [
+                {"label": tag.label, "severity": tag.severity, "meaning": tag.meaning}
+                for tag in warning_labels(item)
+            ],
+        })
+
+    threshold = _resolution_threshold(result)
+    if threshold is None or not items:
+        return ([{
+            "kind": "all", "title": "Ranked candidates",
+            "caption": "No top-tier margin is available for this result.", "rows": rows,
+        }] if rows else []), score_label, is_mixture
+
+    top_score = float(items[0]["ranking_score"])
+    in_top_tier = [
+        top_score - float(item["ranking_score"]) <= threshold
+        for item in items
+    ]
+    split_at = sum(in_top_tier)
+    sections = [{
+        "kind": "top",
+        "title": "Top-performing tier",
+        "caption": f"Within {threshold:.2f} log units of the highest score shown; treat these as a group to test.",
+        "rows": rows[:split_at],
+    }]
+    if split_at < len(rows):
+        sections.append({
+            "kind": "remaining",
+            "title": "Remaining candidates",
+            "caption": "Ordered by score below the top-performing tier boundary.",
+            "rows": rows[split_at:],
+        })
+    return sections, score_label, is_mixture
 
 
 def _render_water_support(result: dict[str, Any]) -> None:
@@ -1763,22 +1830,28 @@ def _render_result(result: dict[str, Any], category_groups: list[dict[str, Any]]
                     f"{second['performance']['mean_logKd']:.3f}. {verdict}</div>"
                 )
         _render_rank_resolution(result, items)
-        compact = _shortlist_table(result, items)
-        config = _ranking_column_config(items)
-        config["Shortlist group"] = st.column_config.TextColumn("Group", width="medium", help="Top-performing tier means within the cross-validated error of a predicted difference (about 0.5 log units) of the top score in this view. It is a screening heuristic, not a confidence interval or proof of equivalence.")
-        config["Product"] = st.column_config.TextColumn("Product", width="medium", pinned=True)
-        config["Basis"] = st.column_config.TextColumn("Basis", width=150)
-        config["Studies"] = st.column_config.NumberColumn("Studies", width="small", help="Studies with training records for this product. Products with at least two DOI-identified studies and five source records are moderately supported; those below either threshold are thinly supported and carry a Thinly supported label. Candidate details give the reason.")
-        config["logKd at reference dose"] = st.column_config.NumberColumn("log Kd", format="%.2f", width="small", help="Higher indicates stronger screening affinity. Display precision is not predictive accuracy.")
-        config["Worst-case logKd"] = st.column_config.NumberColumn("Min log Kd", format="%.2f", width=110, help="The lowest score across the entered PFAS; this determines mixture ranking.")
         selection_id = hashlib.sha256(json.dumps([st.session_state.get("ar_last_run_fingerprint"), [(item['product']['Product_key'], item['ranking_score']) for item in items]], default=str).encode()).hexdigest()[:12]
-        st.caption("Select a row to open its evidence below. Scores order candidates within each group; small differences do not establish superiority.")
-        selected = st.dataframe(compact, width="stretch", hide_index=True,
-            column_config=config, on_select="rerun", selection_mode="single-row", key=f"ar_shortlist_{selection_id}")
-        selected_rows = selected.selection.rows
+        sections, score_label, is_mixture = _shortlist_sections(result, items, category_groups)
+        selected_key = render_ranking_table(
+            sections=sections,
+            score_label=score_label,
+            is_mixture=is_mixture,
+            selected_key=None,
+            key=f"ar_shortlist_{selection_id}",
+        )
+        st.caption(
+            "Select a row to open its evidence below. Row color identifies adsorbent class; "
+            "solid fill means moderately supported (at least two DOI studies and five source records), "
+            "while diagonal hatching means thinly supported. These are evidence-coverage thresholds, "
+            "not confidence grades."
+        )
         _render_warning_legend(items)
-        if selected_rows and 0 <= selected_rows[0] < len(items):
-            _render_candidate_detail({**result, "recommendations": [items[selected_rows[0]]]}, expanded=True, key_prefix="selected_")
+        selected_item = next(
+            (item for item in items if str(item.get("product", {}).get("Product_key")) == selected_key),
+            None,
+        )
+        if selected_item is not None:
+            _render_candidate_detail({**result, "recommendations": [selected_item]}, expanded=True, key_prefix="selected_")
         with st.expander("Complete ranking table"):
             _basis_legend()
             st.dataframe(_ranking_styler(_ranking_table(result, items, class_filtered)), width="stretch", hide_index=True,

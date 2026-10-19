@@ -42,6 +42,7 @@
 !/scripts/adsorbent_recommender/scenarios.py
 !/scripts/adsorbent_recommender/input_validation.py
 !/scripts/adsorbent_recommender/warning_labels.py
+!/scripts/adsorbent_recommender/ranking_table.py
 !/scripts/adsorbent_recommender/audit_pfas_holdout.py
 !/scripts/adsorbent_recommender/README.md
 !/scripts/adsorbent_recommender/tests/
@@ -71,6 +72,7 @@
 !/scripts/adsorbent_recommender/tests/test_functional_fixes.py
 !/scripts/adsorbent_recommender/tests/test_functional_fixes_ui.py
 !/scripts/adsorbent_recommender/tests/test_usability_ui.py
+!/scripts/adsorbent_recommender/tests/test_ranking_table_component.py
 !/scripts/adsorbent_recommender/examples/
 /scripts/adsorbent_recommender/examples/*
 !/scripts/adsorbent_recommender/examples/pfas_mixture_example.csv

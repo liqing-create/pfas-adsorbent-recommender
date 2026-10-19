@@ -97,8 +97,12 @@ valid. Readiness feedback identifies what needs attention. Edits retain the
 previous result with a stale-results notice; screening updates it explicitly.
 After completion, **View results** jumps to the stable results heading.
 
-The default shortlist emphasizes the top-performing tier, score, evidence basis,
-and severity-colored warning labels in one column. Mixtures also show their
+The default shortlist encloses the top-performing tier separately from the
+remaining candidates while retaining the rank numbers. Row fill identifies the
+broad material family (AC, resin, or CDP); solid fill denotes moderate support,
+and diagonal hatching denotes thin support. These support patterns apply the
+reporting thresholds below and are not confidence grades. Scores, evidence basis,
+and severity-colored warning labels remain visible; mixtures also show their
 limiting PFAS. Select a row to open its evidence directly below the table.
 The visible **Warning label legend** explains each label appearing in the
 current view, including **Study skew** (at least 80% of the product's source

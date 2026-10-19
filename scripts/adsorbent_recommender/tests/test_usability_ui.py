@@ -1,4 +1,6 @@
 """Regression checks for intentional inputs, readiness, and shortlist provenance."""
+import adsorbent_recommender.app as app_module
+
 from adsorbent_recommender.tests.test_scenarios_ui import app, add_pfoa, screen
 from adsorbent_recommender.warning_labels import warning_values
 
@@ -98,19 +100,30 @@ def test_compact_shortlist_preserves_scores_basis_and_critical_flags(app):
     add_pfoa(app)
     screen(app)
     result = app.session_state["ar_result"]
-    compact = next(table.value for table in app.dataframe if "Shortlist group" in table.value)
+    items = result["recommendations"]
+    compact = app_module._shortlist_table(result, items)
     assert len(compact.columns) == 6 and "Studies" in compact
-    assert "Overall rank" not in compact and "Warnings" in compact
+    assert "Overall rank" in compact and "Shortlist group" not in compact and "Warnings" in compact
     assert "Support notes" not in compact and "Caveats" not in compact
     assert compact.iloc[0]["Basis"] == "ML prediction"
-    top = result["recommendations"][0]["ranking_score"]
+    top = items[0]["ranking_score"]
     threshold = result["rank_resolution"]["threshold_log_units"]
-    assert len(compact) == len(result["recommendations"])
-    for index, item in enumerate(result["recommendations"]):
-        assert compact.iloc[index]["Studies"] == item["adsorbent_support"]["study_ids"]
+    assert len(compact) == len(items)
+    for index, item in enumerate(items):
+        assert compact.iloc[index]["Overall rank"] == item["rank"]
+        assert compact.iloc[index]["Studies"] == item["adsorbent_support"]["independent_studies"]
         assert compact.iloc[index]["logKd at reference dose"] == item["performance"]["mean_logKd"]
-        assert (compact.iloc[index]["Shortlist group"] == "Top-performing tier") == (top - item["ranking_score"] <= threshold)
         assert list(compact.iloc[index]["Warnings"]) == warning_values(item)
+    sections, score_label, is_mixture = app_module._shortlist_sections(
+        result, items, app_module.catalog_category_groups(app_module.load_recommender_bundle(app_module._resolve_bundle_dir()))
+    )
+    expected_top = sum(top - item["ranking_score"] <= threshold for item in items)
+    assert sections[0]["kind"] == "top" and len(sections[0]["rows"]) == expected_top
+    assert sum(len(section["rows"]) for section in sections) == len(items)
+    assert [row["rank"] for section in sections for row in section["rows"]] == [item["rank"] for item in items]
+    assert {row["family"] for section in sections for row in section["rows"]} <= {"AC", "Resin", "CDP", "Other"}
+    assert {row["support"] for section in sections for row in section["rows"]} <= {"moderate", "thin"}
+    assert score_label == "log Kd" and not is_mixture
     assert any("Overall rank" in table.value for table in app.dataframe)
     assert any(expander.label == "Complete ranking table" for expander in app.expander)
     assert any(expander.label == "Model support and scoring details" for expander in app.expander)

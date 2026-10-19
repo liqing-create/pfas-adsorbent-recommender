@@ -12,6 +12,8 @@
 !/.gitattributes
 !/README.md
 !/requirements.txt
+# apt packages for Streamlit Cloud: RDKit structure drawing needs libXrender
+!/packages.txt
 
 !/.streamlit/
 /.streamlit/*

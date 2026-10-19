@@ -76,7 +76,6 @@ from adsorbent_recommender.warning_labels import (
     SEVERITIES, column_options as warning_column_options, legend_labels, warning_labels, warning_values,
 )
 from rdkit import Chem
-from rdkit.Chem import Draw
 
 # Importing the service puts the DB package on the path, which is what makes the
 # normalizer's own class list reachable here.
@@ -646,10 +645,22 @@ def _pfas_choice_label(choice: Any) -> str:
 
 
 @st.cache_data(max_entries=128, show_spinner=False)
-def _structure_png(canonical: str) -> bytes:
+def _structure_png(canonical: str) -> bytes | None:
+    # RDKit drawing needs X11 libraries (libXrender) that a bare Linux host may lack;
+    # without them the SMILES shown next to each image still identifies the structure.
+    try:
+        from rdkit.Chem import Draw
+    except ImportError:
+        return None
     stream = io.BytesIO()
     Draw.MolToImage(Chem.MolFromSmiles(canonical), size=(480, 240)).save(stream, format="PNG")
     return stream.getvalue()
+
+
+def _show_structure(canonical: str, width: Any = "stretch") -> None:
+    png = _structure_png(canonical)
+    if png is not None:
+        st.image(png, width=width)
 
 
 def _custom_structure_editor(bundle: Any, selected: str) -> None:
@@ -700,7 +711,7 @@ def _custom_structure_editor(bundle: Any, selected: str) -> None:
             return
         canonical = lookup.canonical_smiles
         _, structure_key = prepare_structure(canonical)
-        st.image(_structure_png(canonical), width="stretch")
+        _show_structure(canonical)
         st.caption("Structure that will be used for prediction")
         st.code(canonical, language=None)
         for message in lookup.warnings:
@@ -1918,7 +1929,7 @@ def _csv_mixture_import(bundle: Any) -> None:
             with st.expander("Inspect supplied molecular structures"):
                 for row in submitted_structures:
                     st.caption(f"CSV line {row['csv_row']} · {row['entry']['label']}")
-                    st.image(_structure_png(row["structure"]), width="stretch")
+                    _show_structure(row["structure"])
                     st.code(row["structure"], language=None)
         st.button((f"Confirm structures and import {len(prepared)} PFAS" if submitted_structures
                    else f"Import {len(prepared)} PFAS"), key="ar_import_csv", width="stretch",
@@ -2237,7 +2248,7 @@ def _scenario_csv_upload(bundle: Any) -> None:
                 format_func=lambda index: structures[index].get("label") or structures[index]["identity"], key="ar_scenario_inspect_structure")
             if index is not None:
                 canonical, _ = prepare_structure(structures[index]["confirmed_smiles"])
-                st.image(_structure_png(canonical), width=360)
+                _show_structure(canonical, width=360)
                 st.code(canonical, language=None)
     digest = hashlib.sha256(uploaded.getvalue()).hexdigest()[:16]
     reviewed = st.checkbox("I have checked the PFAS identities and supplied structures", key=f"ar_scenario_csv_reviewed_{digest}")

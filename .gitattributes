@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The model bundle is fingerprinted byte for byte (SHA-256 in recommender_bundle.json),
+# so its files must reach the hosted app exactly as written, CRLF included.
+/output/** -text

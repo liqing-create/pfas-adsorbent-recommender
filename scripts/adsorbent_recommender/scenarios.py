@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+
 from adsorbent_recommender.mixture_inputs import from_mg_l, normalize_unit, to_mg_l
 from adsorbent_recommender.pfas_descriptors import DESCRIPTOR_VERSION, prepare_structure
 from adsorbent_recommender.service import RESULT_SCHEMA_VERSION
@@ -29,6 +33,9 @@ MAX_LIBRARY_BYTES = 60_000_000
 SCENARIO_EXAMPLE_PATH = Path(__file__).parent / "examples" / "scenario_inputs_example.csv"
 WATER_NUMBERS = ("pH", "organic_carbon_mg_l", "tds_mg_l", "ionic_strength_mol_l")
 ION_KEYS = ("Na", "K", "Ca", "Mg", "Cl", "HCO3", "SO4", "phosphate")
+WORKBOOK_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+WORKBOOK_SHEETS = ("Summary", "Ranked results", "PFAS detail", "Inputs")
+WORKBOOK_HEADER_FILL = "3B4859"
 
 
 class ScenarioError(ValueError):
@@ -305,13 +312,54 @@ def _validate_result(result: Any, inputs: dict) -> dict:
         saved_exploratory = saved.get("adsorbent", {}).get("include_exploratory", False)
         if not isinstance(saved_exploratory, bool) or saved_exploratory != inputs.get("include_exploratory_adsorbents", False):
             raise ScenarioError("Saved results and inputs disagree about exploratory adsorbents. Re-run screening.")
-    return _portable(result)
+    return _portable(public_result(result))
+
+
+# Two development decisions stay out of the app and its exports: which catalog
+# products were screened out (and how many), and the moderate/thin support
+# classification. Tier placement was about as reliable for products with few
+# studies or records as for well-represented ones (by_support in
+# output/Recommender_validation/tier_hidden_pairing_summary.json), so only the
+# raw study and record counts are reported.
+DEVELOPMENT_FIELDS = {
+    None: ("rejected_candidates", "candidates_screened"),
+    "adsorbent_screening": ("property_eligible_products", "excluded_products", "policy",
+                            "database_exception_products"),
+    "screening_scope": ("catalog_product_count", "screened_product_count"),
+}
+SUPPORT_CLASSIFICATION_FIELDS = ("meets_default_ml_policy", "status", "policy", "reasons",
+                                 "largest_study_source_fraction")
+
+
+def _without_support_classification(value: Any) -> Any:
+    """Drop the support classification from every ``adsorbent_support`` block."""
+    if isinstance(value, list):
+        return [_without_support_classification(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    clean = {}
+    for key, item in value.items():
+        if key == "adsorbent_support" and isinstance(item, dict):
+            item = {name: field for name, field in item.items() if name not in SUPPORT_CLASSIFICATION_FIELDS}
+        clean[key] = _without_support_classification(item)
+    return clean
+
+
+def public_result(result: Any) -> Any:
+    """Return a copy of a result with the development-only fields removed."""
+    if not isinstance(result, dict):
+        return result
+    clean = {key: value for key, value in result.items() if key not in DEVELOPMENT_FIELDS[None]}
+    for section, fields in DEVELOPMENT_FIELDS.items():
+        if section is not None and isinstance(clean.get(section), dict):
+            clean[section] = {key: value for key, value in clean[section].items() if key not in fields}
+    return _without_support_classification(clean)
 
 
 def recommendation_bytes(result: dict) -> bytes:
     """Strict JSON: validated inputs/scores, with missing catalog data as null."""
     validate_result_structure(result)
-    return json.dumps(_portable(result), ensure_ascii=False, allow_nan=False, indent=2).encode("utf-8")
+    return json.dumps(_portable(public_result(result)), ensure_ascii=False, allow_nan=False, indent=2).encode("utf-8")
 
 
 def make_snapshot(name: str, inputs: dict, reference: dict, result: dict | None = None) -> dict:
@@ -481,43 +529,60 @@ def _notes(candidate: dict) -> str:
 
 
 def compare_snapshots(snapshots: list[dict], reference_id: str) -> tuple[list[dict], list[str]]:
-    if not 2 <= len(snapshots) <= 4 or any(not item.get("result") for item in snapshots):
-        raise ScenarioError("Select two to four scenarios with saved screening results.")
+    if len(snapshots) != 2 or any(not item.get("result") for item in snapshots):
+        raise ScenarioError("Select exactly two saved runs with screening results.")
     for snapshot in snapshots:
         validate_result_structure(snapshot["result"])
     reference = next((item for item in snapshots if item["scenario_id"] == reference_id), None)
     if reference is None:
-        raise ScenarioError("Choose a reference scenario from this comparison.")
-    ref_signature = _pfas_signature(reference)
-    maps = [{item["product"]["Product_key"]: item for item in snapshot["result"]["recommendations"]} for snapshot in snapshots]
-    ref_map = maps[snapshots.index(reference)]
-    warnings, comparable = [], []
-    for snapshot in snapshots:
-        same_bundle = (bool(reference["bundle_reference"].get("id"))
-                       and snapshot["bundle_reference"].get("id") == reference["bundle_reference"]["id"]
-                       and reference["bundle_reference"].get("data_snapshots_complete", True)
-                       and snapshot["bundle_reference"].get("data_snapshots_complete", True))
-        same_pfas = ref_signature is not None and _pfas_signature(snapshot) == ref_signature
-        comparable.append(same_bundle and same_pfas)
-        if not same_bundle:
-            warnings.append(f"{snapshot['name']}: bundle provenance differs or is unavailable; score changes against the reference are withheld.")
-        if not same_pfas:
-            warnings.append(f"{snapshot['name']}: the PFAS mixture differs or its structural identity is unavailable; limiting scores describe different mixtures, so score changes are withheld.")
-    keys = set().union(*(mapping.keys() for mapping in maps))
+        raise ScenarioError("Choose one of the two runs as Run A.")
+    if snapshots[0]["scenario_id"] != reference_id:
+        snapshots = [snapshots[1], snapshots[0]]
+    run_a, run_b = snapshots
+    map_a, map_b = [
+        {item["product"]["Product_key"]: item for item in snapshot["result"]["recommendations"]}
+        for snapshot in snapshots
+    ]
+    same_bundle = (bool(run_a["bundle_reference"].get("id"))
+                   and run_b["bundle_reference"].get("id") == run_a["bundle_reference"]["id"]
+                   and run_a["bundle_reference"].get("data_snapshots_complete", True)
+                   and run_b["bundle_reference"].get("data_snapshots_complete", True))
+    same_pfas = _pfas_signature(run_a) is not None and _pfas_signature(run_b) == _pfas_signature(run_a)
+    comparable = same_bundle and same_pfas
+    warnings = []
+    if not same_bundle:
+        warnings.append("The model/data bundle differs or its provenance is unavailable; score changes are withheld.")
+    if not same_pfas:
+        warnings.append("The PFAS mixture differs or its structural identity is unavailable; limiting scores describe different mixtures, so score changes are withheld.")
+    keys = set(map_a) | set(map_b)
     rows = []
-    for key in sorted(keys, key=lambda key: (ref_map.get(key, {}).get("rank", math.inf), key)):
-        exemplar = next(mapping[key] for mapping in maps if key in mapping)
+    for key in sorted(keys, key=lambda product_key: (map_a.get(product_key, {}).get("rank", math.inf),
+                                                     map_b.get(product_key, {}).get("rank", math.inf), product_key)):
+        exemplar = map_a.get(key) or map_b[key]
+        item_a, item_b = map_a.get(key), map_b.get(key)
+        note_parts = []
+        for label, item in (("A", item_a), ("B", item_b)):
+            if item is None:
+                note_parts.append(f"{label}: not in saved ranking")
+            elif _notes(item):
+                note_parts.append(f"{label}: {_notes(item)}")
         row = {"Product key": key, "Product": exemplar["product"].get("Name_Commercial") or key,
-               "Class": exemplar["product"].get("adsorbent_category", "")}
-        for snapshot, mapping, can_compare in zip(snapshots, maps, comparable):
-            item = mapping.get(key)
-            name = snapshot["name"]
-            row[f"{name} · rank"] = item["rank"] if item else None
-            row[f"{name} · logKd"] = item["ranking_score"] if item else None
-            row[f"{name} · ΔlogKd"] = item["ranking_score"] - ref_map[key]["ranking_score"] if item and key in ref_map and can_compare else None
-            row[f"{name} · basis"] = {"database_match": "Database", "model_prediction": "Model", "mixed_evidence": "Mixed evidence"}.get(item.get("performance_source"), "Unspecified") if item else "Not in saved ranking"
-            row[f"{name} · limiting PFAS"] = item.get("mixture_performance", {}).get("limiting_pfas", "") if item else ""
-            row[f"{name} · caveats"] = _notes(item) if item else ""
+               "Class": exemplar["product"].get("adsorbent_category", ""),
+               f"{run_a['name']} · rank": item_a["rank"] if item_a else None,
+               f"{run_b['name']} · rank": item_b["rank"] if item_b else None,
+               f"{run_a['name']} · logKd": item_a["ranking_score"] if item_a else None,
+               f"{run_b['name']} · logKd": item_b["ranking_score"] if item_b else None,
+               "ΔlogKd (B − A)": item_b["ranking_score"] - item_a["ranking_score"]
+                   if item_a and item_b and comparable else None,
+               f"{run_a['name']} · basis": ({"database_match": "Database", "model_prediction": "Model",
+                   "mixed_evidence": "Mixed evidence"}.get(item_a.get("performance_source"), "Unspecified")
+                   if item_a else "Not in saved ranking"),
+               f"{run_b['name']} · basis": ({"database_match": "Database", "model_prediction": "Model",
+                   "mixed_evidence": "Mixed evidence"}.get(item_b.get("performance_source"), "Unspecified")
+                   if item_b else "Not in saved ranking"),
+               f"{run_a['name']} · limiting PFAS": item_a.get("mixture_performance", {}).get("limiting_pfas", "") if item_a else "",
+               f"{run_b['name']} · limiting PFAS": item_b.get("mixture_performance", {}).get("limiting_pfas", "") if item_b else "",
+               "Warnings": " | ".join(note_parts)}
         rows.append(row)
     return rows, list(dict.fromkeys(warnings))
 
@@ -538,15 +603,15 @@ SCENARIO_CSV_COLUMNS = ("scenario_name", "row_type", "pfas", "identity_type", "i
     *(f"ion_{key.lower()}" for key in ION_KEYS), "include_exploratory_adsorbents")
 
 
-def scenario_inputs_csv(snapshot: dict) -> bytes:
+def _scenario_input_rows(snapshot: dict) -> list[dict]:
     """One typed row per PFAS or inorganic additive, with shared settings repeated."""
     inputs = snapshot["inputs"]
     water = inputs["water"]
     common = {"scenario_name": snapshot["name"], "water_type": water["water_type"], "ph": water["pH"],
-              "include_exploratory_adsorbents": str(inputs.get("include_exploratory_adsorbents", False)).lower(),
+              "include_exploratory_adsorbents": inputs.get("include_exploratory_adsorbents", False),
               "temperature_c": inputs["temperature_c"], **{key: water[key] for key in WATER_NUMBERS if key != "pH"},
-              "organic_matter_present": str(water["organic_matter_present"]).lower(),
-              **{f"ion_{key.lower()}": str(water["ions"][key]).lower() for key in ION_KEYS}}
+              "organic_matter_present": water["organic_matter_present"],
+              **{f"ion_{key.lower()}": water["ions"][key] for key in ION_KEYS}}
     rows = []
     for pfas in inputs["pfas"]:
         row = {**common, "row_type": "pfas", "pfas": pfas["identity"], "identity_type": pfas["identity_type"],
@@ -558,9 +623,17 @@ def scenario_inputs_csv(snapshot: dict) -> bytes:
         row = {**common, "row_type": "inorganic_additive", "inorganic_species": additive["species"],
                "concentration": additive["concentration"], "unit": additive["unit"]}
         rows.append({key: row.get(key) for key in SCENARIO_CSV_COLUMNS})
+    return rows
+
+
+def scenario_inputs_csv(snapshot: dict) -> bytes:
+    """Export reloadable inputs as CSV for API/backward compatibility."""
+    rows = _scenario_input_rows(snapshot)
     def text_cell(value: Any) -> Any:
         if isinstance(value, str) and (value.startswith("'") or value.lstrip().startswith(("=", "+", "-", "@"))):
             return "'" + value
+        if isinstance(value, bool):
+            return str(value).lower()
         return value
     stream = io.StringIO(newline="")
     writer = csv.DictWriter(stream, fieldnames=SCENARIO_CSV_COLUMNS)
@@ -568,7 +641,7 @@ def scenario_inputs_csv(snapshot: dict) -> bytes:
     writer.writerows({key: text_cell(value) for key, value in row.items()} for row in rows)
     payload = stream.getvalue().encode("utf-8-sig")
     if len(payload) > 1_000_000:
-        raise ScenarioError("The input CSV exceeds 1 MB. Use the full JSON snapshot under Advanced.")
+        raise ScenarioError("The input CSV exceeds 1 MB. Use a smaller input set.")
     return payload
 
 
@@ -655,8 +728,8 @@ def read_scenario_csv(payload: bytes, default_name: str = "Imported scenario") -
     return _text(name, "Scenario name", required=True, limit=80), validate_inputs({"pfas": pfas_rows, **shared})
 
 
-def results_csv(result: dict, name: str = "Screening result") -> bytes:
-    """One row per candidate–PFAS pair, with the aggregate rank alongside it."""
+def _result_rows(result: dict, name: str = "Screening result") -> list[dict]:
+    """Return one typed row per candidate–PFAS pair."""
     validate_result_structure(result)
     rows = []
     requests = result.get("scenarios", [])
@@ -695,10 +768,243 @@ def results_csv(result: dict, name: str = "Screening result") -> bytes:
                 "comparable_record_count": evidence.get("performance", {}).get("match_count", 0),
                 "related_record_count": related.get("record_count", 0), "related_study_count": related.get("study_count", 0),
                 "related_evidence_summary": related.get("summary", ""),
-                "adsorbent_support_status": material.get("status", "unknown"),
                 "adsorbent_training_rows": material.get("training_rows"), "adsorbent_source_records": material.get("source_records"),
                 "adsorbent_independent_studies": material.get("independent_studies"),
                 "adsorbent_exploratory_prediction": material.get("exploratory_prediction"),
                 "feature_source": lookup.get("feature_source", ""), "candidate_caveats": _notes(candidate),
                 "pfas_caveats": _notes(item), "scenario_caveats": " | ".join(caveat["text"] for caveat in result.get("scenario_caveats", []))})
+    return rows
+
+
+def results_csv(result: dict, name: str = "Screening result") -> bytes:
+    """One row per candidate–PFAS pair, with the aggregate rank alongside it."""
+    rows = _result_rows(result, name)
     return comparison_csv(rows)
+
+
+def _excel_text(value: Any) -> Any:
+    """Keep exported workbooks data-only and neutralize formula-like text."""
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, (dict, list, tuple)):
+        value = json.dumps(_portable(value), ensure_ascii=False, allow_nan=False)
+    value = str(value)
+    if value.startswith("'") or value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
+def _unescape_excel_text(value: Any) -> Any:
+    if isinstance(value, str) and value.startswith("'") and (
+        value[1:].startswith("'") or value[1:].lstrip().startswith(("=", "+", "-", "@"))
+    ):
+        return value[1:]
+    return value
+
+
+def _style_table(ws: Any, *, freeze: str = "A2") -> None:
+    ws.sheet_view.showGridLines = False
+    ws.freeze_panes = freeze
+    if ws.max_row and ws.max_column:
+        ws.auto_filter.ref = ws.dimensions
+    for cell in ws[1]:
+        cell.fill = PatternFill("solid", fgColor=WORKBOOK_HEADER_FILL)
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.alignment = Alignment(vertical="center", wrap_text=True)
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=isinstance(cell.value, str))
+    for index in range(1, ws.max_column + 1):
+        values = [str(ws.cell(row=row, column=index).value or "") for row in range(1, min(ws.max_row, 200) + 1)]
+        ws.column_dimensions[get_column_letter(index)].width = min(48, max(10, max(map(len, values), default=0) + 2))
+
+
+def _write_table(ws: Any, rows: list[dict], columns: list[str] | tuple[str, ...] | None = None) -> None:
+    columns = list(columns or (list(rows[0]) if rows else []))
+    ws.append([_excel_text(value) for value in columns])
+    for row in rows:
+        ws.append([_excel_text(row.get(column)) for column in columns])
+    _style_table(ws)
+
+
+def _workbook_bytes(workbook: Workbook) -> bytes:
+    stream = io.BytesIO()
+    workbook.save(stream)
+    payload = stream.getvalue()
+    if len(payload) > MAX_SCENARIO_BYTES:
+        raise ScenarioError("The run workbook exceeds 20 MB. Use a smaller screening set.")
+    return payload
+
+
+def _ranked_result_rows(result: dict) -> list[dict]:
+    rows = []
+    for candidate in result.get("recommendations", []):
+        product = candidate["product"]
+        mixture = candidate.get("mixture_performance", {})
+        support = candidate.get("adsorbent_support") or {}
+        rows.append({
+            "rank": candidate["rank"],
+            "product_key": product["Product_key"],
+            "product": product.get("Name_Commercial") or product["Product_key"],
+            "class": product.get("adsorbent_category", ""),
+            "limiting_logkd": candidate["ranking_score"],
+            "mean_logkd": mixture.get("mean_logKd"),
+            "limiting_pfas": mixture.get("limiting_pfas", ""),
+            "basis": {"database_match": "Database", "model_prediction": "Model",
+                      "mixed_evidence": "Mixed evidence"}.get(candidate.get("performance_source"), "Unspecified"),
+            "adsorbent_training_rows": support.get("training_rows"),
+            "adsorbent_source_records": support.get("source_records"),
+            "adsorbent_independent_studies": support.get("independent_studies"),
+            "warnings": _notes(candidate),
+        })
+    return rows
+
+
+def run_workbook(snapshot: dict) -> bytes:
+    """Create one human-readable workbook containing a run's inputs and outputs."""
+    inputs = validate_inputs(snapshot.get("inputs"))
+    result = snapshot.get("result")
+    if result is not None:
+        result = _validate_result(result, inputs)
+    name = _text(snapshot.get("name"), "Run name", required=True, limit=80)
+    reference = snapshot.get("bundle_reference") or {}
+    workbook = Workbook()
+    summary = workbook.active
+    summary.title = "Summary"
+    summary.sheet_view.showGridLines = False
+    summary.append(["Adsorbent recommender run", None])
+    summary["A1"].font = Font(size=16, bold=True, color=WORKBOOK_HEADER_FILL)
+    best = result["recommendations"][0] if result else None
+    summary_rows = [
+        ("Run name", name), ("Saved at (UTC)", snapshot.get("saved_at")),
+        ("PFAS count", len(inputs["pfas"])),
+        ("Candidate count", len(result.get("recommendations", [])) if result else 0),
+        ("Top product", (best["product"].get("Name_Commercial") or best["product"]["Product_key"]) if best else None),
+        ("Top limiting logKd", best["ranking_score"] if best else None),
+        ("Bundle name", reference.get("name")), ("Bundle fingerprint", reference.get("id")),
+        ("Model family", reference.get("model_family")), ("Target", reference.get("target")),
+        ("Reload behavior", "Loading this workbook restores inputs only. Screen again with the current model and data."),
+        ("Research-use note", "Scores are research estimates of adsorption affinity, not product performance claims or guarantees."),
+    ]
+    for key, value in summary_rows:
+        summary.append([_excel_text(key), _excel_text(value)])
+    for cell in summary[1]:
+        cell.fill = PatternFill("solid", fgColor="FFFFFF")
+    for row in summary.iter_rows(min_row=2, max_col=2):
+        row[0].font = Font(bold=True, color=WORKBOOK_HEADER_FILL)
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+    summary.column_dimensions["A"].width = 24
+    summary.column_dimensions["B"].width = 92
+
+    ranked = workbook.create_sheet("Ranked results")
+    _write_table(ranked, _ranked_result_rows(result) if result else [])
+    detail = workbook.create_sheet("PFAS detail")
+    _write_table(detail, _result_rows(result, name) if result else [])
+    input_sheet = workbook.create_sheet("Inputs")
+    _write_table(input_sheet, _scenario_input_rows({**snapshot, "inputs": inputs, "name": name}), SCENARIO_CSV_COLUMNS)
+    workbook.properties.title = f"Adsorbent recommender run - {name}"
+    workbook.properties.subject = "Research screening inputs and results"
+    return _workbook_bytes(workbook)
+
+
+def read_run_workbook(payload: bytes, default_name: str = "Imported run") -> dict:
+    """Restore validated inputs from an exported workbook; saved scores stay historical."""
+    if len(payload) > MAX_SCENARIO_BYTES:
+        raise ScenarioError("Run workbooks must be smaller than 20 MB.")
+    try:
+        workbook = load_workbook(io.BytesIO(payload), read_only=True, data_only=False)
+    except Exception as exc:
+        raise ScenarioError("Choose an .xlsx file exported by this app.") from exc
+    try:
+        if "Summary" not in workbook.sheetnames or "Inputs" not in workbook.sheetnames:
+            raise ScenarioError("This workbook is missing the Summary or Inputs sheet.")
+        summary = workbook["Summary"]
+        if summary.max_row > 100 or summary.max_column > 4:
+            raise ScenarioError("The Summary sheet is unexpectedly large.")
+        metadata = {}
+        for row in summary.iter_rows(min_row=2, max_col=2):
+            key, value = row[0].value, row[1].value
+            if row[0].data_type == "f" or row[1].data_type == "f":
+                raise ScenarioError("Formulas are not allowed in run workbooks.")
+            if key not in (None, ""):
+                metadata[str(_unescape_excel_text(key)).strip()] = _unescape_excel_text(value)
+        inputs_sheet = workbook["Inputs"]
+        if inputs_sheet.max_row > 151 or inputs_sheet.max_column > len(SCENARIO_CSV_COLUMNS):
+            raise ScenarioError("Use at most 100 PFAS and 50 additive rows with the current Inputs columns.")
+        table = []
+        for row in inputs_sheet.iter_rows():
+            values = []
+            for cell in row:
+                if cell.data_type == "f":
+                    raise ScenarioError("Formulas are not allowed in the Inputs sheet.")
+                values.append(_unescape_excel_text(cell.value))
+            table.append(values)
+        if not table or tuple(str(value or "").strip() for value in table[0]) != SCENARIO_CSV_COLUMNS:
+            raise ScenarioError("The Inputs sheet columns do not match the current exported workbook format.")
+        stream = io.StringIO(newline="")
+        writer = csv.writer(stream)
+        writer.writerow(SCENARIO_CSV_COLUMNS)
+        for values in table[1:]:
+            padded = [*values, *([None] * (len(SCENARIO_CSV_COLUMNS) - len(values)))]
+            writer.writerow("" if value is None else str(value).lower() if isinstance(value, bool) else value
+                            for value in padded[:len(SCENARIO_CSV_COLUMNS)])
+        name, inputs = read_scenario_csv(stream.getvalue().encode("utf-8-sig"), default_name)
+        name = str(metadata.get("Run name") or name or default_name)[:80]
+        reference = {"id": metadata.get("Bundle fingerprint") or None,
+                     "name": metadata.get("Bundle name") or "Unknown bundle",
+                     "model_family": metadata.get("Model family") or None,
+                     "target": metadata.get("Target") or None}
+        snapshot = make_snapshot(name, inputs, reference)
+        snapshot.update({"_imported": True, "_notices": [
+            "Inputs were restored from the workbook. Saved results are reference-only; screen again with the current model and data."
+        ]})
+        return snapshot
+    finally:
+        workbook.close()
+
+
+def _input_comparison_rows(snapshots: list[dict]) -> list[dict]:
+    run_a, run_b = snapshots
+    def values(snapshot: dict) -> dict:
+        inputs, result = snapshot["inputs"], snapshot["result"]
+        water = inputs["water"]
+        best = result["recommendations"][0]
+        return {
+            "PFAS and initial concentrations": "; ".join(
+                f"{row.get('label') or row['identity']}: {row['concentration_value']:g} {row['concentration_unit']}"
+                for row in inputs["pfas"]),
+            "Water type": water["water_type"] or "Ultrapure water (default)",
+            "pH": water["pH"], "Temperature (°C)": inputs["temperature_c"],
+            "Organic carbon (mg/L)": water["organic_carbon_mg_l"],
+            "Organic additives present": water["organic_matter_present"],
+            "TDS (mg/L)": water["tds_mg_l"], "Ionic strength (mol/L)": water["ionic_strength_mol_l"],
+            "Inorganic additives": "; ".join(f"{row['species']}: {row['concentration']:g} {row['unit']}"
+                                                for row in water.get("inorganic_additives", [])),
+            "Ions present": ", ".join(key for key, present in water["ions"].items() if present) or "Not specified",
+            "Highest-ranked product": best["product"].get("Name_Commercial") or best["product"]["Product_key"],
+            "Best limiting logKd": best["ranking_score"],
+            "Model/data bundle": snapshot["bundle_reference"].get("name", "Unknown"),
+            "Bundle fingerprint": snapshot["bundle_reference"].get("id") or "Unavailable",
+            "Saved at (UTC)": snapshot.get("saved_at"),
+        }
+    first, second = values(run_a), values(run_b)
+    return [{"Input / result": key, run_a["name"]: first[key], run_b["name"]: second[key]} for key in first]
+
+
+def comparison_workbook(snapshots: list[dict]) -> bytes:
+    """Export a dedicated two-run workbook with paired result columns."""
+    if len(snapshots) != 2:
+        raise ScenarioError("Select exactly two saved runs for comparison.")
+    rows, warnings = compare_snapshots(snapshots, snapshots[0]["scenario_id"])
+    workbook = Workbook()
+    inputs = workbook.active
+    inputs.title = "Input comparison"
+    _write_table(inputs, _input_comparison_rows(snapshots))
+    results = workbook.create_sheet("Ranked comparison")
+    _write_table(results, rows)
+    if warnings:
+        notes = workbook.create_sheet("Notes")
+        _write_table(notes, [{"Comparison note": warning} for warning in warnings])
+    workbook.properties.title = f"Adsorbent comparison - {snapshots[0]['name']} vs {snapshots[1]['name']}"
+    return _workbook_bytes(workbook)

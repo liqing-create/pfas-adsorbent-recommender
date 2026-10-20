@@ -43,37 +43,37 @@ _CSS = r"""
 .ar-ranking-swatch.ar-solid {
     background: rgba(var(--ar-family-rgb), .42);
 }
-.ar-ranking-swatch.ar-hatched {
-    background-color: rgba(var(--ar-family-rgb), .08);
-    background-image: repeating-linear-gradient(
-        135deg,
-        rgba(var(--ar-family-rgb), .62) 0,
-        rgba(var(--ar-family-rgb), .62) 2px,
-        transparent 2px,
-        transparent 7px
-    );
-}
-.ar-ranking-support-key {
-    border-left: 1px solid color-mix(in srgb, var(--st-text-color, #262730) 18%, transparent);
-    margin-left: .15rem;
-    padding-left: 1rem;
-}
 .ar-ranking-section {
+    border: 1px solid color-mix(in srgb, var(--st-text-color, #262730) 18%, transparent);
+    border-radius: 11px;
     margin: 0 0 .85rem;
+    padding: .7rem;
 }
 .ar-ranking-section.ar-top-tier {
     background: color-mix(in srgb, var(--st-primary-color, #0e7c8a) 4%, transparent);
     border: 2px solid color-mix(in srgb, var(--st-primary-color, #0e7c8a) 55%, transparent);
-    border-radius: 11px;
-    padding: .7rem;
 }
 .ar-ranking-section-header {
-    align-items: baseline;
-    display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: .25rem .55rem;
-    justify-content: space-between;
     margin: 0 .1rem .5rem;
+}
+.ar-ranking-section:not([open]) > .ar-ranking-section-header {
+    margin-bottom: 0;
+}
+.ar-ranking-section-header::-webkit-details-marker {
+    display: none;
+}
+.ar-ranking-section-header::before {
+    content: "▸";
+    font-size: .85rem;
+    transform-origin: center;
+}
+.ar-ranking-section[open] > .ar-ranking-section-header::before {
+    transform: rotate(90deg);
 }
 .ar-ranking-section-title {
     font-size: .98rem;
@@ -88,8 +88,8 @@ _CSS = r"""
 }
 .ar-ranking-section-caption {
     color: color-mix(in srgb, var(--st-text-color, #262730) 67%, transparent);
-    flex-basis: 100%;
     font-size: .78rem;
+    grid-column: 2 / -1;
 }
 .ar-ranking-scroll {
     border: 1px solid color-mix(in srgb, var(--st-text-color, #262730) 14%, transparent);
@@ -105,6 +105,12 @@ _CSS = r"""
     font-size: .86rem;
     min-width: 760px;
     width: 100%;
+}
+/* Column headers that need a definition explain it on hover. */
+.ar-ranking-table th[title] {
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: .2em;
 }
 .ar-ranking-table th {
     background: var(--st-secondary-background-color, #f0f2f6);
@@ -129,18 +135,9 @@ _CSS = r"""
     cursor: pointer;
     outline: none;
 }
-.ar-ranking-row.ar-support-moderate td {
+/* Row fill identifies the adsorbent class only. */
+.ar-ranking-row td {
     background-color: rgba(var(--ar-family-rgb), .25);
-}
-.ar-ranking-row.ar-support-thin td {
-    background-color: rgba(var(--ar-family-rgb), .07);
-    background-image: repeating-linear-gradient(
-        135deg,
-        rgba(var(--ar-family-rgb), .42) 0,
-        rgba(var(--ar-family-rgb), .42) 2px,
-        transparent 2px,
-        transparent 8px
-    );
 }
 .ar-ranking-row:hover td,
 .ar-ranking-row:focus-visible td {
@@ -163,9 +160,9 @@ _CSS = r"""
         inset 0 2px var(--st-primary-color, #0e7c8a),
         inset 0 -2px var(--st-primary-color, #0e7c8a);
 }
-.ar-ranking-rank,
 .ar-ranking-score,
-.ar-ranking-studies {
+.ar-ranking-studies,
+.ar-ranking-records {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -191,6 +188,10 @@ _CSS = r"""
     line-height: 1.25;
     padding: .18rem .42rem;
     white-space: nowrap;
+}
+/* Each label explains itself on hover in place of a legend below the table. */
+.ar-warning-tag[title] {
+    cursor: help;
 }
 .ar-warning-critical {
     background: rgba(179, 98, 89, .16);
@@ -222,7 +223,7 @@ _CSS = r"""
 
 _JS = r"""
 export default function(component) {
-  const { data, parentElement, setStateValue } = component;
+  const { data, parentElement, setStateValue, setTriggerValue } = component;
   const root = parentElement.querySelector("#ar-ranking-table");
   root.replaceChildren();
 
@@ -258,14 +259,6 @@ export default function(component) {
     key.append(document.createTextNode("Other class"));
     legend.append(key);
   }
-  const solid = make("span", "ar-ranking-key ar-ranking-support-key");
-  solid.append(make("span", "ar-ranking-swatch ar-solid ar-family-other"));
-  solid.append(document.createTextNode("Moderately supported"));
-  legend.append(solid);
-  const hatched = make("span", "ar-ranking-key");
-  hatched.append(make("span", "ar-ranking-swatch ar-hatched ar-family-other"));
-  hatched.append(document.createTextNode("Thinly supported"));
-  legend.append(hatched);
   root.append(legend);
 
   const selectRow = (rowElement, key) => {
@@ -275,6 +268,8 @@ export default function(component) {
       element.setAttribute("aria-selected", selected ? "true" : "false");
     });
     setStateValue("selected_key", key);
+    // A one-shot event, so clicking the same row again reopens its evidence.
+    setTriggerValue("opened_key", key);
   };
 
   const addCell = (tr, value, className = "") => {
@@ -284,19 +279,40 @@ export default function(component) {
   };
 
   (data.sections || []).forEach((sectionData) => {
-    const section = make("section", `ar-ranking-section ${sectionData.kind === "top" ? "ar-top-tier" : ""}`);
-    const header = make("div", "ar-ranking-section-header");
+    const section = make("details", `ar-ranking-section ${sectionData.kind === "top" ? "ar-top-tier" : ""}`);
+    if (data.openSections?.[sectionData.kind]) section.setAttribute("open", "");
+    const header = make("summary", "ar-ranking-section-header");
     header.append(make("div", "ar-ranking-section-title", sectionData.title));
     header.append(make("span", "ar-ranking-count", `${sectionData.rows.length} candidate${sectionData.rows.length === 1 ? "" : "s"}`));
     if (sectionData.caption) header.append(make("div", "ar-ranking-section-caption", sectionData.caption));
     section.append(header);
+    section.addEventListener("toggle", () => {
+      if (Boolean(data.openSections?.[sectionData.kind]) === section.open) return;
+      setStateValue("open_sections", {
+        ...(data.openSections || {}),
+        [sectionData.kind]: section.open,
+      });
+    });
 
     const scroll = make("div", "ar-ranking-scroll");
     const table = make("table", "ar-ranking-table");
     const thead = document.createElement("thead");
     const heading = document.createElement("tr");
-    ["Rank", "Product", "DOI studies", data.scoreLabel, ...(data.isMixture ? ["Limiting PFAS"] : []), "Basis", "Warnings"].forEach((label) => {
-      heading.append(make("th", "", label));
+    // The two count columns describe the adsorbent's training evidence with any
+    // PFAS, not evidence for this PFAS–adsorbent combination.
+    const headerHelp = {
+      "Adsorbent studies": "Published studies in the training data that tested this adsorbent, with any PFAS.",
+      "Adsorbent records": "Records in the training data for this adsorbent, with any PFAS.",
+    };
+    // The score that orders the rows comes right after the product, then how it
+    // was obtained and its warnings; the evidence counts close the row as context.
+    [
+      "Product", data.scoreLabel, ...(data.isMixture ? ["Limiting PFAS"] : []), "Basis", "Warnings",
+      "Adsorbent studies", "Adsorbent records",
+    ].forEach((label) => {
+      const th = make("th", "", label);
+      if (headerHelp[label]) th.title = headerHelp[label];
+      heading.append(th);
     });
     thead.append(heading);
     table.append(thead);
@@ -304,14 +320,13 @@ export default function(component) {
     const tbody = document.createElement("tbody");
     sectionData.rows.forEach((row) => {
       const family = familyClass[row.family] ? row.family : "Other";
-      const support = row.support === "moderate" ? "moderate" : "thin";
-      const tr = make("tr", `ar-ranking-row ${familyClass[family]} ar-support-${support}${row.key === data.selectedKey ? " ar-selected" : ""}`);
+      const tr = make("tr", `ar-ranking-row ${familyClass[family]}${row.key === data.selectedKey ? " ar-selected" : ""}`);
       tr.dataset.key = row.key;
       tr.tabIndex = 0;
       tr.setAttribute("role", "button");
       tr.setAttribute("aria-selected", row.key === data.selectedKey ? "true" : "false");
-      tr.setAttribute("aria-label", `Rank ${row.rank}, ${row.product}, ${familyName[family]}, ${support === "moderate" ? "moderately" : "thinly"} supported. Select for evidence.`);
-      tr.title = `${familyName[family]} · ${support === "moderate" ? "moderately" : "thinly"} supported`;
+      tr.setAttribute("aria-label", `${row.product}, ${familyName[family]}. Select for evidence.`);
+      tr.title = familyName[family];
       tr.addEventListener("click", () => selectRow(tr, row.key));
       tr.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -320,9 +335,7 @@ export default function(component) {
         }
       });
 
-      addCell(tr, row.rank, "ar-ranking-rank");
       addCell(tr, row.product, "ar-ranking-product");
-      addCell(tr, row.studies, "ar-ranking-studies");
       addCell(tr, Number.isFinite(Number(row.score)) ? Number(row.score).toFixed(2) : null, "ar-ranking-score");
       if (data.isMixture) addCell(tr, row.limitingPfas, "ar-ranking-limit");
       addCell(tr, row.basis, "ar-ranking-basis");
@@ -331,12 +344,17 @@ export default function(component) {
       (row.warnings || []).forEach((warning) => {
         const severity = ["critical", "info", "review"].includes(warning.severity) ? warning.severity : "review";
         const tag = make("span", `ar-warning-tag ar-warning-${severity}`, warning.label);
-        if (warning.meaning) tag.title = warning.meaning;
+        if (warning.meaning) {
+          tag.title = warning.meaning;
+          tag.setAttribute("aria-label", `${warning.label}: ${warning.meaning}`);
+        }
         warningList.append(tag);
       });
       if (!(row.warnings || []).length) warningList.append(make("span", "ar-sr-only", "No recorded warnings"));
       warningCell.append(warningList);
       tr.append(warningCell);
+      addCell(tr, row.studies, "ar-ranking-studies");
+      addCell(tr, row.records, "ar-ranking-records");
       tbody.append(tr);
     });
     table.append(tbody);
@@ -348,12 +366,23 @@ export default function(component) {
 """
 
 
-_RANKING_TABLE = st.components.v2.component(
-    "adsorbent_recommender_ranking_table",
-    html=_HTML,
-    css=_CSS,
-    js=_JS,
-)
+_COMPONENT_NAME = "adsorbent_recommender_ranking_table"
+
+
+def _ranking_table_component():
+    """Register the component with the active runtime and return its mount callable.
+
+    Registration happens per render rather than at import: the registry belongs to
+    the running Streamlit runtime, and AppTest builds a fresh one for every app, so
+    an import-time registration only reaches whichever runtime imported the module
+    first. Re-registering the same inline definition is a cheap overwrite.
+    """
+    return st.components.v2.component(
+        _COMPONENT_NAME,
+        html=_HTML,
+        css=_CSS,
+        js=_JS,
+    )
 
 
 def render_ranking_table(
@@ -364,33 +393,55 @@ def render_ranking_table(
     selected_key: str | None,
     key: str,
 ) -> str | None:
-    """Render the shortlist and return the selected product key, if any."""
+    """Render the shortlist and return the product key clicked in this run, if any.
+
+    The selection highlight persists as component state; the click itself is a
+    one-run trigger, so the caller can open that row's evidence exactly once per click.
+    """
     stored = st.session_state.get(key)
     if selected_key is None:
         if isinstance(stored, Mapping):
             selected_key = stored.get("selected_key")
         else:
             selected_key = getattr(stored, "selected_key", None)
+    open_sections = {
+        section.get("kind", "all"): section.get("kind") != "remaining"
+        for section in sections
+    }
+    stored_open_sections = (
+        stored.get("open_sections")
+        if isinstance(stored, Mapping)
+        else getattr(stored, "open_sections", None)
+    )
+    if isinstance(stored_open_sections, Mapping):
+        open_sections.update({
+            str(kind): bool(is_open)
+            for kind, is_open in stored_open_sections.items()
+            if kind in open_sections
+        })
     show_other = any(
         row.get("family") == "Other"
         for section in sections
         for row in section.get("rows", [])
     )
-    result = _RANKING_TABLE(
+    result = _ranking_table_component()(
         data={
             "sections": sections,
             "scoreLabel": score_label,
             "isMixture": is_mixture,
             "selectedKey": selected_key,
             "showOther": show_other,
+            "openSections": open_sections,
         },
-        default={"selected_key": selected_key},
+        default={"selected_key": selected_key, "open_sections": open_sections},
         key=key,
         on_selected_key_change=lambda: None,
+        on_opened_key_change=lambda: None,
+        on_open_sections_change=lambda: None,
         width="stretch",
     )
     if isinstance(result, Mapping):
-        value = result.get("selected_key")
+        value = result.get("opened_key")
     else:
-        value = getattr(result, "selected_key", None)
-    return str(value) if value else selected_key
+        value = getattr(result, "opened_key", None)
+    return str(value) if value else None

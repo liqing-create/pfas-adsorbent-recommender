@@ -18,7 +18,7 @@ life, breakthrough, regulatory compliance, or commercial suitability.
 - **Temperature:** a blank uses the selected bundle's fixed default, currently
   25 °C, in both model predictions and evidence matching. It is an assumed
   screening condition, not a reported measurement. Results label it as a default;
-  inputs CSV/JSON preserve the submitted blank.
+  downloaded run workbooks preserve the submitted blank.
 - **Other unreported chemistry:** blank pH, organic carbon, TDS, and ionic
   strength are not assigned measured zero values. Numeric matching requirements
   apply only where values are supplied or derived. Listed inorganic additives
@@ -53,17 +53,15 @@ life, breakthrough, regulatory compliance, or commercial suitability.
   heuristic, not a calibrated confidence interval, significance test, or proof
   of equivalent performance. Decimal precision does not imply predictive
   precision. Ensemble SD measures model disagreement, not calibrated uncertainty.
-- **Support and caveats:** only products in the training data are ranked; the
-  thin-support thresholds are reporting thresholds, not accuracy guarantees. The single **Warnings** column shows concise labels
+- **Support and caveats:** only products in the training data are ranked. The
+  single **Warnings** column shows concise labels
   for recorded critical and contextual caveats. Soft rose **!** labels are critical;
   muted teal **i** labels provide supporting context. Cells without recorded
-  caveats are left blank. The legend explains actual labels in the current
-  view and is omitted when there are no labels. Select a row or open Candidate details for full warning
-  text, affected PFAS, study concentration, and supporting records.
-- **Saving:** “Save in this session” is temporary and private to the current
-  browser session. “Download inputs for later” preserves reusable settings.
-  “Export results” produces a report and does not restore inputs. Exact
-  historical result archives are available under advanced JSON snapshots.
+  caveats are left blank. Hovering a label shows its meaning. Select a row for
+  the full warning text, affected PFAS, study concentration, and supporting records.
+- **Saving:** **Keep for comparison** keeps a completed run for the current
+  browser session. **Download run (.xlsx)** preserves reusable settings,
+  rankings, per-PFAS evidence, and caveats together in one file.
 
 The interface keeps these detailed assumptions here rather than adding an
 assumptions panel to the screening form. Effective defaults remain identified
@@ -79,18 +77,33 @@ published data and an XGBoost machine-learning model; they are not performance
 claims or guarantees for any product. Commercial formulations may change over time and
 vary between lots. This tool is provided "as is", without warranty of any kind.
 
-The app shows this notice in the "How to read these results" guide and at the
-foot of every page (`PRODUCT_NAME_DISCLAIMER` in `app.py`); keep the two texts
-in sync when either is edited.
+The app shows this notice at the top of **How to read these results**
+(`PRODUCT_NAME_DISCLAIMER` in `app.py`); keep the two texts in sync when either
+is edited.
 
 ## Using the screening interface
 
+The PFAS list holds only the PFAS represented in the model's training records
+(`pfas_training_reference.csv`, 128 structures for the deployed bundle), so
+screening beyond the training PFAS is possible but never offered as a default.
 Search results show abbreviation, full name, and CAS together; typing any of
-these searches the same reviewed compound. An unlisted identifier uses the
-explicit structure-review path. Enter its initial concentration, choose a unit,
+these searches the same reviewed compound. The bundled feature cache holds the
+same 128 training PFAS and nothing else, although the shared workbook it is cut
+from also lists database PFAS without eligible records and degradation products.
+Another PFAS is entered by typing its name, CAS number, abbreviation, or SMILES
+and choosing the Add option; it goes through the explicit structure-review path,
+and its descriptors are computed from the confirmed structure. Enter its
+initial concentration, choose a unit,
 and add it to the mixture. Concentration and unit controls wrap as a pair of
-readable fields on smaller screens. Each added entry retains identity details
-and a separate Remove action.
+readable fields on smaller screens. Each added entry shows its name and CAS and
+a Remove action; an entry outside the training PFAS is tagged
+**Not in training data**.
+
+The interface keeps instructions to what a control does not already make
+obvious: inputs carry no explanatory subtitles, and the full assumptions live
+here rather than on screen. **How to read these results**, beside the results,
+gives four short points (the score, ties, where the model is less reliable, and
+what it does not model) and links to this README.
 
 Screening is enabled only when all PFAS entries and shared water fields are
 valid. Readiness feedback identifies what needs attention. Edits retain the
@@ -98,38 +111,44 @@ previous result with a stale-results notice; screening updates it explicitly.
 After completion, **View results** jumps to the stable results heading.
 
 The default shortlist encloses the top-performing tier separately from the
-remaining candidates while retaining the rank numbers. Row fill identifies the
-broad material family (AC, resin, or CDP); solid fill denotes moderate support,
-and diagonal hatching denotes thin support. These support patterns apply the
-reporting thresholds below and are not confidence grades. Scores, evidence basis,
+remaining candidates while keeping candidates ordered by the displayed logKd
+score. Row fill identifies the broad material family (AC, resin, or CDP).
+**Adsorbent studies** and **Adsorbent records** count the training studies and
+records for the adsorbent with any PFAS, not for the requested combination; they
+are context for choosing among candidates, not reliability grades (see below).
+Scores, evidence basis,
 and severity-colored warning labels remain visible; mixtures also show their
-limiting PFAS. Select a row to open its evidence directly below the table.
-The visible **Warning label legend** explains each label appearing in the
-current view, including **Study skew** (at least 80% of the product's source
-records come from one study despite multiple studies), **One study** (the
+limiting PFAS. Select a row to open its evidence in a dialog over the table, so
+it is visible without scrolling past the ranking;
+the results have no tabs. The table header
+keys class, and each warning label shows its meaning on hover in
+place of a legend. Labels include **One study** (the
 database score comes from a single study), **Near dose** (database observations
 at 20–30 mg/L rather than exactly 25 mg/L), and **Conflicting data** (comparable
 records span widely different logKd values). Other labels are explained when
 they occur. Identical warnings across mixture components share one label;
-candidate details preserve every explanation and its PFAS scope. The column
+the selected row's evidence preserves every explanation and its PFAS scope. The column
 reserves width for all labels rather than replacing them with an unexplained
 count. Complex warning sets can make the table horizontally scrollable.
 
 Label fills are translucent so they blend with the app's light and dark themes;
-the same palette is used in the table, legend, and full explanations. Empty cells
+the same palette is used in the table and the full explanations. Empty cells
 do not produce a badge or an extra screening-tool reminder; the general scope
 and assumptions remain documented here. Colors reflect the recorded caveat severity, not a confidence grade or a new
 reliability score. There is no invented intermediate severity. Unknown caveat
 codes retain their supplied label and text; unknown severity is marked for
-review. All calculations, warning rules, source severities, and complete CSV/JSON
+review. All calculations, warning rules, source severities, and complete workbook
 warning text remain unchanged.
 
-**Complete ranking table** retains all technical columns, while **Model support
-and scoring details** contains the detailed diagnostics. Critical limitations
-remain visible beside the shortlist. Table toolbar downloads export the visible
-table only; **Export results** includes all adsorbent–PFAS records and caveats.
-When inputs have been edited, **Export displayed results** explicitly identifies
-the older displayed run.
+There is no separate support or scoring panel. How scores are obtained (database
+record or model, at the common 25 mg/L dose) is in **How to read these results**.
+A PFAS in the training data gets no support note, since the dropdown offers only
+those. When an entered PFAS is outside the training data, one warning above the ranking says its
+scores are exploratory and names its three structurally closest training PFAS
+with their Tanimoto similarity. **Download run (.xlsx)** includes the ranking,
+all adsorbent–PFAS records, technical fields, caveats, and reloadable inputs.
+When inputs have been edited, the download continues to describe the older
+displayed result rather than the changed editor fields.
 
 ## Screening input validation and temperature
 
@@ -142,18 +161,15 @@ from an explicitly supplied measurement.
 
 pH, temperature, organic carbon, TDS, and ionic strength must be finite numeric
 values or blank. Organic carbon, TDS, and ionic strength cannot be negative;
-reported zero values remain valid. Invalid nonblank values block screening
-and saving, preserve the entered text, and mark any displayed result as stale.
+reported zero values remain valid. Invalid nonblank values block screening,
+preserve the entered text, and mark any displayed result as stale.
 Finite pH and temperature values outside training ranges retain the existing
-support warnings. The service and scenario CSV/JSON imports apply the same
-numeric rules. Complete recommendation JSON uses strict JSON numbers and null
-for missing catalog data.
+support warnings. The service and workbook import apply the same numeric rules.
 
-Scenario imports validate nested scores, evidence, and support before changing
-the editor or saved-scenario library. Malformed current-format files are
-rejected completely with a field-specific error. Valid historical snapshots
-remain readable; unsupported result versions retain the existing inputs-only
-fallback. An invalid result already in the session library remains removable.
+Workbook imports validate the input table before changing the editor or saved-run
+library. Formula cells, malformed files, and unsupported columns are rejected
+without replacing current inputs. An invalid result already in the session
+library remains removable.
 The implementation fingerprint includes the shared input rules, and previous
 displayed results require a new screening after the behavior update. Model
 weights, data snapshots, file schema versions, and PFAS limits are unchanged.
@@ -164,12 +180,17 @@ Property eligibility remains separate from fitted evidence support. ML ranking
 requires a verified product identity in the fitted records: the model is used
 for untested pairings of PFAS and adsorbents that are each in the training data
 (the combination-held-out setting), so a product with no training record is not
-ranked. Products with at least **two DOI-identified studies** and **five distinct
-source records** are moderately supported; products in the training data but
-below either threshold are thinly supported, are still ranked, and carry a
-"Thinly supported" context label; the results table shows each product's number of training
-studies. These minimums are reporting thresholds, not calibrated reliability or
-confidence thresholds. One publication's study aliases count once by normalized
+ranked. Every ranked product is shown with its number of DOI-identified studies
+and distinct source records in the training data, with no support classification
+or caveat attached. Tier placement was about as reliable for products with few
+studies or records as for well-represented ones (`by_support` in
+`output/Recommender_validation/tier_hidden_pairing_summary.json`, written by
+`scripts/recommender_validation/tier_hidden_pairing_check.py`), because
+the model predicts from adsorbent properties rather than product identity; the
+counts help users weigh how widely a product has been tested, not how far to
+trust its score. The service still computes the former moderate/thin policy
+internally, but `scenarios.public_result` removes it, along with screened-out
+products, from the page and every export. One publication's study aliases count once by normalized
 DOI; distinct publications can still share experiments or systematic biases.
 Source records use `extraction_dataset/source_row_index`, so isotherm-expanded
 siblings do not inflate support.
@@ -182,8 +203,7 @@ column for compatibility; the app screens with it set to false.
 
 Comparable database scores retain their existing routing and evidence caveats,
 including for products without a training record. A mixture product is retained
-only when every entered PFAS has an admissible score. Exclusions identify each
-PFAS that would need an ML score for a product without a training record; no compound is omitted from aggregation. Related
+only when every entered PFAS has an admissible score; no compound is omitted from aggregation. Related
 records cannot override the ML gate or supply a ranking score.
 
 Version-4 bundles optionally carry `adsorbent_training_support.csv` and an
@@ -203,7 +223,7 @@ cover the new snapshot and support implementation.
 
 ## Evidence behind each recommendation
 
-The existing **Candidate details** view distinguishes comparable experimental
+The evidence dialog opened by selecting a row distinguishes comparable experimental
 evidence from related same-PFAS, same-product records. Comparable records retain
 the database-first ranking behavior. Related records fail at least one condition
 requirement or have an unreported condition; their values never supply a ranking
@@ -218,10 +238,9 @@ higher logKd. No general database browser, sidebar filters, or ranking columns
 are added. Mixture entries retain evidence separately for every PFAS.
 
 Schema-5 results add `database_evidence.related_evidence` and
-`identity_record_counts`; older results remain readable. Scenario JSON snapshots
-keep these diagnostics, while result CSVs add comparable/related counts, related
-study counts, and a condition summary. The full JSON stores bounded representative
-records rather than every related source row.
+`identity_record_counts`; older results remain readable. Run workbooks retain
+comparable/related counts, related study counts, a condition summary, and bounded
+representative records rather than every related source row.
 
 Logarithmic condition tolerances match a reported zero with a requested zero.
 Zero never matches a positive or unreported value; positive factor-of-two
@@ -247,14 +266,13 @@ ions; an unchecked box cannot erase an ion supplied by a listed salt. Mass
 units require a known molar mass. The estimate covers only listed additives,
 so unreported background salts are excluded. An entered ionic-strength value
 takes precedence, with a visible warning when the additive-derived value
-disagrees. The live preview, JSON result, and results CSV expose the chemistry
-used. Database comparisons also check derived ionic strength and inferred ions.
+disagrees. The live preview and run workbook expose the chemistry used. Database
+comparisons also check derived ionic strength and inferred ions.
 
 Background salts in unspecified or ultrapure water are normalized as **synthetic
 water**, following the database convention. Other selected matrices, such as
 groundwater, remain selected. Without additives, the ultrapure default remains.
-Structured entries and their units persist through reruns, scenario reloads,
-and CSV/JSON exports.
+Structured entries and their units persist through reruns and workbook reloads.
 
 ## Water-matrix support warnings
 
@@ -269,7 +287,7 @@ model rows, distinct source records, the largest study ID, the number of studies
 reporting another matrix, and concentration in the largest study. Overlap at
 study level does not establish a controlled comparison. Comparable database
 scores retain their own evidence-specific caveats; the new warning accompanies
-model components in mixtures, saved scenarios, comparison notes, CSVs, and JSON.
+model components in mixtures, saved runs, comparison notes, and workbooks.
 
 `water_support.py` exports `water_training_support.json` from actual fitted
 records. It counts source records by dataset and source ID, excludes held-out
@@ -298,70 +316,41 @@ Missing carbon remains missing when an organic addition is reported.
 
 Marked presence is required in comparable database evidence, consistently
 with checked ion indicators. An unchecked control imposes no positive-presence
-requirement. The flag persists in saved scenarios, input/output CSVs, and
-JSON. Scenario snapshots use version 3 for this input format.
+requirement. The flag persists in saved runs and workbook inputs.
 
-## Save, reload, and compare scenarios
+## Download, reload, and compare runs
 
-Open **Save in this session** beside the result actions (also available before
-screening), give the current inputs a name, and select **Save run**. The snapshot
-contains every PFAS, submitted concentration/unit, resolved structure and
-identity provenance, water chemistry, ion selections, and the model/data bundle
-fingerprint. A completed result is included only when it matches the current
-inputs; edited inputs are saved without the older result. Full rankings,
-database evidence, support diagnostics, and caveats travel with saved results.
+After screening, **Download run (.xlsx)** creates one durable workbook instead
+of separate input and result files. Its sheets contain a summary, the complete
+ranked adsorbent table, one row per adsorbent–PFAS pair with evidence and
+caveats, and reloadable inputs with original concentration units, structures,
+temperature, water chemistry, additives, and ion selections.
 
-The library is under **Saved runs and comparison**, below the results, and
-belongs to the current browser session. CSV is the normal
-user-facing input/output format:
+Use **Keep for comparison** beside the displayed results to name a completed
+run. Kept runs belong to the current browser session and appear in the compact
+**Saved runs** control above the inputs only after at least one exists. A kept
+run can be reopened, downloaded as the same workbook, or removed. There are at
+most 12 runs and 60 MB of saved records per session; duplicate names receive a
+suffix and existing runs are never silently overwritten.
 
-- **Download inputs for later** preserves the current complete mixture, structures, original
-  concentration units, temperature, water chemistry, and ion selections for
-  reloading. Use `row_type=pfas` for a PFAS row or
-  `row_type=inorganic_additive` for an additive row. Keep `identity_type` beside
-  `pfas`; additive rows use `inorganic_species` and leave PFAS identity columns
-  blank. Both use separate `concentration` and `unit` columns. Repeat shared
-  water settings on every row. Blank numeric cells mean unknown; ion columns
-  and `organic_matter_present` accept true/false, yes/no, or 1/0. Different water settings within one
-  file are rejected. Files are bounded to 100 PFAS, 50 additives, and 1 MB.
-- **Import inputs → Complete scenario → Reload scenario inputs CSV** previews the submitted identities and
-  structures. Review them, check the confirmation box, and select **Load
-  scenario inputs**. Re-screen to obtain results from the currently loaded
-  model and data. The existing mixture is replaced only after validation.
-- **Export results** produces one row per adsorbent–PFAS pair, including
-  aggregate rank/limiting score, per-PFAS score, evidence source, training
-  membership, and caveats. **Download comparison CSV** exports the aligned
-  ranking table. These output tables are optional and do not reload settings.
+Use **Load a previous run** above the input cards to upload an exported `.xlsx`
+workbook. The app previews its PFAS and shared chemistry before replacing the
+editor. It restores inputs only and rechecks molecular identities against the
+currently loaded bundle; historical scores remain reference information inside
+the workbook. Screen again to generate current results. Invalid files leave the
+editor and saved-run library unchanged.
 
-Choose **Download example inputs CSV** for an illustrative groundwater
-scenario with two PFAS, 1 mM NaCl, and 2 mM CaCl2, also available in
-`examples/scenario_inputs_example.csv`. The simpler
-mixture CSV remains available for importing only PFAS and concentrations.
+PFAS-only CSV import remains next to the PFAS editor under **Add PFAS from CSV**.
+It appends PFAS identities and concentrations without replacing water settings.
+The example file is `examples/pfas_mixture_example.csv`.
 
-Under **Advanced: full JSON snapshots**, download or reload a complete archive
-of exact historical results, evidence, identity-resolution provenance, and
-inputs. Existing complete recommendation JSON exports are also accepted here.
-This JSON is optional; an inputs CSV is sufficient to restore settings for a
-fresh run. JSON files are bounded to 20 MB and never deserialized as executable
-Python objects. Invalid files leave the editor and saved scenarios unchanged.
-There are at most 12 snapshots and 60 MB of saved files per session; duplicate
-names receive a suffix, and existing snapshots are never silently overwritten.
-
-**Load inputs** replaces the mixture and water fields, clears the current
-result, and rechecks molecular identities against the loaded bundle. Run
-screening again to generate a current result. Saved results remain historical
-snapshots in the library. An unresolved identity stays visible and prevents
-complete mixture screening. Saved structures take precedence over unverified
-names or display labels; only current curated structure matches supply database
-identities.
-
-Under **Compare scenarios**, select two to four snapshots containing completed
-results and choose a reference scenario. The input table includes all entered
-water chemistry and original concentration units. The ranking table joins on
-`Product_key`, retains each run's rank, limiting logKd, evidence source, limiting
-PFAS, and candidate caveats, and leaves unavailable scores empty. Download the
-comparison as CSV. PFAS support and scenario caveats remain inspectable below
-the comparison.
+After keeping two completed runs, choose **Compare two runs** in **Saved runs**.
+Comparison opens as a dedicated view with an input table followed by one aligned
+ranking table. Columns are paired by measure—Run A rank, Run B rank, Run A
+logKd, Run B logKd, then B − A—before the paired evidence basis and limiting
+PFAS columns. Rows join on `Product_key`; products absent from one saved ranking
+remain visible with blank scores. The comparison downloads as a separate `.xlsx`
+workbook. Full PFAS support and caveats remain inspectable below the table.
 
 Score differences are shown only when the bundle fingerprints and normalized
 PFAS structural identities match. Different mixtures or bundles can still be
@@ -380,7 +369,7 @@ rescales its displayed number and preserves the physical concentration. The
 service still uses `initial_concentration_mg_l`; scenario exports retain the
 entered value and unit under `concentration_input`.
 
-Open **Import inputs → PFAS only** and choose **Download example CSV** for
+Open **Add PFAS from CSV** in the Target PFAS card and choose **Download example CSV** for
 a working four-compound example. The same file is in
 `examples/pfas_mixture_example.csv`:
 
@@ -475,6 +464,14 @@ versions. Missing references, unsupported inputs, or failed parity leave
 generation disabled while cached screening remains available. A runtime
 version mismatch also disables generation; repackage and revalidate before
 using a different RDKit version.
+
+The bundled `pfas_features.xlsx` keeps only the rows of PFAS in the fitted
+records, plus the generation audit; the manifest's `pfas_features` section
+records `source_rows`, `rows` and the source checksum. An older bundle that
+carries the whole shared workbook is trimmed in place, from its own snapshot
+so the fitted values are kept, with
+`python -m adsorbent_recommender.bundle <bundle-dir> --refresh-pfas-features`
+(run from `scripts`), which also repeats the descriptor parity check.
 
 Run tests from the repository root:
 

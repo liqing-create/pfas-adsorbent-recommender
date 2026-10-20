@@ -1,0 +1,17 @@
+{
+  "bundle": "Global_xgb_combination_42_20261015_073742",
+  "single_prediction_rmse": 0.42293743020467,
+  "difference_rmse": 0.5131290809358034,
+  "adsorbent_pairs": 693,
+  "grouping": [
+    "study_no",
+    "PFAS_name",
+    "Water_type",
+    "PFAS_C0_value_mg/L",
+    "Adsorbent_dosage_value_mg/L",
+    "pH",
+    "validation fold"
+  ],
+  "validation_rows": 3448,
+  "basis": "cross-validated RMSE of predicted logKd differences between adsorbents tested under the same conditions (combination-grouped inner validation of the deployed configuration)"
+}

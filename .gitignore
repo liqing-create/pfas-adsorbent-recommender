@@ -102,33 +102,27 @@
 !/scripts/DB/pfas_map.csv
 !/scripts/DB/water_type_map.csv
 
-# The deployed model bundle and supporting PFAS validation summaries
+# The deployed model bundle
 !/output/
 /output/*
 !/output/ML_logKd/
 /output/ML_logKd/*
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/
-/output/ML_logKd/Global_xgb_combination_42_20261014_184656/*
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/recommender_bundle.json
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/run_config.json
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/optimizer_bounds.json
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/model_ensemble.joblib
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/catalog_snapshot.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/catalog_eligibility.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/catalog_product_model_identity_map.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_features.xlsx
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/reference_dose_evidence.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/training_support.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/adsorbent_training_support.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/water_training_support.json
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_training_reference.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/
-/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/*
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/audit_summary.json
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/chemical_separation.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/heldout_performance.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/per_compound_errors.csv
-!/output/ML_logKd/Global_xgb_combination_42_20261014_184656/pfas_validation/acceptance.json
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/
+/output/ML_logKd/Global_xgb_combination_42_20261015_073742/*
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/recommender_bundle.json
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/run_config.json
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/optimizer_bounds.json
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/model_ensemble.joblib
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/catalog_snapshot.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/catalog_eligibility.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/catalog_product_model_identity_map.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/pfas_features.xlsx
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/reference_dose_evidence.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/training_support.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/adsorbent_training_support.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/water_training_support.json
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/pfas_training_reference.csv
+!/output/ML_logKd/Global_xgb_combination_42_20261015_073742/leading_group_margin.json
 
 # Analysis code for the manuscript (literature-to-model workflow).
 # Top-level project files

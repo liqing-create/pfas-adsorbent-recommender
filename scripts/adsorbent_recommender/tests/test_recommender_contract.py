@@ -38,6 +38,7 @@ from adsorbent_recommender.bundle import (
     export_recommender_bundle,
     load_bundle_manifest,
     make_bundle_self_contained,
+    _snapshot_pfas_features,
 )
 
 
@@ -283,6 +284,25 @@ class RecommenderContractTests(unittest.TestCase):
             copied.unlink()
             with self.assertRaisesRegex(FileNotFoundError, "pfas_features"):
                 load_bundle_manifest(output)
+
+    def test_bundled_pfas_cache_keeps_only_the_training_pfas(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "pfas_features.xlsx"
+            with pd.ExcelWriter(source) as writer:
+                pd.DataFrame([
+                    {"Canonical SMILES": "OC(=O)C(F)(F)F", "Abbreviation": "TFA", "Compound Full Name": "Trifluoroacetic acid"},
+                    {"Canonical SMILES": "FC(F)=C(F)F", "Abbreviation": None, "Compound Full Name": "Tetrafluoroethylene"},
+                ]).to_excel(writer, sheet_name="Sheet1", index=False)
+                pd.DataFrame([{"field": "created_at", "value": "2026-08-20"}]).to_excel(writer, sheet_name="generation_audit", index=False)
+            records = pd.DataFrame({"PFAS_name": ["Trifluoroacetic acid", "TFA"]})
+            output = Path(temp) / "bundle"
+            output.mkdir()
+            details = _snapshot_pfas_features(output, source, "Sheet1", records)
+            sheets = pd.read_excel(output / "pfas_features.xlsx", sheet_name=None)
+            self.assertEqual(list(sheets), ["Sheet1", "generation_audit"])
+            self.assertEqual(sheets["Sheet1"]["Abbreviation"].tolist(), ["TFA"])
+            self.assertEqual((details["source_rows"], details["rows"]), (2, 1))
+            self.assertEqual(len(pd.read_excel(source)), 2)  # the shared workbook is untouched
 
     def test_bundle_exported_without_a_copy_can_be_made_self_contained(self):
         with tempfile.TemporaryDirectory() as temp:

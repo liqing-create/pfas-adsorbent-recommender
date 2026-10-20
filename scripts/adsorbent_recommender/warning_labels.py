@@ -27,8 +27,6 @@ LABELS = {
     "database_near_dose": ("Near dose", "The database score uses 20–30 mg/L observations rather than exactly 25 mg/L."),
     "unseen_material": ("New adsorbent", "The model was not trained on this adsorbent."),
     "exploratory_adsorbent": ("Not in training", "The model score uses an adsorbent with no record in the training data."),
-    "thin_adsorbent_support": ("Thinly supported", "The adsorbent is in the training data but below two DOI-identified studies or five source records; products meeting both are moderately supported."),
-    "study_dominated_adsorbent": ("Study skew", "At least 80% of this adsorbent's source records come from one study, despite having multiple studies."),
     "property_out_of_range": ("Property range", "An adsorbent property lies outside the model's training range."),
     "property_unseen_category": ("New property", "An adsorbent property category was not represented in model training."),
     "extreme_logkd": ("Extreme logKd", "The predicted logKd is outside the model's better-supported 0–4 range."),

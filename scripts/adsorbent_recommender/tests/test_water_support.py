@@ -18,7 +18,7 @@ from adsorbent_recommender.tests.test_material_support import inference, scenari
 ROOT = Path(__file__).resolve().parents[3]
 DIRECTORY = ROOT / "output/ML_logKd/Global_xgb_combination_42_20261015_073742"
 if not DIRECTORY.is_dir():
-    DIRECTORY = ROOT / "output/ML_logKd/Global_xgb_combination_42_20261014_184656"
+    DIRECTORY = ROOT / "output/ML_logKd/Global_xgb_combination_42_20261015_073742"
 
 
 @pytest.fixture(scope="module")

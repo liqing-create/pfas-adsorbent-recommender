@@ -33,7 +33,7 @@ from adsorbent_recommender.evidence import (
 )
 
 
-from adsorbent_recommender.pfas_support import export_runtime_support
+from adsorbent_recommender.pfas_support import export_runtime_support, trained_cache_rows
 from adsorbent_recommender.pfas_descriptors import DESCRIPTOR_VERSION
 from rdkit import rdBase
 
@@ -177,12 +177,20 @@ def _relative_artifact(filename: str) -> str:
     return filename
 
 
-def _snapshot_pfas_features(output_dir: Path, source: Path | None, sheet_name: str) -> dict[str, Any]:
+def _snapshot_pfas_features(
+    output_dir: Path, source: Path | None, sheet_name: str, training_records: pd.DataFrame | None = None,
+) -> dict[str, Any]:
     """Copy the PFAS feature cache the model was trained against into the bundle.
 
     Recommendation looks every PFAS up in this workbook at run time.  A bundle
     that only records where the workbook lived stops working wherever that path
     does not exist, which is everywhere except the training machine.
+
+    With training records, only the rows of PFAS the model was fitted on are
+    kept, together with the generation audit, so the bundled cache lists the
+    training PFAS and nothing else.  The shared source workbook also holds
+    database PFAS without eligible records and degradation products; those
+    reach the app through structure review and live descriptors instead.
     """
     details: dict[str, Any] = {
         "available": False,
@@ -193,7 +201,18 @@ def _snapshot_pfas_features(output_dir: Path, source: Path | None, sheet_name: s
         details["reason"] = "no PFAS feature workbook was joined" if source is None else "PFAS feature workbook not found"
         return details
     target = output_dir / PFAS_FEATURES_SNAPSHOT_FILENAME
-    if Path(source).resolve() != target.resolve():
+    if training_records is not None and not training_records.empty and "PFAS_name" in training_records:
+        details["source_sha256"] = hashlib.sha256(Path(source).read_bytes()).hexdigest()
+        sheets = pd.read_excel(source, sheet_name=None)
+        frame = sheets[sheet_name]
+        kept = frame[trained_cache_rows(frame, training_records)]
+        # Read fully before writing, since the source may be this snapshot.
+        with pd.ExcelWriter(target, engine="openpyxl") as writer:
+            kept.to_excel(writer, sheet_name=sheet_name, index=False)
+            if "generation_audit" in sheets:
+                sheets["generation_audit"].to_excel(writer, sheet_name="generation_audit", index=False)
+        details.update({"row_filter": "training_pfas", "source_rows": len(frame), "rows": len(kept)})
+    elif Path(source).resolve() != target.resolve():
         shutil.copy2(source, target)
     details.update({
         "available": True,
@@ -374,7 +393,7 @@ def export_recommender_bundle(
             catalog_details["error"] = catalog_error
 
     evidence_details = _snapshot_evidence(output_dir, evidence_path or DEFAULT_EVIDENCE_PATH, evidence_sheet)
-    pfas_details = _snapshot_pfas_features(output_dir, pfas_features_path, pfas_features_sheet)
+    pfas_details = _snapshot_pfas_features(output_dir, pfas_features_path, pfas_features_sheet, training_records)
     training_details = _snapshot_training_support(output_dir, training_records)
     material_support = _snapshot_material_support(output_dir, training_records)
     water_support = export_water_support(output_dir, training_records)
@@ -454,6 +473,7 @@ def make_bundle_self_contained(
     evidence_path: Path | None = None,
     evidence_sheet: str = DEFAULT_EVIDENCE_SHEET,
     refresh_adsorbent_support: bool = False,
+    refresh_pfas_features: bool = False,
 ) -> dict[str, Any]:
     """Copy runtime data into a bundle exported before bundles carried it.
 
@@ -465,19 +485,29 @@ def make_bundle_self_contained(
     Sections already present are left alone, so running this twice changes
     nothing; ``refresh_adsorbent_support`` rebuilds the adsorbent training-support
     snapshot regardless, for example after its study bibliography was incomplete.
+    ``refresh_pfas_features`` trims the PFAS feature cache to the training PFAS,
+    starting from the bundle's own snapshot so the fitted values are kept.
     """
     bundle_dir = Path(bundle_dir)
     manifest = load_bundle_manifest(bundle_dir)
     retrofitted = []
-    if not manifest.get("pfas_features", {}).get("available"):
+    predictions_path = bundle_dir / TRAINING_PREDICTIONS_FILENAME
+    pfas_info = manifest.get("pfas_features", {})
+    if refresh_pfas_features or not pfas_info.get("available"):
         run_config = json.loads((bundle_dir / manifest["artifacts"]["run_config"]).read_text(encoding="utf-8"))
         trained = run_config.get("pfas_features", {})
-        source = pfas_features_path or trained.get("path")
+        bundled = bundle_dir / PFAS_FEATURES_SNAPSHOT_FILENAME if pfas_info.get("available") else None
+        source = pfas_features_path or bundled or trained.get("path")
+        records = pd.read_csv(predictions_path, low_memory=False) if predictions_path.is_file() else None
         manifest["pfas_features"] = _snapshot_pfas_features(
             bundle_dir,
             Path(source) if source else None,
-            trained.get("sheet_name") or cfg.DEFAULT_PFAS_FEATURES_SHEET,
+            pfas_info.get("sheet_name") or trained.get("sheet_name") or cfg.DEFAULT_PFAS_FEATURES_SHEET,
+            records,
         )
+        if bundled is not None and pfas_info.get("source_path"):
+            # Trimming in place keeps the provenance of the original copy.
+            manifest["pfas_features"]["source_path"] = pfas_info["source_path"]
         retrofitted.append("pfas_features")
     if not manifest.get("database_evidence", {}).get("snapshot_filename"):
         evidence_details = _snapshot_evidence(
@@ -489,7 +519,6 @@ def make_bundle_self_contained(
         manifest.setdefault("capabilities", {})["database_evidence_lookup"] = bool(
             manifest["database_evidence"].get("available")
         )
-    predictions_path = bundle_dir / TRAINING_PREDICTIONS_FILENAME
     if not manifest.get("water_support", {}).get("available") and predictions_path.is_file():
         manifest["water_support"] = export_water_support(bundle_dir, pd.read_csv(predictions_path, low_memory=False))
         if manifest["water_support"].get("available"):
@@ -511,6 +540,7 @@ def make_bundle_self_contained(
         or previous_runtime.get("descriptor_version") != DESCRIPTOR_VERSION
         or previous_runtime.get("rdkit_version") != rdBase.rdkitVersion
         or "descriptor_parity" not in previous_runtime
+        or "pfas_features" in retrofitted
     )
     if runtime_needs_refresh and predictions_path.is_file():
         runtime = export_runtime_support(bundle_dir, manifest, pd.read_csv(predictions_path, low_memory=False))
@@ -539,10 +569,13 @@ if __name__ == "__main__":
     parser.add_argument("--evidence-path", type=Path, help=f"defaults to {DEFAULT_EVIDENCE_PATH}")
     parser.add_argument("--refresh-adsorbent-support", action="store_true",
                         help="rebuild the adsorbent training-support snapshot even if the bundle already has one")
+    parser.add_argument("--refresh-pfas-features", action="store_true",
+                        help="trim the bundled PFAS feature cache to the PFAS the model was trained on")
     arguments = parser.parse_args()
     result = make_bundle_self_contained(
         arguments.bundle_dir, arguments.pfas_features_path, arguments.evidence_path,
         refresh_adsorbent_support=arguments.refresh_adsorbent_support,
+        refresh_pfas_features=arguments.refresh_pfas_features,
     )
     print(json.dumps({
         section: {key: result.get(section, {}).get(key) for key in ("available", "snapshot_filename", "reason")}

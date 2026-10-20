@@ -12,7 +12,7 @@ NOVEL = "O=C(O)" + "C(F)(F)" * 24 + "F"
 
 @pytest.fixture
 def app():
-    if not (ROOT / "output/ML_logKd/Global_xgb_combination_42_20261014_184656/model_ensemble.joblib").is_file():
+    if not (ROOT / "output/ML_logKd/Global_xgb_combination_42_20261015_073742/model_ensemble.joblib").is_file():
         pytest.skip("The deployment bundle is unavailable")
     app = AppTest.from_file(str(APP), default_timeout=60).run()
     assert not app.exception
@@ -78,11 +78,22 @@ def test_generated_structure_can_be_screened_and_its_support_is_visible(app):
     app.button(key="ar_screen").click().run(timeout=90)
     assert not app.exception
     assert app.session_state["ar_result"]["status"] == "recommendations_ready"
-    assert any("Exploratory prediction" in warning.value for warning in app.warning)
-    tables = [element.value for element in app.dataframe]
-    support = next(frame for frame in tables if "Model training" in frame)
-    assert support.iloc[0]["Features"] == "Computed at runtime"
-    assert support.iloc[0]["Model training"] == "Unseen · exploratory"
+    lookup = app.session_state["ar_result"]["pfas_lookups"][0]
+    assert lookup["feature_source"] == "computed_at_runtime"
+    assert lookup["support"]["seen_in_training"] is False
+    # One warning, shown because this PFAS is outside the training data, names its
+    # structurally closest training PFAS; there is no collapsed support panel.
+    unseen = [warning.value for warning in app.warning if "not in the model's training data" in warning.value]
+    assert len(unseen) == 1
+    nearest = lookup["support"]["nearest_training_pfas"]
+    assert nearest and all(row["label"] in unseen[0] for row in nearest)
+    assert f"({nearest[0]['tanimoto_similarity']:.2f})" in unseen[0]
+    # Descriptors outside the training range are said in the same warning, not in a second box.
+    for row in lookup["support"]["out_of_range_descriptors"]:
+        assert row["feature"] in unseen[0]
+        assert not any(row["feature"] in warning.value for warning in app.warning if warning.value != unseen[0])
+    assert not any(expander.label == "Model support and scoring details" for expander in app.expander)
+    assert not any("Model training" in element.value for element in app.dataframe)
 
 def test_public_lookup_failure_retains_the_mixture_and_offers_smiles(app):
     custom(app, NOVEL, "smiles")

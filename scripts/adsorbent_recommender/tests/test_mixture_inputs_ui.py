@@ -12,7 +12,7 @@ APP = ROOT / "scripts/adsorbent_recommender/app.py"
 
 @pytest.fixture
 def app():
-    if not (ROOT / "output/ML_logKd/Global_xgb_combination_42_20261014_184656/model_ensemble.joblib").exists():
+    if not (ROOT / "output/ML_logKd/Global_xgb_combination_42_20261015_073742/model_ensemble.joblib").exists():
         pytest.skip("Deployed model bundle is unavailable")
     return AppTest.from_file(str(APP), default_timeout=60)
 

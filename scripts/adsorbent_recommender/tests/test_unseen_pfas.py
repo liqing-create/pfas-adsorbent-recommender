@@ -20,8 +20,9 @@ from adsorbent_recommender.pfas_support import UNSEEN_WARNING
 from adsorbent_recommender.service import load_recommender_bundle, recommend, recommend_mixture, resolve_pfas
 from adsorbent_recommender.bundle import make_bundle_self_contained
 
-BUNDLE_DIR = ROOT / "output/ML_logKd/Global_xgb_combination_42_20261014_184656"
+BUNDLE_DIR = ROOT / "output/ML_logKd/Global_xgb_combination_42_20261015_073742"
 NOVEL = "O=C(O)" + "C(F)(F)" * 24 + "F"
+PFDOA = "O=C(O)" + "C(F)(F)" * 11 + "F"  # in the database, but with no eligible training record
 
 @pytest.fixture(scope="module")
 def bundle():
@@ -109,11 +110,19 @@ def test_confirmed_structure_is_required_by_service(bundle):
     with pytest.raises(ValueError, match="Confirm"):
         resolve_pfas(bundle, scenario("X", "name", confirmed_smiles=NOVEL))
 
-def test_cached_unseen_and_generated_pfas_have_training_diagnostics(bundle):
+def test_bundled_cache_holds_only_the_training_pfas(bundle):
+    cache = pd.read_excel(BUNDLE_DIR / "pfas_features.xlsx")
+    reference = pd.read_csv(BUNDLE_DIR / "pfas_training_reference.csv", keep_default_na=False)
+    structures = {prepare_structure(str(smiles))[1] for smiles in cache["Canonical SMILES"]}
+    assert structures == set(reference["canonical_smiles"])
+    assert bundle.manifest["pfas_features"]["rows"] == len(cache) == len(reference)
+    assert resolve_pfas(bundle, scenario("PFDoA"))[0].status == "identifier_not_found"
+
+def test_unseen_pfas_have_training_diagnostics(bundle):
     # Keep this assertion fast; the deployed full-catalog mixture is tested separately.
     small = load_recommender_bundle(BUNDLE_DIR)
     small.catalog = small.catalog[small.catalog.Product_key.isin(["FILTRASORB400", "PUROFINEPFA694E"])]
-    for entry in [scenario("PFDoA"), scenario(NOVEL, "smiles")]:
+    for entry in [scenario(PFDOA, "smiles"), scenario(NOVEL, "smiles")]:
         result = recommend(small, entry, top_k=2)
         assert result["status"] == "recommendations_ready"
         assert result["pfas_support"]["seen_in_training"] is False

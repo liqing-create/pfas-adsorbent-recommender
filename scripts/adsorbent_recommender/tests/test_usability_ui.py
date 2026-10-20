@@ -1,4 +1,6 @@
 """Regression checks for intentional inputs, readiness, and shortlist provenance."""
+import json
+
 import adsorbent_recommender.app as app_module
 
 from adsorbent_recommender.tests.test_scenarios_ui import app, add_pfoa, screen
@@ -14,7 +16,7 @@ def choose(app, abbreviation):
 def test_empty_mixture_requires_intentional_concentration(app):
     assert app.number_input(key="ar_pfas_add_c0_v2").value is None
     assert app.button(key="ar_screen").disabled
-    assert app.button(key="ar_save_scenario").disabled
+    assert not any(button.key == "ar_save_scenario" for button in app.button)
     choose(app, "PFOA")
     assert next(button for button in app.button if button.label == "Add PFAS").disabled
     app.selectbox(key="ar_pfas_add_unit_v1").select("ng/L").run()
@@ -27,6 +29,20 @@ def test_search_exposes_full_name_and_cas_once_per_compound(app):
     matches = [label for label in options if label.startswith("PFOA ·")]
     assert len(matches) == 1
     assert "Perfluorooctanoic acid" in matches[0] and "335-67-1" in matches[0]
+
+
+def test_dropdown_lists_training_pfas_and_other_entries_take_structure_review(app):
+    # 3-6-OPFHpA is in the shared feature workbook but not in the training data,
+    # so the bundled cache no longer carries it.
+    options = app.selectbox(key="ar_pfas_search_v2").options
+    assert len(options) == 128
+    assert not any(label.startswith("3-6-OPFHpA ·") for label in options)
+    search = app.selectbox(key="ar_pfas_search_v2")
+    search.options.append("151772-58-6")
+    search.select("151772-58-6").run()
+    assert not app.exception
+    assert app.session_state["ar_pfas_search_v2"] == "151772-58-6"
+    assert any("Resolve the identifier with PubChem" in caption.value for caption in app.caption)
 
 
 def test_adding_a_second_pfas_keeps_unit_but_requires_a_new_value(app):
@@ -55,7 +71,7 @@ def test_unresolved_entry_blocks_screening_and_saving_until_removed(app):
     app.session_state["ar_pfas_entries_v2"] = rows
     app.run()
     assert app.button(key="ar_screen").disabled
-    assert app.button(key="ar_save_scenario").disabled
+    assert not any(button.key == "ar_save_scenario" for button in app.button)
     assert any("Resolve the identity" in error.value for error in app.error)
     app.button(key="ar_remove_pfas_1").click().run()
     assert not app.exception and not app.session_state["ar_pfas_entries_v2"]
@@ -122,17 +138,35 @@ def test_compact_shortlist_preserves_scores_basis_and_critical_flags(app):
     assert sum(len(section["rows"]) for section in sections) == len(items)
     assert [row["rank"] for section in sections for row in section["rows"]] == [item["rank"] for item in items]
     assert {row["family"] for section in sections for row in section["rows"]} <= {"AC", "Resin", "CDP", "Other"}
-    assert {row["support"] for section in sections for row in section["rows"]} <= {"moderate", "thin"}
+    # Counts describe the adsorbent with any PFAS; there is no support class.
+    assert all("support" not in row for section in sections for row in section["rows"])
+    assert [(row["studies"], row["records"]) for section in sections for row in section["rows"]] == [
+        (item["adsorbent_support"]["independent_studies"], item["adsorbent_support"]["source_records"]) for item in items]
     assert score_label == "log Kd" and not is_mixture
-    assert any("Overall rank" in table.value for table in app.dataframe)
-    assert any(expander.label == "Complete ranking table" for expander in app.expander)
-    assert any(expander.label == "Model support and scoring details" for expander in app.expander)
-    assert any(button.label == "Export results" for button in app.get("download_button"))
+    assert not any(expander.label == "Complete ranking table" for expander in app.expander)
+    # PFOA is in the training data: no support panel and no unseen-PFAS warning.
+    assert not any(expander.label == "Model support and scoring details" for expander in app.expander)
+    assert not any("not in the model's training data" in warning.value for warning in app.warning)
+    assert any(block.proto.popover.label == "Keep for comparison" for block in app.get("popover"))
+    assert "Download run (.xlsx)" in {button.label for button in app.get("download_button")}
+    assert not any("JSON" in button.label for button in app.get("download_button"))
+    assert not any("View results" in str(element.value) for element in app.markdown)
+    assert any(
+        "Select any adsorbent row" in str(element.value)
+        for element in app.markdown
+    )
+    ranking = next(
+        json.loads(element.proto.json)
+        for element in app.get("bidi_component")
+        if element.proto.component_name == "adsorbent_recommender_ranking_table"
+    )
+    assert ranking["openSections"] == {"top": True, "remaining": False}
 
 
 def test_edited_inputs_label_historical_export_and_stay_saveable(app):
     add_pfoa(app)
     screen(app)
     app.text_input(key="ph").set_value("8").run()
+    app.text_input(key="ar_scenario_name").set_value("Displayed run").run()
     assert not app.button(key="ar_save_scenario").disabled
-    assert any(button.label == "Export displayed results" for button in app.get("download_button"))
+    assert any(button.label == "Download run (.xlsx)" for button in app.get("download_button"))

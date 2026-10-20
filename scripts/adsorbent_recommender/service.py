@@ -750,18 +750,11 @@ def _candidate_caveats(
             "Exploratory ML prediction: " + " ".join(material_support.get("reasons", []))
             + " Experimental validation is needed before selecting this product.",
         ))
-    if (material_support.get("identity_verified") and not material_support.get("meets_default_ml_policy")
-            and not material_support.get("exploratory_prediction")):
-        caveats.append(_caveat(
-            "thin_adsorbent_support", "info", "Thinly supported in training data",
-            "Ranked on limited training evidence: " + " ".join(material_support.get("reasons", [])),
-        ))
-    dominant = material_support.get("largest_study_source_fraction")
-    if dominant is not None and dominant >= .8 and (material_support.get("independent_studies") or 0) >= 2:
-        caveats.append(_caveat(
-            "study_dominated_adsorbent", "info", "Training evidence concentrated",
-            f"{dominant:.0%} of this product's distinct source records come from one study; multiple study IDs do not ensure balanced support.",
-        ))
+    # How many studies or records a ranked product has is not a caveat: tier
+    # placement was about as reliable for products with few studies or records
+    # as for well-represented ones (by_support in tier_hidden_pairing_summary.json), because the model
+    # predicts from adsorbent properties, not product identity. The counts are
+    # reported as context instead.
     for issue in catalog_issues:
         caveats.append(_caveat(
             "property_out_of_range" if issue["kind"] == "range" else "property_unseen_category",

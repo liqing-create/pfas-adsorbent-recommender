@@ -68,12 +68,12 @@ from adsorbent_recommender.mixture_inputs import (
     from_mg_l, normalize_unit, prepare_csv_import, read_mixture_csv, to_mg_l,
 )
 from adsorbent_recommender.scenarios import (
-    SCENARIO_EXAMPLE_PATH, ScenarioError, add_snapshot, bundle_reference, compare_snapshots, comparison_csv,
-    make_snapshot, read_scenario_csv, read_snapshot, results_csv, scenario_inputs_csv,
-    snapshot_bytes, validate_inputs, recommendation_bytes, validate_result_structure,
+    WORKBOOK_MIME, ScenarioError, add_snapshot, bundle_reference, compare_snapshots,
+    comparison_workbook, make_snapshot, read_run_workbook, run_workbook,
+    validate_inputs, validate_result_structure, public_result,
 )
 from adsorbent_recommender.warning_labels import (
-    SEVERITIES, column_options as warning_column_options, legend_labels, warning_labels, warning_values,
+    SEVERITIES, column_options as warning_column_options, warning_labels, warning_values,
 )
 from adsorbent_recommender.ranking_table import render_ranking_table
 from rdkit import Chem
@@ -86,13 +86,16 @@ from normalization_rules import WATER_TYPE_CLASSES  # noqa: E402
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-# The bundle directory may be set explicitly here, through the
-# ADSORBENT_BUNDLE_DIR environment variable, or left to resolve to the most
-# recently written bundle under the output root.  A hardcoded path silently
-# goes stale whenever a model is rebuilt, and the resulting failure looks like
-# a broken application rather than the missing setting it actually is.
-MODEL_BUNDLE_DIR: Path | None = None
+# The deployed bundle is pinned by name, so the local app and the cloud app load
+# the same model whatever the file dates in a checkout: the newest-bundle
+# fallback picked a different bundle locally than the one the repository
+# tracks.  The ADSORBENT_BUNDLE_DIR environment variable overrides the pin for
+# a one-off analysis.  When a new bundle is deployed, change the name here and
+# the .gitignore allow-list together; a pinned folder that is missing stops the
+# app with "Model bundle is not ready" rather than loading another bundle.
 BUNDLE_SEARCH_ROOT = SCRIPTS_DIR.parent / "output" / "ML_logKd"
+DEPLOYED_BUNDLE_NAME = "Global_xgb_combination_42_20261015_073742"
+MODEL_BUNDLE_DIR: Path | None = BUNDLE_SEARCH_ROOT / DEPLOYED_BUNDLE_NAME
 
 
 def _discover_bundles(root: Path) -> list[Path]:
@@ -122,9 +125,9 @@ def _resolve_bundle_dir() -> Path | None:
     Which bundle is loaded is a deployment setting, not a question the user
     answers per screening, so it is never offered in the UI.  The loaded bundle
     still travels with every result: ``recommend`` records its directory, model
-    family and target under ``bundle`` in the downloaded JSON.
+    family and target in the downloaded run workbook.
     """
-    configured = MODEL_BUNDLE_DIR or os.environ.get("ADSORBENT_BUNDLE_DIR")
+    configured = os.environ.get("ADSORBENT_BUNDLE_DIR") or MODEL_BUNDLE_DIR
     if configured:
         return Path(configured)
     available = _discover_bundles(BUNDLE_SEARCH_ROOT)
@@ -250,6 +253,11 @@ UI_STYLES = """
     text-transform: uppercase;
     color: var(--ar-muted);
 }
+/* Title of the selected row's evidence panel: the product, its score and basis. */
+.ar-detail-title {
+    font-size: 1.02rem;
+    font-weight: 650;
+}
 [class*="st-key-ar-ions"] {
     background: var(--ar-surface);
     border-color: var(--ar-hairline) !important;
@@ -296,25 +304,6 @@ UI_STYLES = """
 .ar-required b { color: var(--ar-accent); }
 
 /* ---- Results ---------------------------------------------------------- */
-.ar-scenario {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 0.15rem;
-}
-.ar-chip {
-    border: 1px solid var(--ar-hairline);
-    border-radius: 999px;
-    background: var(--ar-surface);
-    padding: 0.25rem 0.75rem;
-    font-size: 0.92rem;
-    color: var(--ar-muted);
-}
-.ar-chip b {
-    font-weight: 600;
-    color: inherit;
-    filter: none;
-}
 .ar-legend {
     display: flex;
     flex-wrap: wrap;
@@ -350,29 +339,6 @@ UI_STYLES = """
     border-radius: 4px;
     border: 1px solid var(--ar-hairline);
 }
-.ar-headline {
-    border: 1px solid var(--ar-line);
-    border-left: 3px solid var(--ar-accent);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--ar-accent) 7%, transparent);
-    padding: 0.95rem 1.15rem;
-    font-size: 1.05rem;
-    line-height: 1.55;
-}
-.ar-empty {
-    border: 1px dashed var(--ar-line);
-    border-radius: 14px;
-    padding: 2.4rem 1.5rem;
-    text-align: center;
-    color: var(--ar-muted);
-}
-.ar-empty-title {
-    font-size: 1.15rem;
-    font-weight: 650;
-    color: inherit;
-}
-.ar-empty p { margin: 0.35rem 0 0; font-size: 1rem; }
-
 /* Streamlit truncates a metric label and value to one line each, which turns
    four summary cards into "Recomm...", "Databas..." the moment the row gets
    narrow.  A summary the reader cannot read is worse than a taller card. */
@@ -437,28 +403,18 @@ def _hero(title: str, eyebrow: str, subtitle: str) -> None:
     )
 
 
-def _section(step: int, title: str, hint: str) -> None:
+def _section(step: int, title: str, hint: str = "") -> None:
+    hint_html = f"<div class='ar-section-hint'>{hint}</div>" if hint else ""
     st.html(
         f"<div class='ar-section'>"
         f"<span class='ar-step'>{step}</span>"
-        f"<div><div class='ar-section-title'>{title}</div>"
-        f"<div class='ar-section-hint'>{hint}</div></div>"
+        f"<div><div class='ar-section-title'>{title}</div>{hint_html}</div>"
         f"</div>"
     )
 
 
 def _subhead(text: str) -> None:
     st.html(f"<div class='ar-subhead'>{text}</div>")
-
-
-def _chips(pairs: list[tuple[str, Any]]) -> None:
-    chips = "".join(
-        f"<span class='ar-chip'><b>{escape(str(label))}</b> {escape(str(value))}</span>"
-        for label, value in pairs
-        if value not in (None, "")
-    )
-    if chips:
-        st.html(f"<div class='ar-scenario'>{chips}</div>")
 
 
 def _card(key: str, height: str = "content"):
@@ -523,9 +479,6 @@ IDENTITY_TYPES = {
 
 
 REQUIRED_MARK = " *"
-REQUIRED_NOTE = (
-    "Fields marked <b>*</b> are required. Input defaults and screening assumptions are documented in the README."
-)
 # Product names identify materials as reported in the source literature; the
 # notice keeps that use from reading as endorsement or a performance claim.
 PRODUCT_NAME_DISCLAIMER = (
@@ -541,6 +494,7 @@ PFAS_NEXT_ID_KEY = "ar_pfas_next_id_v2"
 PFAS_SEARCH_KEY = "ar_pfas_search_v2"
 PFAS_ADD_C0_KEY = "ar_pfas_add_c0_v2"
 PFAS_ADD_UNIT_KEY = "ar_pfas_add_unit_v1"
+PFAS_EXTRA_CHOICES_KEY = "ar_pfas_extra_choices_v1"
 PfasChoice = tuple[str, str, str, str, str, str, str]
 
 
@@ -567,16 +521,38 @@ def _alias_key(value: str) -> str:
 
 
 @st.cache_data(show_spinner=False)
+def _training_pfas_keys(path: str, modified_ns: int) -> tuple[frozenset[str], frozenset[str]]:
+    """Structures and alias keys of the PFAS represented in the model's training records."""
+    del modified_ns  # Part of the cache key so a replaced reference is re-read.
+    reference = pd.read_csv(path, keep_default_na=False)
+    aliases: set[str] = set()
+    for value in reference.get("aliases", []):
+        try:
+            aliases.update(_alias_key(str(alias)) for alias in json.loads(value or "[]"))
+        except json.JSONDecodeError:
+            continue
+    return frozenset(reference["canonical_smiles"].astype(str)), frozenset(aliases - {""})
+
+
+@st.cache_data(show_spinner=False)
 def _load_pfas_choices(
     path: str, sheet_name: str, modified_ns: int,
+    reference_path: str = "", reference_modified_ns: int = 0,
 ) -> tuple[list[PfasChoice], dict[str, PfasChoice]]:
-    """Return one dropdown option per compound plus an index of its aliases.
+    """Return one dropdown option per training PFAS plus an index of cache aliases.
 
-    The dropdown lists each compound once and formats its abbreviation, full
-    name, and CAS together. The alias index also resolves a typed exact alias
-    or SMILES to the same cached compound.
+    The dropdown lists each PFAS represented in model training once and formats
+    its abbreviation, full name, and CAS together. The alias index lets a typed
+    name, CAS number, abbreviation or SMILES resolve to its reviewed entry.
+    Current bundles cache only the training PFAS, so any other compound takes
+    the structure-review path; an older bundle's extra cached compounds still
+    resolve but are not offered as choices. Without a training reference every
+    cached compound is listed.
     """
     del modified_ns  # Part of the cache key so a replaced workbook is re-read.
+    trained_structures, trained_aliases = (
+        _training_pfas_keys(reference_path, reference_modified_ns) if reference_path else (frozenset(), frozenset())
+    )
     frame = pd.read_excel(path, sheet_name=sheet_name)
     choices: list[PfasChoice] = []
     aliases: dict[str, PfasChoice] = {}
@@ -603,30 +579,61 @@ def _load_pfas_choices(
             identity_type, identity, identity,
             abbreviation, name, cas, cache_identity,
         )
-        choices.append(choice)
         for value in (abbreviation, name, cas):
             if value and _alias_key(value):
                 aliases.setdefault(_alias_key(value), choice)
         if smiles:
             aliases.setdefault(smiles, choice)
+        if reference_path:
+            # The reference stores structures in the curated protonation
+            # convention, so the cache SMILES is normalized the same way.
+            try:
+                structure = prepare_structure(smiles)[1] if smiles else ""
+            except ValueError:
+                structure = ""
+            if structure not in trained_structures and not any(
+                _alias_key(value) in trained_aliases for value in (abbreviation, name) if value
+            ):
+                continue
+        choices.append(choice)
     # Abbreviations first; compounds listed under a long systematic name follow,
     # rather than leading the list because their names start with locants.
     choices.sort(key=lambda choice: (choice[0] != "abbreviation", choice[2].casefold()))
     return choices, aliases
 
 
+def _training_reference_path(bundle: Any) -> Path | None:
+    filename = bundle.manifest.get("pfas_runtime", {}).get("snapshot_filename")
+    path = bundle.directory / filename if filename else None
+    return path if path is not None and path.is_file() else None
+
+
+def _training_structures(bundle: Any) -> frozenset[str] | None:
+    """Normalized structures of the training PFAS, or None without a reference."""
+    reference = _training_reference_path(bundle)
+    if reference is None:
+        return None
+    return _training_pfas_keys(str(reference), reference.stat().st_mtime_ns)[0]
+
+
 def _pfas_choices(bundle: Any) -> tuple[list[PfasChoice], dict[str, PfasChoice]]:
     path, sheet_name = pfas_features_source(bundle)
     if not path.is_file() or not sheet_name:
         return [], {}
-    return _load_pfas_choices(str(path), str(sheet_name), path.stat().st_mtime_ns)
+    reference = _training_reference_path(bundle)
+    return _load_pfas_choices(
+        str(path), str(sheet_name), path.stat().st_mtime_ns,
+        str(reference) if reference else "", reference.stat().st_mtime_ns if reference else 0,
+    )
 
 
-def _resolve_typed_pfas(aliases: dict[str, PfasChoice]) -> None:
+def _resolve_typed_pfas(aliases: dict[str, PfasChoice], choices: list[PfasChoice]) -> None:
     """Swap a typed full name, CAS number or SMILES for its cached compound.
 
     When free text names a cached compound, replace it with the reviewed
-    choice. Unrecognized text remains on the explicit structure-review path.
+    choice. A compound outside the training PFAS is added to the options for
+    this session, since a selectbox can only hold one of its options.
+    Unrecognized text remains on the explicit structure-review path.
     """
     st.session_state.pop("ar_pfas_add_error", None)
     selected = st.session_state.get(PFAS_SEARCH_KEY)
@@ -635,6 +642,10 @@ def _resolve_typed_pfas(aliases: dict[str, PfasChoice]) -> None:
     text = selected.strip()
     match = aliases.get(text) or aliases.get(_alias_key(text))
     if match is not None:
+        if match not in choices:
+            extra = list(st.session_state.get(PFAS_EXTRA_CHOICES_KEY, []))
+            if match not in extra:
+                st.session_state[PFAS_EXTRA_CHOICES_KEY] = [*extra, match]
         st.session_state[PFAS_SEARCH_KEY] = match
 
 
@@ -796,15 +807,6 @@ def _remove_pfas(entry_id: int) -> None:
     ]
 
 
-def _identity_field(label: str, value: Any) -> None:
-    """Render one PFAS identifier with a persistent field label."""
-    text = _clean_display_value(value) or "—"
-    st.html(
-        f"<div class='ar-identity-label'>{escape(label)}</div>"
-        f"<div class='ar-identity-value'>{escape(text)}</div>"
-    )
-
-
 def _number_input(
     label: str,
     key: str,
@@ -879,7 +881,7 @@ def _inorganic_editor() -> list[dict[str, Any]]:
 def _water_form(height: str = "content", default_temperature: float = DEFAULT_TEMPERATURE_C) -> tuple[dict[str, Any], float | None, dict[str, str]]:
     errors: dict[str, str] = {}
     with _card("water", height=height):
-        _section(2, "Water chemistry", "Enter the common conditions first. Add detailed matrix chemistry only when it is known.")
+        _section(2, "Water chemistry")
         with st.container(horizontal=True, vertical_alignment="bottom"):
             water_type = st.selectbox(
                 "Water type",
@@ -904,7 +906,6 @@ def _water_form(height: str = "content", default_temperature: float = DEFAULT_TE
         if organic_count:
             organic_label += f" · {organic_count} value{'s' if organic_count != 1 else ''} entered"
         with st.expander(organic_label, expanded=False, icon=":material/eco:"):
-            st.caption("Leave any unmeasured value blank. Closing this section preserves entered values.")
             organic_left, organic_right = st.columns(2, vertical_alignment="bottom")
             with organic_left:
                 organic_carbon = _number_input("Organic carbon", "organic_carbon", "5", "mg/L", errors=errors, nonnegative=True)
@@ -921,7 +922,6 @@ def _water_form(height: str = "content", default_temperature: float = DEFAULT_TE
         if inorganic_count:
             inorganic_label += f" · {inorganic_count} value{'s' if inorganic_count != 1 else ''} entered"
         with st.expander(inorganic_label, expanded=False, icon=":material/science:"):
-            st.caption("Leave any unmeasured value blank. Closing this section preserves entered values.")
             inorganic_left, inorganic_middle = st.columns(2)
             with inorganic_left:
                 tds = _number_input("TDS", "tds", "500", "mg/L", errors=errors, nonnegative=True)
@@ -932,9 +932,7 @@ def _water_form(height: str = "content", default_temperature: float = DEFAULT_TE
             # the other inorganic fields.
             ion_values = {}
             with st.container(key="ar-ions", border=True):
-                st.caption(
-                    "Ions in listed additives are recognized automatically. Select other known ions only when their concentrations are unmeasured."
-                )
+                _subhead("Other ions present (concentration unmeasured)")
                 ions = st.columns(4)
                 for index, (ion, label) in enumerate(ION_LABELS.items()):
                     with ions[index % 4]:
@@ -1121,63 +1119,32 @@ def _http_sources(value: Any) -> list[str]:
 
 
 def _render_usage_guidance() -> None:
-    # The tool's purpose opens the reading guide rather than sitting above the
-    # form as a warning: it sets expectations, it does not flag a problem.
-    with st.expander("How to read these results"):
+    """Four points on reading the scores; the README holds the full assumptions."""
+    with st.popover("How to read these results", icon=":material/help:"):
+        st.caption(PRODUCT_NAME_DISCLAIMER)
+        st.divider()
         st.markdown(
-            "**What it is for:** shortlisting adsorbents worth testing. The ranking compares adsorption "
-            "affinity (logKd) under the conditions you enter; it does not establish treatment performance "
-            "at a site, so validate shortlisted materials with water-specific experiments before "
-            "selecting an adsorbent."
+            "- **The score** is logKd at a common 25 mg/L dose (for a mixture, the lowest across its PFAS). "
+            "A comparable database record is used when one matches the PFAS, adsorbent, water type and "
+            "entered conditions (recalculated to 25 mg/L where the isotherm allows, otherwise a 20–30 mg/L "
+            "observation); otherwise the XGBoost model scores it at exactly 25 mg/L. The Basis column says "
+            "which. Use the score to shortlist adsorbents to test, not to predict treatment performance at a site.\n"
+            "- **Close scores are ties.** Candidates in the top-performing tier lie within the model's error of "
+            "the top score; test them as a group.\n"
+            "- **Less reliable:** PFAS absent from training, "
+            "inputs outside the training range, and logKd below 0 or above 4. Each is flagged in the Warnings "
+            "column; hover a label for its meaning.\n"
+            "- **Not modeled:** competition among PFAS in a mixture, breakthrough, adsorbent lifetime and cost. "
+            "Water-chemistry effects were learned mainly between studies, so treat ranking changes driven only "
+            "by water chemistry with caution."
         )
-        st.markdown(
-            "The app screens catalog activated carbons, ion-exchange and nonionic resins, and "
-            "cyclodextrin polymers. A comparable curated database record is used when available; "
-            "otherwise the Global XGBoost model estimates logKd at the common reference dose. "
-            "The **Basis** column identifies the source. The **Top-performing tier** contains scores within "
-            "the cross-validated error of a predicted difference between two adsorbents (about 0.5 log units) of the top score; "
-            "it is enclosed separately from the remaining candidates while rank numbers remain visible. "
-            "Row color identifies AC, resin, or CDP, and diagonal hatching identifies thin rather than "
-            "moderate product support. These are screening and evidence-coverage cues, not confidence grades. "
-            "**Warnings** shows concise labels for recorded score caveats: rose ! labels mark critical alerts, "
-            "while teal i labels provide supporting context. The legend below the table explains each label."
-        )
-        st.markdown("Select a shortlist row to open the full warning text, affected PFAS, and evidence. Input defaults, evidence-matching rules, and interpretation assumptions are documented in the README.")
         readme = Path(__file__).with_name("README.md")
         if readme.is_file():
-            st.download_button("Download README and assumptions", readme.read_bytes(), file_name="adsorbent_recommender_README.md",
+            st.download_button("README and assumptions", readme.read_bytes(), file_name="adsorbent_recommender_README.md",
                 mime="text/markdown", key="ar_readme_download", icon=":material/description:")
-        st.markdown(
-            "**Most reliable:** model estimates for a PFAS and a product that both appear in the training "
-            "data but were not tested together. This is the case the model was tuned for.\n\n"
-            "**Less reliable:** products or PFAS absent from the training data, inputs outside the training "
-            "range, products characterized on few properties, and logKd below 0 or above 4. Each of these "
-            "is flagged as a caveat. Prediction error also grows for experiments unlike any in the database, "
-            "because studies differ in protocol and reporting in ways the inputs do not capture."
-        )
-        st.markdown(
-            "**Close scores are ties.** Two candidates are compared through the difference of two predictions, "
-            "whose cross-validated error is about 0.5 log units, so candidates within that margin of each other "
-            "should be treated as one group to test, "
-            "not as a ranked order."
-        )
-        st.markdown(
-            "**Water chemistry:** most source studies held pH, organic matter and ions at a single value, "
-            "so the model learned their effects mainly from differences between studies. Rankings that "
-            "change only because water chemistry was changed should be interpreted with caution."
-        )
-        st.markdown(
-            "**Not modeled:** the ensemble's standard deviation is disagreement among fitted models, not a "
-            "calibrated prediction interval. Mixture scores evaluate each PFAS separately and do not model "
-            "competitive adsorption. logKd rankings do not predict breakthrough, removal targets, adsorbent "
-            "lifetime, or operating cost."
-        )
-        st.markdown(f"**Product names:** {PRODUCT_NAME_DISCLAIMER}")
         paper_urls = _http_sources(os.environ.get("ADSORBENT_PAPER_URL"))
         if paper_urls:
             st.markdown(f"[Read the study]({paper_urls[0]})")
-        else:
-            st.caption("The study manuscript is in preparation. A paper link will appear here when available.")
 
 
 def _candidate_caveats(item: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1212,20 +1179,6 @@ def _warning_chip(tag: Any) -> str:
     return f"<span class='ar-warning-label' style='--warning-color:{spec['color']};--warning-fill:{spec['fill']}'>{escape(tag.label)}</span>"
 
 
-def _render_warning_legend(items: list[dict[str, Any]]) -> None:
-    tags = legend_labels(items)
-    if not tags:
-        return
-    st.markdown("**Warning label legend**")
-    present = {tag.severity for tag in tags}
-    st.caption(" · ".join(spec["legend"] for severity, spec in SEVERITIES.items() if severity in present))
-    definitions = "".join(
-        f"<div class='ar-warning-definition'>{_warning_chip(tag)} {escape(tag.meaning)}</div>"
-        for tag in tags
-    )
-    st.html(f"<div class='ar-warning-legend'>{definitions}</div>")
-
-
 def _resolution_threshold(result: dict[str, Any]) -> float | None:
     resolution = result.get("rank_resolution") or {}
     return resolution.get("threshold_log_units") if resolution.get("available") else None
@@ -1233,37 +1186,24 @@ def _resolution_threshold(result: dict[str, Any]) -> float | None:
 
 def _render_scenario_caveats(result: dict[str, Any]) -> None:
     """Caveats shared by every candidate, said once rather than on every row."""
-    # The PFAS support panel already explains PFAS-level limits, and the reading
-    # guide covers blank inputs and how database matches work.
+    # PFAS-level limits, descriptors outside the training range among them, are
+    # said in the unseen-PFAS warning; the reading guide covers blank inputs and
+    # how database matches work.
+    descriptor_notes = {
+        f"{feature['feature']} is outside the development range"
+        for lookup in result.get("pfas_lookups") or [result.get("pfas_lookup", {})]
+        if lookup.get("support", {}).get("seen_in_training") is False
+        for feature in lookup.get("support", {}).get("out_of_range_descriptors", [])
+    }
     serious = [
         caveat["text"] for caveat in result.get("scenario_caveats", [])
         if caveat["severity"] == "critical" and caveat["code"] not in PFAS_LEVEL_CAVEATS
+        and not any(note in caveat["text"] for note in descriptor_notes)
     ]
     if serious:
         st.warning(
             "**Applies to every candidate**\n\n" + "\n".join(f"- {text}" for text in serious),
             icon=":material/warning:",
-        )
-
-
-def _render_rank_resolution(result: dict[str, Any], items: list[dict[str, Any]]) -> None:
-    threshold = _resolution_threshold(result)
-    if threshold is None or len(items) < 2:
-        return
-    top = float(items[0]["ranking_score"])
-    close = sum(top - float(item["ranking_score"]) <= threshold for item in items)
-    # How to read the order, not a warning: plain text under the heading.
-    if close > 1:
-        group = f"All **{close}** candidates shown are" if close == len(items) else f"The top **{close}** candidates are"
-        st.markdown(
-            f"{group} within the model's error ({threshold:.2f} log units) of the top score; "
-            "test them as a group rather than in rank order."
-        )
-    else:
-        gap = top - float(items[1]["ranking_score"])
-        st.markdown(
-            f"The top candidate leads the next by {gap:.2f} log units, more than the model's error "
-            f"({threshold:.2f} log units)."
         )
 
 
@@ -1304,30 +1244,43 @@ def _related_evidence_details(evidence: dict[str, Any], product_key: str, pfas_i
                 st.write(label)
 
 
-def _render_candidate_detail(result: dict[str, Any], *, expanded: bool = False, key_prefix: str = "") -> None:
+def _candidate_header(item: dict[str, Any]) -> str:
+    """Rank, product, score and basis: the title of a candidate's evidence."""
+    performance = item.get("performance", item["prediction"])
+    mixture = item.get("mixture_performance")
+    if mixture and mixture.get("pfas_count", 1) > 1:
+        score_label = f"worst-case log Kd {mixture['worst_case_logKd']:.3f}"
+    else:
+        score_label = f"log Kd {performance['mean_logKd']:.3f}"
+    return f"#{item['rank']} · {_product_name(item['product'])} · {score_label} · {_basis_label(item.get('performance_source'))}"
+
+
+def _open_candidate_dialog(result: dict[str, Any], item: dict[str, Any]) -> None:
+    """Show one candidate's evidence in a large dialog titled by its header."""
+    def body() -> None:
+        _render_candidate_detail({**result, "recommendations": [item]}, key_prefix="dialog_", show_title=False)
+    st.dialog(_candidate_header(item), width="large")(body)()
+
+
+def _render_candidate_detail(result: dict[str, Any], *, key_prefix: str = "", show_title: bool = True) -> None:
+    """A candidate's caveats, training support, properties and evidence."""
     for item in result["recommendations"]:
-        performance = item.get("performance", item["prediction"])
-        basis = _basis_label(item.get("performance_source"))
-        mixture = item.get("mixture_performance")
-        if mixture and mixture.get("pfas_count", 1) > 1:
-            score_label = f"worst-case log Kd {mixture['worst_case_logKd']:.3f}"
-        else:
-            score_label = f"log Kd {performance['mean_logKd']:.3f}"
-        header = f"#{item['rank']} · {_product_name(item['product'])} · {score_label} · {basis}"
-        with st.expander(header, expanded=expanded):
+        with st.container(border=show_title, key=f"ar-detail-{key_prefix}{item['product']['Product_key']}"):
+            if show_title:
+                st.html(f"<div class='ar-detail-title'>{escape(_candidate_header(item))}</div>")
             caveats = _candidate_caveats(item)
             for caveat in caveats:
                 tag = warning_labels({"caveats": [caveat]})[0]
                 st.html(f"<div class='ar-warning-detail'>{_warning_chip(tag)} {escape(caveat['display'])}</div>")
             characterization = item.get("characterization", {})
             support = item.get("adsorbent_support", {})
+            # The counts are context for choosing among candidates, not a grade:
+            # tier placement did not depend on them (by_support in tier_hidden_pairing_summary.json).
             if support.get("available"):
-                st.caption(f"Product training support: {support['source_records']} distinct source records from {support['independent_studies']} DOI-identified studies ({support['training_rows']} fitted rows).")
-                if support.get("reasons"):
-                    st.caption("ML support limits: " + " ".join(support["reasons"]))
+                st.caption(f"Training data for this adsorbent, with any PFAS: {support['source_records']} records from {support['independent_studies']} studies.")
             elif characterization.get("training_records"):
                 st.caption(
-                    f"Training data for this product: {characterization['training_records']} records "
+                    f"Training data for this adsorbent, with any PFAS: {characterization['training_records']} records "
                     f"from {characterization.get('training_studies', 0)} studies."
                 )
 
@@ -1368,10 +1321,6 @@ def _render_candidate_detail(result: dict[str, Any], *, expanded: bool = False, 
                     properties[["Group", "Property", "Value", "Unit", "Used by selected model"]],
                     width="stretch", hide_index=True,
                 )
-                st.caption(
-                    "‘Used by selected model’ identifies model inputs, not candidate-specific feature importance. "
-                    "Unreported properties are omitted."
-                )
 
             product_sources = _http_sources(item["product"].get("catalog_data_sources"))
             if product_sources:
@@ -1400,95 +1349,8 @@ def _render_candidate_detail(result: dict[str, Any], *, expanded: bool = False, 
                         else:
                             st.write(f"- {citation_label}")
                 else:
-                    st.caption("Model prediction. No comparable experimental records for this request.")
-                    if not evidence.get("related_evidence", {}).get("record_count"):
-                        st.caption(f"Database fallback reason: {evidence.get('reason', 'no comparable record')}")
+                    st.caption("Model prediction (no matching database record).")
                 _related_evidence_details(evidence, item["product"]["Product_key"], pfas_index, key_prefix)
-
-            with st.expander("Technical prediction record (JSON)"):
-                st.json({
-                    "product": item["product"],
-                    "characterization": item.get("characterization"),
-                    "performance_used_for_ranking": item.get("performance"),
-                    "prediction": item["prediction"],
-                    "pfas_results": item.get("pfas_results"),
-                    "screening_conditions": item["screening_conditions"],
-                })
-
-
-def _dose_label(dose: Any) -> str:
-    """Format the common dose for a summary card.
-
-    ``25.0 mg/L`` and ``25 mg/L`` say the same thing, and the trailing zero is
-    what pushes the value onto a second line in a narrow card.
-    """
-    if dose is None:
-        return "Per candidate"
-    if isinstance(dose, (int, float)):
-        return f"{dose:g} mg/L"
-    return f"{dose} mg/L"
-
-
-def _render_basis(result: dict[str, Any]) -> None:
-    """State where the numbers came from, once, in one panel.
-
-    Routing, dose support and the measurement-versus-estimate caveat were four
-    separate coloured callouts stacked above the table.  They are one answer to
-    one question, and a column of alternating info and warning banners gives
-    the reader no way to tell which of them is the important one.
-    """
-    routing = result.get("evidence_routing", {})
-    conditions = result.get("screening_conditions", {})
-    is_mixture = result.get("mixture", {}).get("pfas_count", 1) > 1
-    # The app screens one PFAS through the mixture path too, which counts
-    # candidate–PFAS pairs; a single-PFAS pair count is the candidate count.
-    matched = routing.get("database_matched_pairs", routing.get("database_matched_candidates")) or 0
-    with st.container(border=True, key="ar-basis"):
-        _subhead("Basis of these numbers")
-        if is_mixture:
-            total_pairs = routing.get("total_candidate_pfas_pairs", 0)
-            st.markdown(
-                f":green-badge[Database first] Comparable records supported **{matched} of {total_pairs}** "
-                "screened candidate–PFAS pairs; the final model filled unmatched pairs."
-            )
-            st.markdown(
-                ":violet-badge[Mixture rule] Adsorbents are ranked by their **lowest log Kd** across the "
-                "entered PFAS, so strong performance for one compound cannot mask a weak one."
-            )
-            st.caption(
-                "Each PFAS is evaluated independently at its own C₀ under the shared water chemistry. "
-                "Competitive adsorption among PFAS is not represented by the current database/model workflow."
-            )
-        elif matched:
-            st.markdown(
-                f":green-badge[Database first] Comparable records were found for **{matched}** "
-                f"candidate(s). The final model filled the remaining "
-                f"**{routing.get('model_fallback_pairs', routing.get('model_fallback_candidates', 0))}**."
-            )
-        else:
-            st.markdown(
-                ":orange-badge[Model only] No database record met the exact PFAS, adsorbent and "
-                "standardized water-type gates plus the numeric tolerances, so every value below "
-                "comes from the final model."
-            )
-        dose = conditions.get("dose_mg_L")
-        if dose is not None:
-            if matched:
-                st.markdown(
-                    f":blue-badge[Common dose] The comparison target is **{dose} mg/L**. Database values "
-                    "use exact isotherm recalculations where available, otherwise explicitly labelled "
-                    f"near-dose observations; model fallbacks are scored at exactly {dose} mg/L."
-                )
-            else:
-                st.markdown(
-                    f":blue-badge[Common dose] All **{result.get('candidates_screened')}** eligible products "
-                    f"were scored at **{dose} mg/L**."
-                )
-            if conditions.get("dose_within_development_support") is False:
-                st.markdown(
-                    ":red-badge[Outside support] This dose lies outside the range the model was "
-                    "developed on, so treat the ranking as indicative only."
-                )
 
 
 def _filter_result_items(
@@ -1532,49 +1394,43 @@ def _filter_result_items(
     ], labels[selected].rsplit(" · ", 1)[0]
 
 
-def _render_pfas_support(result: dict[str, Any]) -> None:
+def _render_unseen_pfas(result: dict[str, Any]) -> None:
+    """Warn once, only when an entered PFAS is outside the training data.
+
+    PFAS in the training data need no support note: the dropdown offers only
+    those. A PFAS entered as a structure is still scored, so the warning says
+    how close it is to the PFAS the model
+    learned from.
+    """
     lookups = result.get("pfas_lookups") or [result.get("pfas_lookup", {})]
-    with st.container(border=True):
-        _subhead("PFAS support")
-        rows = []
-        for lookup in lookups:
-            support = lookup.get("support", {})
-            seen = support.get("seen_in_training")
-            rows.append({"PFAS": lookup.get("label") or lookup.get("cache_key") or lookup.get("canonical_smiles"),
-                "Features": "Computed at runtime" if lookup.get("feature_source") == "computed_at_runtime" else "Reviewed cache",
-                "Model training": "Seen" if seen is True else "Unseen · exploratory" if seen is False else "Unknown",
-                "Descriptors outside range": len(support.get("out_of_range_descriptors", []))})
-        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-        if any(lookup.get("support", {}).get("seen_in_training") is False for lookup in lookups):
-            st.warning(UNSEEN_WARNING, icon=":material/warning:")
-        with st.expander("Structures and nearest training PFAS"):
-            st.caption("Similarity describes structural resemblance; it does not establish prediction reliability. Ensemble SD is not a calibrated prediction interval.")
-            for lookup in lookups:
-                st.markdown(f"**{escape(str(lookup.get('label') or lookup.get('cache_key') or 'PFAS'))}**")
-                st.code(lookup.get("canonical_smiles", ""), language=None)
-                support = lookup.get("support", {})
-                neighbors = support.get("nearest_training_pfas", [])
-                if neighbors:
-                    st.dataframe(pd.DataFrame(neighbors).rename(columns={"label": "Training PFAS", "tanimoto_similarity": "Structural resemblance (Tanimoto)"}), hide_index=True, width="stretch")
-                outside = support.get("out_of_range_descriptors", [])
-                if outside:
-                    st.warning("Molecular descriptors extend beyond training ranges. Treat the prediction with additional caution.")
-                    st.dataframe(pd.DataFrame(outside), hide_index=True, width="stretch")
-        for item in result.get("recommendations", [])[:1]:
-            mixture = item.get("mixture_performance", {})
-            if mixture.get("limiting_pfas_unseen"):
-                st.warning(f"The top candidate’s limiting PFAS, {mixture.get('limiting_pfas')}, is unseen in training. Its exploratory estimate determines the mixture ranking.")
-
-
-def _excluded_materials(result: dict[str, Any]) -> pd.DataFrame:
-    rows = []
-    for item in result.get("rejected_candidates", []):
-        support = item.get("adsorbent_support", {})
-        affected = item.get("pfas_rejections", [])
-        rows.append({"Product": item.get("Product_key"), "PFAS requiring unsupported ML": ", ".join(str(row["pfas"]) for row in affected),
-                     "Source records": support.get("source_records"), "DOI-identified studies": support.get("independent_studies"),
-                     "Reason": " ".join(support.get("reasons", item.get("details", []))) or item.get("reason", "")})
-    return pd.DataFrame(rows)
+    unseen = [lookup for lookup in lookups if lookup.get("support", {}).get("seen_in_training") is False]
+    if not unseen:
+        return
+    lines = []
+    for lookup in unseen:
+        label = lookup.get("label") or lookup.get("cache_key") or lookup.get("canonical_smiles") or "This PFAS"
+        support = lookup.get("support", {})
+        notes = []
+        closest = ", ".join(
+            f"{row['label']} ({row['tanimoto_similarity']:.2f})" for row in support.get("nearest_training_pfas", [])
+        )
+        if closest:
+            notes.append(f"closest training PFAS by structure are {closest}")
+        # Only a PFAS outside the training data can lie outside its descriptor ranges.
+        notes += [
+            f"{row['feature']} is {row['value']:g}, outside the training range {row['minimum']:g}–{row['maximum']:g}"
+            for row in support.get("out_of_range_descriptors", [])
+        ]
+        lines.append(f"**{label}**" + (": " + "; ".join(notes) if notes else ""))
+    subject = "This PFAS is" if len(unseen) == 1 else "These PFAS are"
+    st.warning(
+        f"{subject} not in the model's training data, so its scores are exploratory. "
+        "Performance on held-out PFAS was weaker than on PFAS in the training data; validate shortlisted "
+        "adsorbents experimentally.\n\n"
+        + "\n".join(f"- {line}" for line in lines)
+        + "\n\nSimilarity is Tanimoto structural resemblance (1 = identical), not a reliability score.",
+        icon=":material/warning:",
+    )
 
 
 def _shortlist_table(result: dict[str, Any], items: list[dict[str, Any]]) -> pd.DataFrame:
@@ -1603,6 +1459,27 @@ def _material_family(item: dict[str, Any], category_groups: list[dict[str, Any]]
     return "Other"
 
 
+MATERIAL_FAMILY_FILLS = {
+    "AC": "rgba(217, 135, 170, 0.25)",
+    "Resin": "rgba(243, 181, 111, 0.25)",
+    "CDP": "rgba(85, 185, 155, 0.25)",
+    "Other": "rgba(155, 165, 175, 0.25)",
+}
+
+
+def _comparison_styler(frame: pd.DataFrame, category_groups: list[dict[str, Any]]):
+    """Tint comparison rows with the same broad-class palette as results."""
+    def tint(row: pd.Series) -> list[str]:
+        family = _material_family(
+            {"product": {"adsorbent_category": row.get("Class")}},
+            category_groups,
+        )
+        fill = MATERIAL_FAMILY_FILLS[family]
+        return [f"background-color: {fill}" for _ in row]
+
+    return frame.style.apply(tint, axis=1)
+
+
 def _shortlist_sections(
     result: dict[str, Any],
     items: list[dict[str, Any]],
@@ -1621,8 +1498,10 @@ def _shortlist_sections(
             "rank": item.get("rank"),
             "product": _product_name(item["product"]),
             "family": _material_family(item, category_groups),
-            "support": "moderate" if support.get("meets_default_ml_policy") else "thin",
+            # Training evidence for the adsorbent itself (with any PFAS), not for
+            # this PFAS–adsorbent combination; reported as context, not a grade.
             "studies": support.get("independent_studies"),
+            "records": support.get("source_records"),
             "score": mixture.get("worst_case_logKd") if is_mixture else performance.get("mean_logKd"),
             "limitingPfas": mixture.get("limiting_pfas") if is_mixture else None,
             "basis": _basis_label(item.get("performance_source")),
@@ -1655,7 +1534,6 @@ def _shortlist_sections(
         sections.append({
             "kind": "remaining",
             "title": "Remaining candidates",
-            "caption": "Ordered by score below the top-performing tier boundary.",
             "rows": rows[split_at:],
         })
     return sections, score_label, is_mixture
@@ -1713,202 +1591,74 @@ def _render_result(result: dict[str, Any], category_groups: list[dict[str, Any]]
             )
         return
     if status != "recommendations_ready":
-        scope = result.get("screening_scope", {})
-        if scope.get("selected_categories") and not scope.get("screened_product_count"):
-            st.warning(
-                "No catalog product belongs to the selected adsorbent class(es): "
-                f"{', '.join(scope['selected_categories'])}. Widen the selection and screen again.",
-                icon=":material/filter_alt:",
-            )
-        else:
-            st.warning("No candidate has an allowed score for every entered PFAS. Products without a training record are not ranked; review the exclusions below.", icon=":material/filter_alt:")
-        rejected = result.get("rejected_candidates", [])
-        if rejected:
-            st.dataframe(_excluded_materials(result), width="stretch", hide_index=True)
+        # Every class is screened together, so the only empty outcome is a PFAS
+        # entry that no adsorbent can score.
+        st.warning("No adsorbent has a score for every entered PFAS. Check the PFAS entries and screen again.", icon=":material/filter_alt:")
         return
 
     lookups = result.get("pfas_lookups") or [result.get("pfas_lookup", {})]
     conditions = result.get("screening_conditions", {})
     all_items = result["recommendations"]
-    dose = conditions.get("dose_mg_L")
 
     pfas_labels = [lookup.get("label") or lookup.get("cache_key") or lookup.get("canonical_smiles") for lookup in lookups]
     pfas_labels = [label for label in pfas_labels if label]
     result_label = " + ".join(pfas_labels) if len(pfas_labels) <= 3 else f"{len(pfas_labels)}-PFAS mixture"
     st.subheader(f"Results for {result_label}", anchor="screening-results")
-    _chips(st.session_state.get("ar_scenario_chips", []))
     if actions is not None:
-        actions()
-    material_screening = result.get("adsorbent_screening", {})
-    if material_screening:
-        st.caption(f"Adsorbent support: {material_screening.get('ranked_products', 0)} products ranked; "
-                   f"{material_screening.get('excluded_products', 0)} catalog products without a training record are not ranked.")
-    filtered_items, selected_class = _filter_result_items(all_items, category_groups)
-    # Every ranked product is shown, so the table matches the CSV and JSON downloads.
+        actions("top")
+    filtered_items, _ = _filter_result_items(all_items, category_groups)
+    # Every ranked product is shown, so the table matches the run workbook.
     items = filtered_items
-    class_filtered = selected_class is not None
     view_result = {**result, "recommendations": items}
     _render_water_support(view_result)
 
     scope = result.get("screening_scope", {})
-    # ``matched`` counts every screened candidate with a comparable record; this
-    # card sits above the ranking, so it has to count the rows the ranking shows
-    # or it reads as "5 of these 20" when the five are not among them.
-    if result.get("mixture", {}).get("pfas_count", 1) > 1:
-        shown_matched = sum(
-            row.get("performance_source") == "database_match"
-            for item in items for row in item.get("pfas_results", [])
-        )
-        shown_pairs = sum(len(item.get("pfas_results", [])) for item in items)
-        database_summary = f"{shown_matched}/{shown_pairs} displayed PFAS–adsorbent pairs from database"
-    else:
-        shown_matched = sum(item.get("performance_source") == "database_match" for item in items)
-        database_summary = f"{shown_matched}/{len(items)} displayed candidates from database"
-    st.caption(f"{len(filtered_items)} candidates in view · {result.get('candidates_screened', '—')} screened · Reference dose {_dose_label(dose)} · {database_summary}")
-
     for warning in scope.get("warnings", []):
         st.warning(warning, icon=":material/filter_alt:")
-    # Keep scientific limitations visible even when the detailed support tables
-    # are collapsed below the shortlist.
-    if any(lookup.get("support", {}).get("seen_in_training") is False for lookup in lookups):
-        st.warning(UNSEEN_WARNING, icon=":material/warning:")
-    if any(lookup.get("support", {}).get("out_of_range_descriptors") for lookup in lookups):
-        st.warning("Molecular descriptors extend beyond training ranges. Treat the prediction with additional caution.")
+    # Descriptors outside the training range are named, feature by feature, in
+    # the "Applies to every candidate" box, so no second banner repeats them.
     if conditions.get("dose_within_development_support") is False:
         st.warning("The reference dose is outside model development support; treat the ranking as indicative only.")
+    _render_unseen_pfas(result)
 
-    tab_labels = ["Ranking", "Candidate details"]
-    if result.get("rejected_candidates"):
-        tab_labels.append("Excluded candidates")
-    tabs = st.tabs(tab_labels)
-
-    with tabs[0]:
-        _render_scenario_caveats(result)
-        if items:
-            # Only caveats that change how far the top score can be trusted
-            # earn a banner; notes on the evidence stay in Candidate details.
-            top_caveats = _row_flags(_candidate_caveats(items[0]))
-            if top_caveats:
-                more = (
-                    f" See Candidate details for {len(top_caveats) - 1} more."
-                    if len(top_caveats) > 1 else ""
-                )
-                st.warning(
-                    f"**Top-ranked candidate:** {top_caveats[0]['display']}{more}",
-                    icon=":material/warning:",
-                )
-        if result.get("mixture", {}).get("pfas_count", 1) > 1 and items:
-            top = items[0]
-            mixture = top["mixture_performance"]
-            if mixture.get("limiting_score_exploratory_adsorbent"):
-                st.caption("The limiting mixture score is an exploratory adsorbent prediction; validate the shortlist experimentally.")
-            st.html(
-                "<div class='ar-headline'>"
-                f"<b>{escape(_product_name(top['product']))}</b> has the highest worst-case screening score"
-                + (f" in {escape(selected_class)}" if selected_class else "") + ": "
-                f"log K<sub>d</sub> {mixture['worst_case_logKd']:.3f}, limited by "
-                f"<b>{escape(str(mixture['limiting_pfas']))}</b>. Consider similarly scored products together.</div>"
+    # Selecting a row opens that product's evidence, so the ranking needs no
+    # tabs: there is no separate view repeating every candidate's evidence.
+    _render_scenario_caveats(result)
+    if items:
+        # Only caveats that change how far the top score can be trusted
+        # earn a banner; notes on the evidence open with the selected row.
+        top_caveats = _row_flags(_candidate_caveats(items[0]))
+        if top_caveats:
+            more = (
+                f" Select its row for {len(top_caveats) - 1} more."
+                if len(top_caveats) > 1 else ""
             )
-        else:
-            top_database = [item for item in items if item.get("performance_source") == "database_match"][:2]
-            if len(top_database) == 2:
-                first, second = top_database
-                threshold = _resolution_threshold(result)
-                gap = first["performance"]["mean_logKd"] - second["performance"]["mean_logKd"]
-                verdict = (
-                    "The difference is smaller than the typical error, so the evidence does not clearly "
-                    "separate them."
-                    if threshold is not None and gap <= threshold
-                    else "The database evidence therefore favours "
-                    f"<b>{escape(_product_name(first['product']))}</b>."
-                )
-                st.html(
-                    "<div class='ar-headline'>At the 25 mg/L reference dose under matched conditions, "
-                    f"<b>{escape(_product_name(first['product']))}</b> has log K<sub>d</sub> "
-                    f"{first['performance']['mean_logKd']:.3f}, compared with "
-                    f"<b>{escape(_product_name(second['product']))}</b> at "
-                    f"{second['performance']['mean_logKd']:.3f}. {verdict}</div>"
-                )
-        _render_rank_resolution(result, items)
-        selection_id = hashlib.sha256(json.dumps([st.session_state.get("ar_last_run_fingerprint"), [(item['product']['Product_key'], item['ranking_score']) for item in items]], default=str).encode()).hexdigest()[:12]
-        sections, score_label, is_mixture = _shortlist_sections(result, items, category_groups)
-        selected_key = render_ranking_table(
-            sections=sections,
-            score_label=score_label,
-            is_mixture=is_mixture,
-            selected_key=None,
-            key=f"ar_shortlist_{selection_id}",
-        )
-        st.caption(
-            "Select a row to open its evidence below. Row color identifies adsorbent class; "
-            "solid fill means moderately supported (at least two DOI studies and five source records), "
-            "while diagonal hatching means thinly supported. These are evidence-coverage thresholds, "
-            "not confidence grades."
-        )
-        _render_warning_legend(items)
-        selected_item = next(
-            (item for item in items if str(item.get("product", {}).get("Product_key")) == selected_key),
-            None,
-        )
-        if selected_item is not None:
-            _render_candidate_detail({**result, "recommendations": [selected_item]}, expanded=True, key_prefix="selected_")
-        with st.expander("Complete ranking table"):
-            _basis_legend()
-            st.dataframe(_ranking_styler(_ranking_table(result, items, class_filtered)), width="stretch", hide_index=True,
-                column_config=_ranking_column_config(items))
-            st.caption("This table includes technical columns. Export results for the complete adsorbent–PFAS record.")
-
-    with tabs[1]:
-        _render_candidate_detail(view_result)
-
-    if result.get("rejected_candidates"):
-        with tabs[2]:
-            st.dataframe(_excluded_materials(result), width="stretch", hide_index=True)
-
-    with st.expander("Model support and scoring details"):
-        _render_pfas_support(result)
-        _render_basis(result)
-    st.caption("Table toolbar downloads export that table only. Export results includes every adsorbent–PFAS pair, evidence source, and caveat; download inputs to reload settings.")
-    with st.expander("Advanced: complete recommendation JSON"):
-        st.download_button("Download complete recommendation (JSON)",
-            recommendation_bytes(result), "recommendation.json", "application/json",
-            icon=":material/download:")
-
-
-def _render_empty_state() -> None:
-    st.html(
-        "<div class='ar-empty'>"
-        "<div class='ar-empty-title'>No screening run yet</div>"
-        "<p>Add one or more PFAS with their concentrations, enter the known water chemistry, then run the screening. "
-        "Every eligible adsorbent is evaluated automatically. "
-        "The ranked adsorbents and the evidence behind each score will appear here.</p>"
-        "</div>"
+            st.warning(
+                f"**Top-ranked candidate:** {top_caveats[0]['display']}{more}",
+                icon=":material/warning:",
+            )
+    selection_id = hashlib.sha256(json.dumps([st.session_state.get("ar_last_run_fingerprint"), [(item['product']['Product_key'], item['ranking_score']) for item in items]], default=str).encode()).hexdigest()[:12]
+    sections, score_label, is_mixture = _shortlist_sections(result, items, category_groups)
+    # The table header keys class and support; each warning label explains
+    # itself on hover, so neither needs a caption or legend below.
+    if items:
+        st.markdown("**Select any adsorbent row to view its evidence and detailed information.**")
+    opened_key = render_ranking_table(
+        sections=sections,
+        score_label=score_label,
+        is_mixture=is_mixture,
+        selected_key=None,
+        key=f"ar_shortlist_{selection_id}",
     )
-
-
-def _scenario_chips(
-    pfas_entries: list[dict[str, Any]], water: dict[str, Any],
-    temperature: float | None, water_type_used: str | None = None,
-    default_temperature: float = DEFAULT_TEMPERATURE_C,
-) -> list[tuple[str, Any]]:
-    """Summarize the inputs a result was produced from.
-
-    Results persist across reruns, so the panel has to carry the scenario it
-    belongs to; otherwise a table left on screen after the form was edited
-    looks like it describes the values currently in the fields.
-    """
-    mixture_label = "; ".join(
-        f"{entry['pfas']['identity']} ({entry.get('concentration_input', {}).get('value', entry['initial_concentration_mg_l']):g} "
-        f"{entry.get('concentration_input', {}).get('unit', 'mg/L')})"
-        for entry in pfas_entries
+    if actions is not None:
+        actions("bottom")
+    opened_item = next(
+        (item for item in items if str(item.get("product", {}).get("Product_key")) == opened_key),
+        None,
     )
-    return [
-        ("PFAS mixture", mixture_label),
-        ("Water", water_type_used or water.get("water_type") or "ultrapure water (default)"),
-        ("pH", water.get("pH")),
-        ("T", f"{default_temperature:g} °C (default)" if temperature is None else f"{temperature:g} °C"),
-        ("Adsorbents", "all eligible products"),
-    ]
+    # The ranking fills the screen, so evidence opens over it rather than below it.
+    if opened_item is not None:
+        _open_candidate_dialog(result, opened_item)
 
 
 def _change_concentration_unit(value_key: str, unit_key: str, previous_key: str) -> None:
@@ -1950,12 +1700,10 @@ def _commit_csv_import() -> None:
 
 def _csv_mixture_import(bundle: Any) -> None:
     with st.container():
-        st.caption("Column order in the example: pfas, identity_type, concentration, unit, parent_smiles. Required: pfas, concentration, unit. Optional: identity_type, parent_smiles, label.")
-        st.caption("identity_type describes pfas: name, abbreviation, cas, or smiles. For smiles, put the SMILES string directly in pfas. parent_smiles supplies an optional structure alongside a name, abbreviation, or CAS number. Existing files with a smiles column are also accepted.")
+        st.caption("Columns: pfas, concentration and unit (required); identity_type (name, abbreviation, cas or smiles), parent_smiles and label (optional). Unknown names or CAS numbers need parent_smiles.")
         st.download_button("Download example CSV", EXAMPLE_CSV_PATH.read_bytes(),
             file_name="pfas_mixture_example.csv", mime="text/csv", key="ar_csv_example_download",
             icon=":material/download:")
-        st.caption("The example includes abbreviations, SMILES, and a CAS number, with illustrative ng/L, ug/L, and mg/L concentrations. Unknown names/CAS need parent_smiles or resolution in the manual editor.")
         uploaded = st.file_uploader("PFAS mixture CSV", type=["csv"], max_upload_size=1,
             key=f"ar_mixture_csv_{st.session_state.get('ar_csv_upload_epoch', 0)}",
             help="CSV UTF-8; at most 100 PFAS rows. ND, zero, and < or > values need explicit quantified concentrations.")
@@ -2013,34 +1761,37 @@ def _csv_mixture_import(bundle: Any) -> None:
 
 def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
     """Collect PFAS through a searchable cache-backed add-and-edit surface."""
-    _section(
-        1,
-        "PFAS mixture",
-        "Search the reviewed cache or enter a name, CAS number, abbreviation, or SMILES.",
-    )
+    _section(1, "Target PFAS")
+    with st.popover("Add PFAS from CSV", icon=":material/upload_file:"):
+        _csv_mixture_import(bundle)
     choices, aliases = _pfas_choices(bundle)
+    extra = [choice for choice in st.session_state.get(PFAS_EXTRA_CHOICES_KEY, []) if choice not in choices]
     # The search gets the full card width to itself: at the themed type size a
     # three-way split leaves the button column too narrow for its own label.
     selected = st.selectbox(
         "Search or enter PFAS *",
-        choices,
+        [*choices, *extra],
         index=None,
         format_func=_pfas_choice_label,
         placeholder="e.g., PFOA, perfluorooctanoic acid, or 335-67-1",
         help=(
-            "Search by abbreviation, full name, or CAS number. Each result identifies one reviewed compound. "
-            "For an unlisted compound, choose the Add option and review its structure before adding it to the mixture."
+            f"The list holds the {len(choices)} PFAS in the model's training data; search it by abbreviation, "
+            "full name, or CAS number. To screen another PFAS, type its identifier and choose the Add option: "
+            "a compound in the reviewed feature cache is matched automatically, and any other needs its "
+            "structure reviewed before it is added. Predictions for PFAS outside training are exploratory."
         ),
         accept_new_options=True,
         key=PFAS_SEARCH_KEY,
         on_change=_resolve_typed_pfas,
-        args=(aliases,),
+        args=(aliases, choices),
     )
+    # The selected option already shows abbreviation, full name and CAS.
     if isinstance(selected, (tuple, list)) and len(selected) == 7:
-        # Confirms which compound an abbreviation or a typed alias stands for.
-        details = [value for value in (selected[4], selected[5]) if value and value != selected[2]]
-        if details:
-            st.caption(f"{selected[2]} · {' · '.join(details)}")
+        if tuple(selected) not in choices:
+            st.caption(
+                "Matched to the reviewed feature cache. This PFAS is not in the model's training data, "
+                "so its predictions are exploratory."
+            )
     custom = isinstance(selected, str) and bool(selected.strip())
     if custom:
         _custom_structure_editor(bundle, selected)
@@ -2063,8 +1814,8 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
 
     entries = list(st.session_state.get(PFAS_ENTRIES_KEY, []))
     if not entries:
-        st.caption("No PFAS added yet. Search above, set its initial concentration, and select Add PFAS.")
         return []
+    trained = _training_structures(bundle)
 
     updated: list[dict[str, Any]] = []
     for entry in entries:
@@ -2074,13 +1825,11 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
             st.markdown(f"**{escape(str(title))}**" + (f" · {escape(entry['cas'])}" if entry.get("cas") else ""))
             if entry.get("full_name"):
                 st.caption(entry["full_name"])
-            st.caption(
-                "Needs identity review: remove this entry and resolve it above."
-                if entry.get("identity_ready") is False
-                else "Reviewed cache entry"
-                if entry.get("cached_choice")
-                else f"Confirmed structure · {entry['identity_type']}"
-            )
+            # Only what needs attention is noted; a listed training PFAS needs no note.
+            if entry.get("identity_ready") is False:
+                st.caption("Needs identity review: remove this entry and resolve it above.")
+            elif trained is not None and entry.get("structure_key") and entry["structure_key"] not in trained:
+                st.caption(":orange-badge[Not in training data] Predictions are exploratory.")
             unit_key = f"ar_pfas_unit_{entry_id}"
             unit = st.session_state.get(unit_key, entry.get("concentration_unit", "mg/L"))
             value_key = f"ar_pfas_c0_{entry_id}"
@@ -2099,13 +1848,6 @@ def _pfas_mixture_editor(bundle: Any) -> list[dict[str, Any]]:
                     icon=":material/delete:", width="content",
                     on_click=_remove_pfas, args=(entry_id,),
                 )
-                with st.popover("Identity details", icon=":material/science:"):
-                    _identity_field("Entered identifier", entry.get("identity"))
-                    _identity_field("Identity type", entry.get("identity_type"))
-                    _identity_field("Full name", entry.get("full_name"))
-                    _identity_field("CAS number", entry.get("cas"))
-                    if entry.get("confirmed_smiles"):
-                        st.code(entry["confirmed_smiles"], language=None)
         try:
             concentration_mg_l = to_mg_l(concentration, unit, allow_zero=True)
         except MixtureInputError:
@@ -2241,7 +1983,7 @@ def _commit_scenario_restore(updates: dict[str, Any]) -> None:
         if key.startswith(("ar_pfas_c0_", "ar_pfas_unit_", "ar_csv_", "ar_public_", "ar_custom_label_")) and key != "ar_csv_upload_epoch":
             del st.session_state[key]
     st.session_state["ar_csv_upload_epoch"] = st.session_state.get("ar_csv_upload_epoch", 0) + 1
-    for key in ("ar_result", "ar_last_run_fingerprint", "ar_scenario_chips", "ar_error", "ar_pending_structure", "ar_pfas_add_error", "ar_salt_error", "ar_scenario_error"):
+    for key in ("ar_result", "ar_result_snapshot", "ar_last_run_fingerprint", "ar_error", "ar_pending_structure", "ar_pfas_add_error", "ar_salt_error", "ar_scenario_error"):
         st.session_state.pop(key, None)
     st.session_state.update(updates)
 
@@ -2255,56 +1997,42 @@ def _load_saved_scenario(bundle: Any) -> None:
     snapshot = next((item for item in st.session_state.get("ar_saved_scenarios", []) if item["scenario_id"] == selected), None)
     if snapshot:
         try:
-            _restore_scenario(snapshot, bundle)
+            updates = _prepare_scenario_restore(snapshot, bundle)
+            _commit_scenario_restore(updates)
+            if snapshot.get("result"):
+                result = snapshot["result"]
+                validate_result_structure(result)
+                inputs = snapshot["inputs"]
+                st.session_state["ar_result"] = result
+                st.session_state["ar_result_snapshot"] = snapshot
+                st.session_state["ar_last_run_fingerprint"] = _scenario_fingerprint(
+                    inputs["pfas"], inputs["water"], inputs["temperature_c"],
+                    inputs.get("include_exploratory_adsorbents", False))
+                st.session_state["ar_scenario_message"] = f"Opened saved run {snapshot['name']}."
         except (ScenarioError, ValueError, RuntimeError) as exc:
             st.session_state["ar_scenario_error"] = str(exc)
 
 
-def _import_saved_scenario(bundle: Any) -> None:
-    uploaded = st.session_state.get("ar_scenario_upload_payload")
-    if uploaded is None:
-        return
+def _load_run_workbook(snapshot: dict, bundle: Any) -> None:
     try:
-        snapshot = read_snapshot(uploaded["data"], Path(uploaded["name"]).stem or "Imported scenario")
-        library, snapshot = add_snapshot(st.session_state.get("ar_saved_scenarios", []), snapshot)
-        if snapshot.get("result"):
-            results_csv(snapshot["result"], snapshot["name"])
-            recommendation_bytes(snapshot["result"])
-        updates = _prepare_scenario_restore(snapshot, bundle)
-        _commit_scenario_restore(updates)
-        st.session_state["ar_saved_scenarios"] = library
-        st.session_state["ar_scenario_selected"] = snapshot["scenario_id"]
-    except (ScenarioError, ValueError, RuntimeError) as exc:
-        st.session_state["ar_scenario_error"] = str(exc)
-
-
-def _load_scenario_csv(inputs: dict, name: str, bundle: Any) -> None:
-    try:
-        reference = _scenario_bundle_reference(str(bundle.directory), (bundle.directory / BUNDLE_FILENAME).stat().st_mtime_ns)
-        snapshot = make_snapshot(name, inputs, reference)
-        snapshot["_imported"] = True
-        library, snapshot = add_snapshot(st.session_state.get("ar_saved_scenarios", []), snapshot)
         _restore_scenario(snapshot, bundle)
-        st.session_state["ar_saved_scenarios"] = library
-        st.session_state["ar_scenario_selected"] = snapshot["scenario_id"]
     except (ScenarioError, ValueError, RuntimeError) as exc:
         st.session_state["ar_scenario_error"] = str(exc)
 
 
-def _scenario_csv_upload(bundle: Any) -> None:
-    st.download_button("Download example inputs CSV", SCENARIO_EXAMPLE_PATH.read_bytes(),
-        file_name="scenario_inputs_example.csv", mime="text/csv", key="ar_scenario_example_download", icon=":material/download:")
-    st.caption("Use one row per PFAS or inorganic additive. row_type identifies the entry; species, concentration, and unit occupy separate columns. Repeat shared water settings on every row.")
-    uploaded = st.file_uploader("Reload scenario inputs CSV", type=["csv"], max_upload_size=1, key="ar_scenario_inputs_upload",
-        help="Use row_type pfas or inorganic_additive. Shared water settings repeat on every row. A results CSV cannot reload inputs.")
+def _run_workbook_upload(bundle: Any) -> None:
+    st.caption("Load an .xlsx file previously downloaded from this app. Inputs replace the editor; saved scores remain reference-only.")
+    uploaded = st.file_uploader("Previous run (.xlsx)", type=["xlsx"], max_upload_size=20,
+        key="ar_run_workbook_upload")
     if uploaded is None:
         return
     try:
-        name, inputs = read_scenario_csv(uploaded.getvalue(), Path(getattr(uploaded, "name", "Imported scenario.csv")).stem[:80])
-    except (ScenarioError, MixtureInputError, ValueError) as exc:
+        snapshot = read_run_workbook(uploaded.getvalue(), Path(getattr(uploaded, "name", "Imported run.xlsx")).stem[:80])
+    except (ScenarioError, ValueError) as exc:
         st.error(str(exc))
         return
-    st.caption(f"{name}: review the PFAS identities, structures, and shared water settings before loading.")
+    inputs = snapshot["inputs"]
+    st.caption(f"{snapshot['name']}: review the inputs before replacing the current editor.")
     st.dataframe(pd.DataFrame([{"PFAS": row["identity"], "Identity type": row["identity_type"],
         "Concentration": row["concentration_value"], "Unit": row["concentration_unit"],
         "Parent SMILES": row.get("confirmed_smiles", "")} for row in inputs["pfas"]]), hide_index=True, width="stretch")
@@ -2314,27 +2042,19 @@ def _scenario_csv_upload(bundle: Any) -> None:
     st.caption("Shared water settings: " + "; ".join(f"{key}: {value}" for key, value in inputs["water"].items() if key not in {"ions", "inorganic_additives"} and value not in (None, ""))
                + f"; temperature: {str(inputs['temperature_c']) + ' °C' if inputs['temperature_c'] is not None else '25 °C (default)'}")
     st.caption("Ions marked present: " + (", ".join(ION_LABELS[key] for key, value in inputs["water"]["ions"].items() if value) or "None specified"))
-    structures = [row for row in inputs["pfas"] if row.get("confirmed_smiles")]
-    if structures:
-        with st.expander("Inspect a structure from the scenario CSV"):
-            index = st.selectbox("PFAS structure to inspect", range(len(structures)), index=None,
-                format_func=lambda index: structures[index].get("label") or structures[index]["identity"], key="ar_scenario_inspect_structure")
-            if index is not None:
-                canonical, _ = prepare_structure(structures[index]["confirmed_smiles"])
-                _show_structure(canonical, width=360)
-                st.code(canonical, language=None)
     digest = hashlib.sha256(uploaded.getvalue()).hexdigest()[:16]
-    reviewed = st.checkbox("I have checked the PFAS identities and supplied structures", key=f"ar_scenario_csv_reviewed_{digest}")
-    st.button("Load scenario inputs", key="ar_load_scenario_csv", disabled=not reviewed,
-              on_click=_load_scenario_csv, args=(inputs, name, bundle), icon=":material/restore:")
+    reviewed = st.checkbox("I have checked the PFAS identities and inputs", key=f"ar_run_workbook_reviewed_{digest}")
+    st.button("Load inputs", key="ar_load_run_workbook", disabled=not reviewed,
+              on_click=_load_run_workbook, args=(snapshot, bundle), icon=":material/restore:")
 
 
 def _remove_saved_scenario() -> None:
     selected = st.session_state.get("ar_scenario_selected")
     st.session_state["ar_saved_scenarios"] = [item for item in st.session_state.get("ar_saved_scenarios", []) if item["scenario_id"] != selected]
     st.session_state["ar_scenario_selected"] = None
-    st.session_state["ar_scenario_compare"] = [key for key in st.session_state.get("ar_scenario_compare", []) if key != selected]
-    st.session_state.pop("ar_scenario_reference", None)
+    for key in ("ar_compare_a", "ar_compare_b"):
+        if st.session_state.get(key) == selected:
+            st.session_state.pop(key, None)
 
 
 def _comparison_input_table(snapshots: list[dict]) -> pd.DataFrame:
@@ -2347,7 +2067,6 @@ def _comparison_input_table(snapshots: list[dict]) -> pd.DataFrame:
         columns[snapshot["name"]] = {
             "PFAS and initial concentrations": "; ".join(f"{row.get('label') or row['identity']}: {row['concentration_value']:g} {row['concentration_unit']}" for row in inputs["pfas"]),
             "Water type": water["water_type"] or "Ultrapure water (default)",
-            "Exploratory adsorbents included": "Yes" if inputs.get("include_exploratory_adsorbents", False) else "No",
             "pH": water["pH"], "Temperature (°C)": inputs["temperature_c"] if inputs["temperature_c"] is not None else
                 f"{effective_temperature({}, result.get('screening_conditions', {}).get('fixed_conditions', {})):g} (default)",
             "Organic carbon (mg/L)": water["organic_carbon_mg_l"], "Organic additives present": water["organic_matter_present"],
@@ -2362,7 +2081,7 @@ def _comparison_input_table(snapshots: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(columns).fillna("Not specified").astype(str).rename_axis("Input / result").reset_index()
 
 
-def _scenario_comparison(library: list[dict]) -> None:
+def _scenario_comparison(library: list[dict], category_groups: list[dict[str, Any]]) -> None:
     completed = {}
     for item in library:
         if item.get("result"):
@@ -2371,43 +2090,38 @@ def _scenario_comparison(library: list[dict]) -> None:
                 completed[item["scenario_id"]] = item
             except ScenarioError as exc:
                 st.error(f"Saved results for {item['name']} cannot be compared: {exc} Remove the scenario or load its inputs and screen again.")
-    selected = st.multiselect("Scenarios to compare", list(completed), max_selections=4,
-        format_func=lambda key: completed[key]["name"], key="ar_scenario_compare",
-        help="Choose two to four saved screening runs. Scenarios saved without results become comparable after reloading, screening, and saving again.")
-    if len(selected) < 2:
-        st.caption("Save at least two completed runs, then select them here. Saved inputs without results are available under Save and reload.")
+    st.button("Back to results", key="ar_compare_back", icon=":material/arrow_back:",
+        on_click=lambda: st.session_state.update(ar_compare_open=False))
+    st.header("Compare saved runs")
+    if len(completed) < 2:
+        st.info("Keep at least two screened runs before opening comparison.")
         return
-    reference = st.selectbox("Reference scenario", selected, format_func=lambda key: completed[key]["name"], key="ar_scenario_reference")
-    snapshots = [completed[key] for key in selected]
-    rows, warnings = compare_snapshots(snapshots, reference)
+    identifiers = list(completed)
+    columns = st.columns(2)
+    with columns[0]:
+        run_a = st.selectbox("Run A", identifiers, index=0, format_func=lambda key: completed[key]["name"], key="ar_compare_a")
+    with columns[1]:
+        run_b = st.selectbox("Run B", identifiers, index=1, format_func=lambda key: completed[key]["name"], key="ar_compare_b")
+    if run_a == run_b:
+        st.warning("Choose two different runs.")
+        return
+    snapshots = [completed[run_a], completed[run_b]]
+    rows, warnings = compare_snapshots(snapshots, run_a)
+    st.subheader("Input differences")
     st.dataframe(_comparison_input_table(snapshots), hide_index=True, width="stretch")
-    st.caption("Rankings align products by their catalog identity. logKd is the lowest score across that scenario's PFAS; larger values rank higher. ΔlogKd is relative to the selected reference, and is shown only for matching bundles and PFAS identities. Evidence sources may change between conditions. Small differences do not establish a reliable improvement.")
+    st.subheader("Ranked adsorbents")
+    st.caption("Columns are paired by measure: Run A then Run B. ΔlogKd is B − A and is shown only for matching PFAS structures and model/data provenance. Differences within model error are not reliable improvements.")
     if any(len(item["inputs"]["pfas"]) > 1 for item in snapshots):
         st.caption("Mixture scores screen each PFAS separately; competitive adsorption is not modeled.")
     for warning in warnings:
         st.warning(warning)
     frame = pd.DataFrame(rows)
-    config = {key: st.column_config.NumberColumn(format="%.3f") for key in frame.columns if key.endswith((" · logKd", " · ΔlogKd"))}
-    st.dataframe(frame, hide_index=True, width="stretch", column_config=config)
-    st.download_button("Download comparison CSV", comparison_csv(rows), file_name="scenario_comparison.csv",
-                       mime="text/csv", key="ar_comparison_download", icon=":material/download:")
-    st.caption("Comparison CSV is a table for Excel. Scenario inputs CSV restores the settings for a fresh run. Advanced JSON snapshots preserve exact historical results and full provenance.")
-    with st.expander("PFAS support and caveats in the saved runs"):
-        for snapshot in snapshots:
-            st.markdown(f"**{escape(snapshot['name'])}**")
-            for notice in snapshot.get("_notices", []):
-                st.info(notice)
-            result = snapshot["result"]
-            for lookup in result.get("pfas_lookups", []):
-                support = lookup.get("support", {})
-                label = lookup.get("label") or lookup.get("cache_key") or "PFAS"
-                if support.get("seen_in_training") is False:
-                    st.warning(f"{label}: {UNSEEN_WARNING}")
-                if support.get("out_of_range_descriptors"):
-                    st.warning(f"{label}: molecular descriptors exceeded training ranges in this saved run.")
-            for caveat in result.get("scenario_caveats", []):
-                st.caption(caveat["text"])
-            st.caption("Candidate-specific caveats appear beside each scenario's score in the comparison table and CSV. JSON downloads retain the full evidence and support diagnostics.")
+    config = {key: st.column_config.NumberColumn(format="%.3f") for key in frame.columns
+              if key.endswith(" · logKd") or key.startswith("ΔlogKd")}
+    st.dataframe(_comparison_styler(frame, category_groups), hide_index=True, width="stretch", column_config=config)
+    st.download_button("Download comparison (.xlsx)", comparison_workbook(snapshots),
+        file_name="adsorbent_run_comparison.xlsx", mime=WORKBOOK_MIME,
+        key="ar_comparison_download", icon=":material/download:")
 
 
 def _current_snapshot(bundle: Any, rows: list[dict], water: dict, temperature: float | None, fingerprint: str) -> dict:
@@ -2428,107 +2142,96 @@ def _current_snapshot(bundle: Any, rows: list[dict], water: dict, temperature: f
     return make_snapshot(name, inputs, reference, result if include_result else None)
 
 
-def _save_current_scenario(bundle: Any, rows: list[dict], water: dict, temperature: float | None, fingerprint: str) -> None:
+def _keep_displayed_run() -> None:
     try:
-        snapshot = _current_snapshot(bundle, rows, water, temperature, fingerprint)
+        displayed = st.session_state.get("ar_result_snapshot")
+        if not displayed or not displayed.get("result"):
+            raise ScenarioError("Only a completed displayed result can be kept for comparison.")
+        name = (st.session_state.get("ar_scenario_name") or "").strip()
+        if not name:
+            raise ScenarioError("Enter a short name for this run.")
+        snapshot = make_snapshot(name, displayed["inputs"], displayed["bundle_reference"], displayed["result"])
         library, snapshot = add_snapshot(st.session_state.get("ar_saved_scenarios", []), snapshot)
         st.session_state["ar_saved_scenarios"] = library
         st.session_state["ar_scenario_selected"] = snapshot["scenario_id"]
-        st.session_state["ar_scenario_message"] = f"Saved {snapshot['name']} with {'completed screening results' if snapshot.get('result') else 'inputs only'} in this session. Download inputs for later reuse."
+        st.session_state["ar_scenario_message"] = f"Kept {snapshot['name']} for comparison in this browser session."
         st.session_state["ar_scenario_notices"] = []
         st.session_state.pop("ar_scenario_error", None)
-        st.toast(f"Saved {snapshot['name']} in this session.", icon=":material/save:")
+        st.toast(f"Kept {snapshot['name']} for comparison.", icon=":material/bookmark_added:")
     except (ScenarioError, ValueError) as exc:
         st.session_state["ar_scenario_error"] = str(exc)
 
 
-def _scenario_actions(bundle: Any, rows: list[dict], water: dict, temperature: float | None, fingerprint: str,
-                      input_errors: dict[str, str], result: dict | None = None) -> None:
-    _, mixture_error = _parse_pfas_entries(rows)
-    valid = not input_errors and not mixture_error
-    snapshot = None
-    if valid:
-        try:
-            snapshot = _current_snapshot(bundle, rows, water, temperature, fingerprint)
-            payload = scenario_inputs_csv(snapshot)
-        except (ScenarioError, ValueError) as exc:
-            st.error(f"Inputs cannot be saved or downloaded: {exc}")
-            valid = False
+def _result_actions(result: dict, location: str) -> None:
+    """Keep guidance above the ranking and persistence actions below it."""
     with st.container(horizontal=True, vertical_alignment="bottom"):
-        with st.popover("Save in this session", icon=":material/save:"):
-            st.caption("Saved runs last only for this browser session. Download inputs to keep the settings for later.")
-            st.text_input("Scenario name", key="ar_scenario_name", max_chars=80, placeholder="e.g., Groundwater at pH 7")
-            st.button("Save run", key="ar_save_scenario", icon=":material/save:", disabled=not valid,
-                on_click=_save_current_scenario, args=(bundle, rows, water, temperature, fingerprint))
-        st.download_button("Download inputs for later", payload if valid else b"", file_name="screening_inputs.csv",
-            mime="text/csv", key="ar_current_inputs_download", disabled=not valid, icon=":material/download:")
-        if result is not None and result.get("status") == "recommendations_ready":
-            current = st.session_state.get("ar_last_run_fingerprint") == fingerprint and not input_errors
-            st.download_button("Export results" if current else "Export displayed results", results_csv(result),
-                file_name="recommendation_results.csv", mime="text/csv", key="ar_result_csv_download", icon=":material/download:")
+        if location == "top":
+            _render_usage_guidance()
+            return
+        if location != "bottom":
+            raise ValueError(f"Unknown result-action location: {location}")
+        displayed = st.session_state.get("ar_result_snapshot")
+        if result.get("status") == "recommendations_ready" and displayed:
+            filename = re.sub(r"[^A-Za-z0-9_-]+", "_", displayed["name"]).strip("_") or "screening_run"
+            st.download_button("Download run (.xlsx)", run_workbook(displayed),
+                file_name=f"{filename}.xlsx", mime=WORKBOOK_MIME, key="ar_run_download",
+                icon=":material/download:")
+            with st.popover("Keep for comparison", icon=":material/bookmark_add:"):
+                st.caption("Saved runs stay in this browser session. Download the workbook for later use.")
+                st.text_input("Run name", key="ar_scenario_name", max_chars=80,
+                    placeholder="e.g., Groundwater at pH 7")
+                st.button("Keep run", key="ar_save_scenario", icon=":material/bookmark_added:",
+                    on_click=_keep_displayed_run, disabled=not bool((st.session_state.get("ar_scenario_name") or "").strip()))
 
 
-def _input_importer(bundle: Any) -> None:
-    with st.expander("Import inputs", icon=":material/upload:"):
-        complete, mixture = st.tabs(["Complete scenario", "PFAS only"])
-        with complete:
-            st.caption("Restore the mixture and shared water settings. Loading replaces the editor after validation and identity review.")
-            _scenario_csv_upload(bundle)
-        with mixture:
-            st.caption("Append PFAS and concentrations to the mixture. Current water settings are retained.")
-            _csv_mixture_import(bundle)
+def _open_comparison() -> None:
+    st.session_state["ar_compare_open"] = True
 
 
-def _scenario_workspace(bundle: Any, rows: list[dict], water: dict, temperature: float | None, fingerprint: str, input_errors: dict[str, str] | None = None) -> None:
+def _saved_runs_control(bundle: Any) -> None:
+    library = st.session_state.get("ar_saved_scenarios", [])
+    if not library:
+        return
+    with st.popover(f"Saved runs · {len(library)}", icon=":material/bookmarks:"):
+        by_id = {item["scenario_id"]: item for item in library}
+        selected = st.selectbox("Saved runs", list(by_id), index=None, key="ar_scenario_selected",
+            format_func=lambda key: by_id[key]["name"], placeholder="Choose a run")
+        if selected:
+            snapshot = by_id[selected]
+            st.caption(f"{len(snapshot['inputs']['pfas'])} PFAS · {snapshot['saved_at']}")
+            with st.container(horizontal=True):
+                st.button("Open run", key="ar_load_scenario", on_click=_load_saved_scenario,
+                    args=(bundle,), icon=":material/restore:")
+                filename = re.sub(r"[^A-Za-z0-9_-]+", "_", snapshot["name"]).strip("_") or "screening_run"
+                try:
+                    st.download_button("Download (.xlsx)", run_workbook(snapshot),
+                        file_name=f"{filename}.xlsx", mime=WORKBOOK_MIME,
+                        key="ar_saved_run_download", icon=":material/download:")
+                except ScenarioError as exc:
+                    st.error(f"This saved run cannot be opened or downloaded: {exc}")
+                st.button("Remove", key="ar_remove_scenario", on_click=_remove_saved_scenario,
+                    icon=":material/delete:")
+        completed = [item for item in library if item.get("result")]
+        st.divider()
+        st.button("Compare two runs", key="ar_open_comparison", on_click=_open_comparison,
+            disabled=len(completed) < 2, icon=":material/compare_arrows:", width="stretch")
+        if len(completed) < 2:
+            st.caption("Keep one more screened run to compare.")
+
+
+def _input_journey_actions(bundle: Any) -> None:
+    """Show import and history where users are choosing inputs, without a persistent panel."""
     st.session_state.setdefault("ar_saved_scenarios", [])
-    with st.expander("Saved runs and comparison", icon=":material/folder_open:"):
-        manage, compare = st.tabs(["Saved runs", "Compare scenarios"])
-        with manage:
-            st.caption("This library lasts only for the current browser session. Load a saved run's inputs to screen again, or download its inputs for later reuse. Use Import inputs above for CSV files.")
-            library = st.session_state["ar_saved_scenarios"]
-            by_id = {item["scenario_id"]: item for item in library}
-            selected = st.selectbox("Saved scenarios", list(by_id), index=None, key="ar_scenario_selected",
-                format_func=lambda key: by_id[key]["name"], placeholder="Select a saved scenario")
-            if selected:
-                snapshot = by_id[selected]
-                st.caption(f"{len(snapshot['inputs']['pfas'])} PFAS · {'Screening results saved' if snapshot.get('result') else 'Inputs only'} · {snapshot['saved_at']}")
-                with st.container(horizontal=True):
-                    st.button("Load inputs", key="ar_load_scenario", on_click=_load_saved_scenario, args=(bundle,), icon=":material/restore:")
-                    filename = re.sub(r"[^A-Za-z0-9_-]+", "_", snapshot["name"]).strip("_") or "scenario"
-                    try:
-                        payload = scenario_inputs_csv(snapshot)
-                        st.download_button("Download inputs CSV", payload, file_name=f"{filename}_inputs.csv",
-                                           mime="text/csv", key="ar_scenario_inputs_download", icon=":material/download:")
-                    except ScenarioError as exc:
-                        st.info(str(exc))
-                    if snapshot.get("result"):
-                        try:
-                            st.download_button("Download saved results CSV", results_csv(snapshot["result"], snapshot["name"]),
-                                file_name=f"{filename}_results.csv", mime="text/csv", key="ar_saved_results_download", icon=":material/download:")
-                        except ScenarioError as exc:
-                            st.error(f"Saved results cannot be exported: {exc} Remove this scenario or load its inputs and screen again.")
-                    st.button("Remove saved scenario", key="ar_remove_scenario", on_click=_remove_saved_scenario, icon=":material/delete:")
-            with st.expander("Advanced: full JSON snapshots"):
-                st.caption("Use JSON to preserve or restore exact historical results, full database evidence, and identity-resolution provenance. CSV is the normal input/output format; JSON is optional.")
-                if selected:
-                    try:
-                        st.download_button("Download full scenario snapshot (JSON)", snapshot_bytes(by_id[selected]),
-                            file_name=f"{filename}.json", mime="application/json", key="ar_scenario_download", icon=":material/download:")
-                    except ScenarioError as exc:
-                        st.error(str(exc))
-                uploaded = st.file_uploader("Reload a scenario JSON", type=["json"], max_upload_size=20, key="ar_scenario_upload",
-                    help="Accepts saved scenario snapshots and complete recommendation JSON exports, up to 20 MB.")
-                st.session_state["ar_scenario_upload_payload"] = {"data": uploaded.getvalue(), "name": getattr(uploaded, "name", "scenario.json")} if uploaded is not None else None
-                st.button("Import and load scenario", key="ar_import_scenario", on_click=_import_saved_scenario, args=(bundle,),
-                          disabled=uploaded is None, icon=":material/upload:")
-            if st.session_state.get("ar_scenario_error"):
-                st.error(st.session_state["ar_scenario_error"])
-            elif st.session_state.get("ar_scenario_message"):
-                st.success(st.session_state["ar_scenario_message"])
-            for warning in st.session_state.get("ar_scenario_notices", []):
-                st.warning(warning)
-        with compare:
-            _scenario_comparison(st.session_state["ar_saved_scenarios"])
+    with st.container(horizontal=True, vertical_alignment="center"):
+        with st.popover("Load a previous run", icon=":material/upload_file:"):
+            _run_workbook_upload(bundle)
+        _saved_runs_control(bundle)
+    if st.session_state.get("ar_scenario_error"):
+        st.error(st.session_state["ar_scenario_error"])
+    elif st.session_state.get("ar_scenario_message"):
+        st.success(st.session_state["ar_scenario_message"])
+    for warning in st.session_state.get("ar_scenario_notices", []):
+        st.warning(warning)
 
 
 def main() -> None:
@@ -2544,9 +2247,8 @@ def main() -> None:
     _hero(
         "PFAS adsorbent recommender",
         "Adsorbent screening · decision support",
-        "Shortlist adsorbents for experimental testing using comparable database evidence and model estimates.",
+        "Explore commercial adsorbent rankings derived from published PFAS adsorption data",
     )
-    _render_usage_guidance()
 
     bundle_dir = _resolve_bundle_dir()
     if bundle_dir is None:
@@ -2566,8 +2268,12 @@ def main() -> None:
         st.error(f"Model bundle is not ready: {exc}", icon=":material/error:")
         return
 
-    _input_importer(bundle)
     category_groups = catalog_category_groups(bundle)
+    st.session_state.setdefault("ar_saved_scenarios", [])
+    if st.session_state.get("ar_compare_open"):
+        _scenario_comparison(st.session_state["ar_saved_scenarios"], category_groups)
+        return
+    _input_journey_actions(bundle)
     # PFAS identity and water chemistry are the two parameters users revisit.
     # Adsorbent classes are screened together and become a view-only result
     # filter, leaving both editable panels visible without a wizard or scrolling.
@@ -2578,7 +2284,7 @@ def main() -> None:
         default_temperature = effective_temperature({}, fixed_test_conditions(bundle)["fixed_conditions"])
         water, temperature, input_errors = _water_form(default_temperature=default_temperature)
 
-    st.html(f"<div class='ar-required' style='margin:1.1rem 0 .5rem'>{REQUIRED_NOTE}</div>")
+    st.html("<div style='height:1.1rem'></div>")
     # Products absent from the training data are not ranked: the model is used for untested pairings of
     # PFAS and adsorbents that are each in the training data. The service keeps an opt-in for analyses.
     exploratory = False
@@ -2600,20 +2306,17 @@ def main() -> None:
             icon=":material/edit_note:",
         )
     with st.container(key="ar-run"):
-        if mixture_error:
-            if pfas_rows:
-                st.error(mixture_error)
-            else:
-                st.caption(mixture_error)
+        # The button is disabled until the inputs are complete, so only real
+        # errors are spelled out; an empty mixture is covered by the empty state.
+        if mixture_error and pfas_rows:
+            st.error(mixture_error)
         elif input_errors:
             st.caption("Correct the highlighted water fields before screening.")
-        else:
-            st.caption(f"{len(pfas_entries)} PFAS ready · {len(bundle.catalog)} catalog adsorbents will be screened.")
         run = st.button(
             (
                 "Update screening"
                 if inputs_changed
-                else "Screen mixture"
+                else "Screen target PFAS"
             ),
             type="primary",
             width="stretch",
@@ -2634,19 +2337,18 @@ def main() -> None:
             scenarios = [{**shared_scenario, **entry} for entry in pfas_entries]
             try:
                 with st.spinner("Checking comparable database records, then modelling unmatched candidates…"):
-                    result = recommend_mixture(bundle, scenarios, top_k=max(1, len(bundle.catalog)))
+                    # Development-only fields (screened-out products, the support
+                    # classification) never reach the page or its exports.
+                    result = public_result(
+                        recommend_mixture(bundle, scenarios, top_k=max(1, len(bundle.catalog))))
                 st.session_state["ar_result"] = result
-                st.session_state["ar_scenario_chips"] = _scenario_chips(pfas_entries, water, temperature,
-                    result.get("water_chemistry", {}).get("normalized_water_type"), default_temperature)
                 st.session_state["ar_last_run_fingerprint"] = fingerprint
+                st.session_state["ar_result_snapshot"] = _current_snapshot(bundle, pfas_rows, water, temperature, fingerprint)
                 st.session_state.pop("ar_error", None)
                 st.session_state.pop("ar_error_input_fingerprint", None)
             except InputValidationError as exc:
                 st.session_state["ar_error"] = str(exc)
                 st.session_state["ar_error_input_fingerprint"] = fingerprint
-
-    if st.session_state.get("ar_result") is not None:
-        st.markdown("[View results ↓](#screening-results)")
 
     st.html("<div style='height:1rem'></div>")
     if st.session_state.get("ar_error"):
@@ -2658,10 +2360,7 @@ def main() -> None:
         st.session_state.pop("ar_result", None)
         result = None
         st.info("The result format was updated. Run the screening again to refresh the recommendation table.")
-    if result is None:
-        _scenario_actions(bundle, pfas_rows, water, temperature, fingerprint, input_errors)
-        _render_empty_state()
-    else:
+    if result is not None:
         valid_result = True
         if result.get("status") == "recommendations_ready":
             try:
@@ -2670,17 +2369,8 @@ def main() -> None:
                 st.error(f"The previous results cannot be displayed: {exc} Correct the inputs and run screening again.")
                 valid_result = False
         if valid_result:
-            if result.get("status") != "recommendations_ready":
-                _scenario_actions(bundle, pfas_rows, water, temperature, fingerprint, input_errors)
             _render_result(result, category_groups,
-                actions=lambda: _scenario_actions(bundle, pfas_rows, water, temperature, fingerprint, input_errors, result))
-        else:
-            _scenario_actions(bundle, pfas_rows, water, temperature, fingerprint, input_errors)
-    _scenario_workspace(bundle, pfas_rows, water, temperature, fingerprint, input_errors)
-    # Kept outside the collapsed reading guide so it is visible wherever
-    # product names are, not only to users who open the guide.
-    st.divider()
-    st.caption(PRODUCT_NAME_DISCLAIMER)
+                actions=lambda location: _result_actions(result, location))
 
 
 if __name__ == "__main__":

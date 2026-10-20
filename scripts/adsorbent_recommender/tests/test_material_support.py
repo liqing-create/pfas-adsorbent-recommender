@@ -116,7 +116,8 @@ def test_default_ranking_keeps_thin_support_and_excludes_products_without_traini
     assert result['adsorbent_screening']['excluded_products'] == 1
     thin = result['recommendations'][0]
     assert thin['characterization']['seen_in_training'] is True
-    assert any(row['code'] == 'thin_adsorbent_support' and row['severity'] == 'info' for row in thin['caveats'])
+    # Few studies or records is context, not a caveat (tier placement did not depend on it).
+    assert not any(row['code'] in {'thin_adsorbent_support', 'study_dominated_adsorbent'} for row in thin['caveats'])
     assert not any(row['code'] == 'exploratory_adsorbent' for row in thin['caveats'])
 
 

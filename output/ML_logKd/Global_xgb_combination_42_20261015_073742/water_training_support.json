@@ -7,8 +7,8 @@
     "minimum_crosswater_studies": 3,
     "dominant_study_share": 0.8
   },
-  "model_rows": 3792,
-  "source_records": 2756,
+  "model_rows": 3776,
+  "source_records": 2745,
   "study_count_basis": "study_no",
   "source_count_basis": "extraction_dataset + source_row_index",
   "water_types": [
@@ -155,9 +155,9 @@
     },
     {
       "water_type": "ultrapure water",
-      "model_rows": 1286,
-      "source_records": 787,
-      "studies": 64,
+      "model_rows": 1270,
+      "source_records": 776,
+      "studies": 62,
       "study_ids": [
         "study_01",
         "study_06",
@@ -167,7 +167,6 @@
         "study_103",
         "study_108",
         "study_110",
-        "study_111",
         "study_112",
         "study_116",
         "study_12",
@@ -195,7 +194,6 @@
         "study_232",
         "study_233",
         "study_234",
-        "study_241",
         "study_245",
         "study_247",
         "study_27",
@@ -246,7 +244,7 @@
       ],
       "largest_study": "study_58",
       "largest_study_source_records": 93,
-      "largest_study_source_share": 0.1181702668360864
+      "largest_study_source_share": 0.11984536082474227
     },
     {
       "water_type": "wastewater",

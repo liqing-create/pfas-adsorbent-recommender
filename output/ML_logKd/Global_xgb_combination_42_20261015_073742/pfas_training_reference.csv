@@ -1,16 +1,16 @@
 canonical_smiles,label,aliases,records,studies
 O=C(O)C(F)(F)C(F)(F)C(F)(F)F,PFBA,"[""heptafluorobutyricacid"", ""pfba""]",217,32
-O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFBS,"[""perfluorobutanesulfonicacid"", ""pfbs""]",351,38
+O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFBS,"[""perfluorobutanesulfonicacid"", ""pfbs""]",348,37
 O=C(O)C(F)(OC(F)(F)C(F)(F)C(F)(F)F)C(F)(F)F,GenX,"[""genx"", ""hexafluoropropyleneoxidedimeracid""]",151,13
-O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFHxA,"[""perfluorohexanoicacid"", ""pfhxa""]",187,26
-O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFHxS,"[""perfluorohexanesulfonicacid"", ""pfhxs""]",214,24
-O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFHpA,"[""perfluoroheptanoicacid"", ""pfhpa""]",152,20
-O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFOA,"[""perfluorooctanoicacid"", ""pfoa""]",667,65
-O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFOS,"[""perfluorooctanesulfonicacid"", ""pfos""]",537,52
+O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFHxA,"[""perfluorohexanoicacid"", ""pfhxa""]",184,25
+O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFHxS,"[""perfluorohexanesulfonicacid"", ""pfhxs""]",213,23
+O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFHpA,"[""perfluoroheptanoicacid"", ""pfhpa""]",150,19
+O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFOA,"[""perfluorooctanoicacid"", ""pfoa""]",664,64
+O=S(=O)(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFOS,"[""perfluorooctanesulfonicacid"", ""pfos""]",536,51
 O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFDA,"[""perfluorodecanoicacid"", ""pfda""]",93,10
-O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFPeA,"[""perfluoropentanoicacid"", ""pfpea""]",157,17
-NS(=O)(=O)CCC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,6:2 FTSA,"[""62fluorotelomersulfonamide"", ""62ftsa""]",14,3
-O=S(=O)(O)CCC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,6:2 FTS,"[""62fluorotelomersulfonate"", ""62fts""]",10,4
+O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFPeA,"[""perfluoropentanoicacid"", ""pfpea""]",154,16
+NS(=O)(=O)CCC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,6:2 FTSA,"[""62fluorotelomersulfonamide"", ""62ftsa""]",2,1
+O=S(=O)(O)CCC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,6:2 FTS,"[""62fluorotelomersulfonate"", ""62fts""]",22,6
 NS(=O)(=O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,FHxSA,"[""fhxsa"", ""perfluorohexanesulfonamide""]",15,3
 O=C(O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F,PFNA,"[""perfluorononanoicacid"", ""pfna""]",122,10
 O=S(=O)(O)CCC(F)(F)C(F)(F)C(F)(F)C(F)(F)F,4:2 FTS,"[""42fluorotelomersulfonicacid"", ""42fts""]",11,3

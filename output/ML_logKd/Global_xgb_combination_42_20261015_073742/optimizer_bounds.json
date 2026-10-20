@@ -3,7 +3,7 @@
   "controls": {
     "Adsorbent_dosage_value_mg/L": {
       "kind": "numeric",
-      "count": 3732,
+      "count": 3716,
       "hard_min": 0.5,
       "hard_max": 20000.0,
       "p01": 1.0,
@@ -23,7 +23,7 @@
     },
     "Temperature_(\u00b0C)": {
       "kind": "numeric",
-      "count": 2597,
+      "count": 2596,
       "hard_min": 15.0,
       "hard_max": 45.0,
       "p01": 20.0,
@@ -43,18 +43,18 @@
   "feature_support": {
     "PFAS_C0_value_mg/L": {
       "kind": "numeric",
-      "count": 3284,
+      "count": 3268,
       "hard_min": 3e-05,
       "hard_max": 1000.0,
       "p01": 6e-05,
       "p05": 0.00038,
-      "median": 0.003045,
+      "median": 0.00234,
       "p95": 100.0,
       "p99": 500.0
     },
     "Adsorbent_dosage_value_mg/L": {
       "kind": "numeric",
-      "count": 3732,
+      "count": 3716,
       "hard_min": 0.5,
       "hard_max": 20000.0,
       "p01": 1.0,
@@ -65,7 +65,7 @@
     },
     "pH": {
       "kind": "numeric",
-      "count": 3376,
+      "count": 3360,
       "hard_min": 1.0,
       "hard_max": 10.0,
       "p01": 3.1,
@@ -76,7 +76,7 @@
     },
     "Temperature_(\u00b0C)": {
       "kind": "numeric",
-      "count": 2597,
+      "count": 2596,
       "hard_min": 15.0,
       "hard_max": 45.0,
       "p01": 20.0,
@@ -100,7 +100,7 @@
     },
     "organic_carbon_mg/L": {
       "kind": "numeric",
-      "count": 2102,
+      "count": 2086,
       "hard_min": 0.0,
       "hard_max": 1840.0,
       "p01": 0.0,
@@ -111,7 +111,7 @@
     },
     "inorganic_matter_present": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -122,7 +122,7 @@
     },
     "contains_Na": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -133,7 +133,7 @@
     },
     "contains_K": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -144,7 +144,7 @@
     },
     "contains_Ca": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -155,7 +155,7 @@
     },
     "contains_Mg": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -166,7 +166,7 @@
     },
     "contains_Cl": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -177,7 +177,7 @@
     },
     "contains_HCO3": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -188,7 +188,7 @@
     },
     "contains_SO4": {
       "kind": "numeric",
-      "count": 2515,
+      "count": 2499,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -199,7 +199,7 @@
     },
     "organic_matter_present": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -210,7 +210,7 @@
     },
     "rdkit_tpsa": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 9.23,
       "hard_max": 214.55,
       "p01": 37.3,
@@ -221,7 +221,7 @@
     },
     "rdkit_num_h_donors": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 3.0,
       "p01": 0.0,
@@ -232,7 +232,7 @@
     },
     "rdkit_num_rotatable_bonds": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 18.0,
       "p01": 2.0,
@@ -243,7 +243,7 @@
     },
     "rdkit_fraction_csp3": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.3333333333333333,
       "hard_max": 1.0,
       "p01": 0.75,
@@ -254,7 +254,7 @@
     },
     "rdkit_N_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 2.0,
       "p01": 0.0,
@@ -265,10 +265,10 @@
     },
     "rdkit_F_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 3.0,
       "hard_max": 21.0,
-      "p01": 6.820000000000007,
+      "p01": 6.5,
       "p05": 7.0,
       "median": 13.0,
       "p95": 19.0,
@@ -276,7 +276,7 @@
     },
     "rdkit_nonfluorinated_C_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 11.0,
       "p01": 0.0,
@@ -287,7 +287,7 @@
     },
     "rdkit_partially_fluorinated_C_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -298,7 +298,7 @@
     },
     "rdkit_terminal_CF3_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 2.0,
       "p01": 1.0,
@@ -309,7 +309,7 @@
     },
     "rdkit_fluorinated_segment_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 1.0,
       "hard_max": 2.0,
       "p01": 1.0,
@@ -320,7 +320,7 @@
     },
     "rdkit_carboxyl_group_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 2.0,
       "p01": 0.0,
@@ -331,7 +331,7 @@
     },
     "rdkit_sulfonic_acid_group_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 2.0,
       "p01": 0.0,
@@ -342,7 +342,7 @@
     },
     "rdkit_sulfonamide_group_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -353,7 +353,7 @@
     },
     "rdkit_positive_charge_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -364,7 +364,7 @@
     },
     "rdkit_negative_charge_count": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -375,7 +375,7 @@
     },
     "Mw (g/mol)": {
       "kind": "numeric",
-      "count": 3792,
+      "count": 3776,
       "hard_min": 130.04,
       "hard_max": 760.5660000000003,
       "p01": 214.036,
@@ -439,7 +439,7 @@
     },
     "Nominal_grain_size_value_mm": {
       "kind": "numeric",
-      "count": 3132,
+      "count": 3116,
       "hard_min": 9.999999999999999e-05,
       "hard_max": 8.887500000000001,
       "p01": 0.00031,
@@ -450,11 +450,11 @@
     },
     "ssa_(m2/g)_avg": {
       "kind": "numeric",
-      "count": 2837,
+      "count": 2831,
       "hard_min": 0.0,
       "hard_max": 2450.0,
       "p01": 1.0,
-      "p05": 11.928000000000004,
+      "p05": 11.82,
       "median": 785.0,
       "p95": 1060.0,
       "p99": 1458.0
@@ -472,7 +472,7 @@
     },
     "phpzc": {
       "kind": "numeric",
-      "count": 1211,
+      "count": 1206,
       "hard_min": 2.0,
       "hard_max": 12.1,
       "p01": 2.2,
@@ -516,25 +516,25 @@
     },
     "element_C_value": {
       "kind": "numeric",
-      "count": 676,
-      "hard_min": 0.379,
+      "count": 661,
+      "hard_min": 0.38245,
       "hard_max": 0.9997,
-      "p01": 0.379,
-      "p05": 0.424,
-      "median": 0.6804,
-      "p95": 0.9782125,
+      "p01": 0.413,
+      "p05": 0.4402,
+      "median": 0.702,
+      "p95": 0.9779500000000001,
       "p99": 0.98385
     },
     "element_N_value": {
       "kind": "numeric",
-      "count": 572,
+      "count": 557,
       "hard_min": 0.0,
       "hard_max": 0.33,
       "p01": 0.0,
       "p05": 0.0005,
       "median": 0.0227,
       "p95": 0.07603333333333334,
-      "p99": 0.1132699999999977
+      "p99": 0.12271999999999628
     },
     "element_O_value": {
       "kind": "numeric",
@@ -571,10 +571,10 @@
     },
     "ion_exchange_capacity_value_meq/L": {
       "kind": "numeric",
-      "count": 863,
-      "hard_min": 1.0,
+      "count": 853,
+      "hard_min": 33.13,
       "hard_max": 1700.0,
-      "p01": 1.0,
+      "p01": 580.0,
       "p05": 580.0,
       "median": 1300.0,
       "p95": 1440.0,
@@ -582,7 +582,7 @@
     },
     "contains_quaternary_ammonium": {
       "kind": "numeric",
-      "count": 1336,
+      "count": 1326,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -593,7 +593,7 @@
     },
     "contains_sulfonic_acid": {
       "kind": "numeric",
-      "count": 1336,
+      "count": 1326,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -604,7 +604,7 @@
     },
     "contains_carboxyl": {
       "kind": "numeric",
-      "count": 1336,
+      "count": 1326,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -615,7 +615,7 @@
     },
     "contains_hydroxyl": {
       "kind": "numeric",
-      "count": 1336,
+      "count": 1326,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,
@@ -626,7 +626,7 @@
     },
     "contains_amine": {
       "kind": "numeric",
-      "count": 1336,
+      "count": 1326,
       "hard_min": 0.0,
       "hard_max": 1.0,
       "p01": 0.0,

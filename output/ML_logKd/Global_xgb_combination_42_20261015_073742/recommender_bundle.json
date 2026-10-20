@@ -531,7 +531,7 @@
   "controls": {
     "Adsorbent_dosage_value_mg/L": {
       "kind": "numeric",
-      "count": 3732,
+      "count": 3716,
       "hard_min": 0.5,
       "hard_max": 20000.0,
       "p01": 1.0,
@@ -551,7 +551,7 @@
     },
     "Temperature_(\u00b0C)": {
       "kind": "numeric",
-      "count": 2597,
+      "count": 2596,
       "hard_min": 15.0,
       "hard_max": 45.0,
       "p01": 20.0,
@@ -577,7 +577,7 @@
       "Cyclodextrin polymer",
       "Cyclodextrin polymers"
     ],
-    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\commercial_adsorbent_properties_authoritative.xlsx",
+    "source_path": "C:\\Users\\yan_l\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\commercial_adsorbent_properties_authoritative.xlsx",
     "source_sheet": "Adsorbent_Properties",
     "snapshot_filename": "catalog_snapshot.csv",
     "eligibility_filename": "catalog_eligibility.csv",
@@ -614,7 +614,7 @@
   },
   "database_evidence": {
     "available": true,
-    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_25mgL_search.xlsx",
+    "source_path": "C:\\Users\\yan_l\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_25mgL_search.xlsx",
     "source_sheet": "Dose_25mgL_Search",
     "rows": 1845,
     "snapshot_filename": "reference_dose_evidence.csv",
@@ -668,24 +668,28 @@
   },
   "pfas_features": {
     "available": true,
-    "source_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
+    "source_path": "C:\\Users\\yan_l\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
     "sheet_name": "Sheet1",
+    "source_sha256": "f890e7aea3e7a096d84ed4f62a313f913954a900a0ac627755d24c437fab722b",
+    "row_filter": "training_pfas",
+    "source_rows": 209,
+    "rows": 128,
     "snapshot_filename": "pfas_features.xlsx",
-    "sha256": "f890e7aea3e7a096d84ed4f62a313f913954a900a0ac627755d24c437fab722b"
+    "sha256": "db2c2aed1b5f37b20cd841cf524c311e22174f418ad21fad7e4ad00cfdaa0f5a"
   },
   "training_support": {
     "available": true,
     "snapshot_filename": "training_support.csv",
-    "training_records": 3792,
+    "training_records": 3776,
     "pfas_count": 128,
-    "validation_rmse": 0.40736179271295825,
+    "validation_rmse": 0.42293743020467,
     "validation_rmse_basis": "best cross-validated RMSE of the tuned configuration (tuning_summary.json)"
   },
   "adsorbent_support": {
     "available": true,
     "version": 1,
     "snapshot_filename": "adsorbent_training_support.csv",
-    "snapshot_sha256": "fddb88b7d61f8478eee680072945b0c760fafc6815af30f4704088e2d81cd9cc",
+    "snapshot_sha256": "51cabd91e3be2aa4a9c137278542845fcf5b01ed459cf2412eed529bb8ec3c84",
     "policy": {
       "version": 1,
       "minimum_independent_studies": 2,
@@ -694,11 +698,12 @@
       "source_identity": "distinct extraction_dataset/source_row_index; expanded siblings count once",
       "basis": "screening policy, not a calibrated accuracy or confidence threshold"
     },
-    "fitted_rows": 3792,
+    "fitted_rows": 3776,
     "identity_matching": "exact normalized curated product aliases against fitted record identities",
     "study_count_basis": "distinct DOI; study_no aliases for the same DOI count once",
     "source_count_basis": "distinct extraction_dataset/source_row_index; expanded siblings count once",
-    "default_ml_supported_products": 9
+    "default_ml_supported_products": 15,
+    "bibliography_source": "Standardized_Full of pfas_adsorption_performance_database.xlsx"
   },
   "capabilities": {
     "catalog_screening": true,
@@ -733,7 +738,7 @@
     ],
     "unsupported_features": [],
     "descriptor_parity": {
-      "rows_checked": 209,
+      "rows_checked": 128,
       "feature_count": 16,
       "mismatch_count": 0,
       "mismatch_examples": []
@@ -746,20 +751,31 @@
       "include_chirality": true,
       "similarity": "Tanimoto"
     },
-    "interpretation": "Structural resemblance only; not a confidence score or prediction interval.",
-    "validation_audit": {
-      "summary_filename": "pfas_validation/audit_summary.json",
-      "chemical_separation_passed": true,
-      "outer_splits": 10,
-      "heldout_pfas": 91,
-      "interpretation": "Separate outer testing evaluation; not prediction-specific confidence."
-    }
+    "interpretation": "Structural resemblance only; not a confidence score or prediction interval."
   },
   "water_support": {
     "available": true,
     "version": 1,
     "snapshot_filename": "water_training_support.json",
-    "snapshot_sha256": "a64122045c9f258f49c114663bb95043222e3286126a9fe79321da4649013e15",
+    "snapshot_sha256": "eabcb0be132e2ea6e2b4ac72effa6c2df28f290a8076cb5fd0ea8ca6afde6387",
     "population": "actual_fitted_records"
-  }
+  },
+  "retrofits": [
+    {
+      "sections": [
+        "adsorbent_support",
+        "pfas_runtime"
+      ],
+      "at": "2026-10-16T14:40:00",
+      "note": "copied in after export from the source files as they were at this time"
+    },
+    {
+      "sections": [
+        "pfas_features",
+        "pfas_runtime"
+      ],
+      "at": "2026-10-20T14:01:30",
+      "note": "copied in after export from the source files as they were at this time"
+    }
+  ]
 }

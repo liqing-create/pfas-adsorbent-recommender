@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import sys
 from pathlib import Path
 
 import pytest
+from openpyxl import load_workbook
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from adsorbent_recommender.scenarios import (
     MAX_SCENARIO_BYTES, ScenarioError, add_snapshot, bundle_reference,
-    compare_snapshots, comparison_csv, make_snapshot, read_snapshot,
-    read_scenario_csv, results_csv, scenario_inputs_csv, scenario_requests, snapshot_bytes, validate_inputs,
+    compare_snapshots, comparison_csv, comparison_workbook, make_snapshot, read_run_workbook, read_snapshot,
+    read_scenario_csv, results_csv, run_workbook, scenario_inputs_csv, scenario_requests, snapshot_bytes, validate_inputs,
 )
 
 SMILES = "O=C(O)C(F)(F)F"
@@ -163,11 +165,11 @@ def test_candidate_comparison_joins_product_keys_and_preserves_missing_scores():
     second["result"]["recommendations"] = second["result"]["recommendations"][:1]
     rows, warnings = compare_snapshots([first, second], first["scenario_id"])
     assert not warnings and len(rows) == 2
-    assert rows[0]["Modified · ΔlogKd"] == pytest.approx(.3)
+    assert rows[0]["ΔlogKd (B − A)"] == pytest.approx(.3)
     assert rows[1]["Modified · logKd"] is None
     assert rows[1]["Modified · basis"] == "Not in saved ranking"
-    assert "unseen PFAS" in rows[0]["Modified · caveats"]
-    assert "Exploratory prediction" in rows[0]["Modified · caveats"]
+    assert "unseen PFAS" in rows[0]["Warnings"]
+    assert "Exploratory prediction" in rows[0]["Warnings"]
     assert rows[0]["Baseline · basis"] == "Model" and rows[1]["Baseline · basis"] == "Database"
 
 
@@ -177,7 +179,7 @@ def test_database_scores_keep_only_caveats_for_the_evidence_actually_used():
     item.update({"warnings": ["The unused model has weak characterization."],
                  "caveats": [{"text": "Evidence comes from one study.", "pfas": ["PFAS A"]}]})
     rows, _ = compare_snapshots([first, second], first["scenario_id"])
-    assert rows[1]["Modified · caveats"] == "PFAS A: Evidence comes from one study."
+    assert rows[1]["Warnings"] == "B: PFAS A: Evidence comes from one study."
 
 
 @pytest.mark.parametrize("change", ["bundle", "mixture", "unknown_provenance"])
@@ -189,7 +191,7 @@ def test_score_deltas_are_withheld_for_different_contexts(change):
     else:
         second["bundle_reference"]["id"] = "different" if change == "bundle" else None
     rows, warnings = compare_snapshots([first, second], first["scenario_id"])
-    assert warnings and rows[0]["Modified · ΔlogKd"] is None
+    assert warnings and rows[0]["ΔlogKd (B − A)"] is None
     assert rows[0]["Modified · logKd"] == 4.2
 
 
@@ -198,7 +200,7 @@ def test_equivalent_protonation_and_aliases_share_structural_comparison_context(
     second["result"]["pfas_lookups"][0]["canonical_smiles"] = "[O-]C(=O)C(F)(F)F"
     second["inputs"]["pfas"][0]["identity"] = "Another label"
     rows, warnings = compare_snapshots([first, second], first["scenario_id"])
-    assert not warnings and rows[0]["Alias · ΔlogKd"] == 0
+    assert not warnings and rows[0]["ΔlogKd (B − A)"] == 0
 
 
 def test_comparison_csv_preserves_caveats_and_escapes_formula_text():
@@ -262,3 +264,58 @@ def test_formula_like_scenario_labels_are_escaped_for_excel_and_roundtrip():
     saved["inputs"]["pfas"][0]["label"] = "'@PFAS"
     name, loaded = read_scenario_csv(scenario_inputs_csv(saved))
     assert name == "=Study" and loaded["pfas"][0]["label"] == "'@PFAS"
+
+
+def test_run_workbook_combines_inputs_rankings_and_pfas_detail_and_restores_inputs_only():
+    saved = snapshot("Groundwater run")
+    payload = run_workbook(saved)
+    workbook = load_workbook(io.BytesIO(payload), data_only=False)
+    assert workbook.sheetnames == ["Summary", "Ranked results", "PFAS detail", "Inputs"]
+    assert workbook["Ranked results"]["A2"].value == 1
+    assert workbook["Inputs"]["F2"].value == 100
+    headers = [cell.value for cell in workbook["Inputs"][1]]
+    assert workbook["Inputs"].cell(2, headers.index("organic_matter_present") + 1).value is True
+    assert workbook["Inputs"].cell(2, headers.index("ion_ca") + 1).value is True
+    workbook.close()
+    restored = read_run_workbook(payload)
+    assert restored["name"] == "Groundwater run"
+    assert restored["inputs"]["water"] == saved["inputs"]["water"]
+    assert restored["inputs"]["temperature_c"] == saved["inputs"]["temperature_c"]
+    restored_pfas, saved_pfas = restored["inputs"]["pfas"][0], saved["inputs"]["pfas"][0]
+    for field in ("identity", "identity_type", "confirmed_smiles", "concentration_value",
+                  "concentration_unit", "initial_concentration_mg_l", "label"):
+        assert restored_pfas[field] == saved_pfas[field]
+    assert restored["result"] is None and restored["_imported"]
+    assert "screen again" in restored["_notices"][0].casefold()
+
+
+def test_run_workbook_neutralizes_formula_text_and_rejects_formula_cells_on_import():
+    saved = snapshot("=Study")
+    saved["inputs"]["pfas"][0]["label"] = "@PFAS"
+    payload = run_workbook(saved)
+    restored = read_run_workbook(payload)
+    assert restored["name"] == "=Study" and restored["inputs"]["pfas"][0]["label"] == "@PFAS"
+    workbook = load_workbook(io.BytesIO(payload))
+    workbook["Inputs"]["C2"] = "=1+1"
+    stream = io.BytesIO()
+    workbook.save(stream)
+    workbook.close()
+    with pytest.raises(ScenarioError, match="Formulas are not allowed"):
+        read_run_workbook(stream.getvalue())
+
+
+def test_comparison_workbook_pairs_run_a_and_run_b_columns():
+    first, second = snapshot(), snapshot("Modified")
+    second["result"]["recommendations"][0]["ranking_score"] = 4.5
+    payload = comparison_workbook([first, second])
+    workbook = load_workbook(io.BytesIO(payload), read_only=True)
+    assert workbook.sheetnames[:2] == ["Input comparison", "Ranked comparison"]
+    headers = [cell.value for cell in next(workbook["Ranked comparison"].iter_rows())]
+    assert headers[3:8] == ["Baseline · rank", "Modified · rank", "Baseline · logKd",
+                            "Modified · logKd", "ΔlogKd (B − A)"]
+    workbook.close()
+
+
+def test_comparison_requires_exactly_two_completed_runs():
+    with pytest.raises(ScenarioError, match="exactly two"):
+        compare_snapshots([snapshot()], snapshot()["scenario_id"])

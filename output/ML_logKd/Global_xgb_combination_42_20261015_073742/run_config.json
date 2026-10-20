@@ -1,21 +1,21 @@
 {
-  "created_at": "2026-10-14T18:59:24",
-  "input_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_performance_database.xlsx",
+  "created_at": "2026-10-15T07:46:10",
+  "input_path": "C:\\Users\\yan_l\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_performance_database.xlsx",
   "sheet_name": "Equilibrium_Data",
   "pfas_features": {
     "joined": true,
-    "path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
+    "path": "C:\\Users\\yan_l\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
     "sheet_name": "Sheet1"
   },
   "model_family": "Global",
   "target": "Kd_final_log10(L/g)",
   "kd_final_sources": null,
-  "output_dir": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\ML_logKd\\Global_xgb_combination_42_20261014_184656",
+  "output_dir": "C:\\Users\\yan_l\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\ML_logKd\\Global_xgb_combination_42_20261015_073742",
   "data": {
     "data_mode": "drop_unreliable",
     "rows_before_data_mode": 4879,
-    "rows_after_data_mode": 3792,
-    "rows_dropped_by_data_mode": 1087,
+    "rows_after_data_mode": 3776,
+    "rows_dropped_by_data_mode": 1103,
     "unreliable_flag_columns": [
       "logKd_conversion_spike_flag",
       "logKd_conversion_dip_flag",
@@ -32,16 +32,16 @@
     "rows_removed_small_concentration_difference": 348,
     "rows_removed_low_removal_rate": 223,
     "rows_removed_high_apparent_removal": 421,
-    "rows_removed_human_review_unreliable": 0,
-    "rows_removed_unreliable": 1087,
+    "rows_removed_human_review_unreliable": 21,
+    "rows_removed_unreliable": 1103,
     "rows_excluded_by_model_include": 0,
     "model_include_column": null,
     "kd_final_source_filter": null,
     "rows_before_kd_final_source_filter": 4879,
     "rows_after_kd_final_source_filter": 4879,
     "rows_dropped_by_kd_final_source_filter": 0,
-    "rows_before_pfas_core_quality_gate": 3792,
-    "rows_after_pfas_core_quality_gate": 3792,
+    "rows_before_pfas_core_quality_gate": 3776,
+    "rows_after_pfas_core_quality_gate": 3776,
     "rows_dropped_by_pfas_core_quality_gate": 0,
     "pfas_dropped_by_core_quality_gate": 0,
     "pfas_core_quality_failures": "",
@@ -53,25 +53,25 @@
   },
   "analysis_reconstruction": {
     "format": "logkd_shap_v4",
-    "input_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_performance_database.xlsx",
+    "input_path": "C:\\Users\\yan_l\\Box\\My Box Notes\\2. Adsorbent Recommender\\AD\\output\\Merge\\pfas_adsorption_performance_database.xlsx",
     "sheet_name": "Equilibrium_Data",
     "model": "Global",
     "target": "Kd_final_log10(L/g)",
-    "pfas_features_path": "C:\\Users\\ly449adm\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
+    "pfas_features_path": "C:\\Users\\yan_l\\Box\\My Box Notes\\PFAS\\pfas_features.xlsx",
     "pfas_features_sheet": "Sheet1",
     "skip_pfas_features_join": false,
     "data_mode": "drop_unreliable",
     "kd_final_sources": null
   },
   "rows": {
-    "total_model_rows": 3792,
-    "all_data_refit": 3792,
+    "total_model_rows": 3776,
+    "all_data_refit": 3776,
     "testing": 0
   },
   "source_row_weighting": {
     "method": "equal_total_weight_per_source_row",
     "source_group_column": "source_row_index",
-    "all_data_source_rows": 2756
+    "all_data_source_rows": 2745
   },
   "evaluation": {
     "mode": "deployment_finalization",
@@ -104,14 +104,14 @@
       "fold_objective": "mean_of_finite_block_component_retentions",
       "optimization_rule": "not_applied_seeded_random_baseline",
       "baseline_objective_loss": {
-        "mean_fold_loss": 0.015515331960356126,
-        "maximum_fold_loss": 0.017781974490760466,
-        "fold_loss_sd": 0.0021870949257798123
+        "mean_fold_loss": 0.015877589277360916,
+        "maximum_fold_loss": 0.02331982290814183,
+        "fold_loss_sd": 0.00544770590055926
       },
       "optimized_objective_loss": {
-        "mean_fold_loss": 0.015515331960356126,
-        "maximum_fold_loss": 0.017781974490760466,
-        "fold_loss_sd": 0.0021870949257798123
+        "mean_fold_loss": 0.015877589277360916,
+        "maximum_fold_loss": 0.02331982290814183,
+        "fold_loss_sd": 0.00544770590055926
       },
       "candidate_moves_considered": 0,
       "moves_applied": 0,
@@ -119,145 +119,145 @@
       "baseline_fold_diagnostics": [
         {
           "validation_fold": 0,
-          "validation_reference_entity_retention_experimental_conditions": 0.978021978021978,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9715302491103203,
-          "validation_reference_entity_retention_pfas_characteristics": 1.0,
-          "validation_reference_value_support_retention_experimental_conditions": 0.9952153110047848,
-          "validation_reference_value_support_retention_adsorbent_properties": 0.9997316156736445,
-          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9983193277310924,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.9634580839024572,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9439602476797749,
-          "validation_reference_retention_score": 0.9833596459026724,
-          "validation_reference_retention_loss": 0.01664035409732756
-        },
-        {
-          "validation_fold": 1,
           "validation_reference_entity_retention_experimental_conditions": 1.0,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9786476868327402,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9964028776978417,
           "validation_reference_entity_retention_pfas_characteristics": 1.0,
           "validation_reference_value_support_retention_experimental_conditions": 1.0,
           "validation_reference_value_support_retention_adsorbent_properties": 1.0,
           "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9217010690194081,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.992530345471522,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.953500437799101,
-          "validation_reference_retention_score": 0.9829310599025303,
-          "validation_reference_retention_loss": 0.01706894009746973
+          "validation_reference_contrast_retention_experimental_conditions": 0.991291061879297,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9950980392156863,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.92886586935928,
+          "validation_reference_retention_score": 0.9901842053502339,
+          "validation_reference_retention_loss": 0.009815794649766119
         },
         {
-          "validation_fold": 2,
-          "validation_reference_entity_retention_experimental_conditions": 0.989010989010989,
-          "validation_reference_entity_retention_adsorbent_properties": 0.99644128113879,
+          "validation_fold": 1,
+          "validation_reference_entity_retention_experimental_conditions": 0.9775280898876404,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9856115107913669,
           "validation_reference_entity_retention_pfas_characteristics": 1.0,
           "validation_reference_value_support_retention_experimental_conditions": 0.9990430622009568,
           "validation_reference_value_support_retention_adsorbent_properties": 1.0,
           "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9320728291316528,
-          "validation_reference_contrast_retention_adsorbent_properties": 1.0,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9768326020545677,
-          "validation_reference_retention_score": 0.9881556403929951,
-          "validation_reference_retention_loss": 0.011844359607004917
+          "validation_reference_contrast_retention_experimental_conditions": 0.8878075115964389,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9986631016042781,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9414683177460419,
+          "validation_reference_retention_score": 0.9766801770918582,
+          "validation_reference_retention_loss": 0.02331982290814183
+        },
+        {
+          "validation_fold": 2,
+          "validation_reference_entity_retention_experimental_conditions": 0.9887640449438202,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9856115107913669,
+          "validation_reference_entity_retention_pfas_characteristics": 1.0,
+          "validation_reference_value_support_retention_experimental_conditions": 1.0,
+          "validation_reference_value_support_retention_adsorbent_properties": 0.9997282608695651,
+          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
+          "validation_reference_contrast_retention_experimental_conditions": 0.9621517947642516,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9899918300653593,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9772025446487035,
+          "validation_reference_retention_score": 0.9892722206758963,
+          "validation_reference_retention_loss": 0.010727779324103737
         },
         {
           "validation_fold": 3,
+          "validation_reference_entity_retention_experimental_conditions": 0.9887640449438202,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9748201438848921,
+          "validation_reference_entity_retention_pfas_characteristics": 1.0,
+          "validation_reference_value_support_retention_experimental_conditions": 0.9952153110047848,
+          "validation_reference_value_support_retention_adsorbent_properties": 0.9997282608695651,
+          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
+          "validation_reference_contrast_retention_experimental_conditions": 0.9983193277310924,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9257281267923684,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9878387663504989,
+          "validation_reference_retention_score": 0.9856015535085579,
+          "validation_reference_retention_loss": 0.014398446491442063
+        },
+        {
+          "validation_fold": 4,
           "validation_reference_entity_retention_experimental_conditions": 1.0,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9822064056939501,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9748201438848921,
           "validation_reference_entity_retention_pfas_characteristics": 1.0,
           "validation_reference_value_support_retention_experimental_conditions": 1.0,
           "validation_reference_value_support_retention_adsorbent_properties": 0.9945652173913043,
           "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9574153547336939,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.9213326173684231,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9844426343957827,
-          "validation_reference_retention_score": 0.9822180255092395,
-          "validation_reference_retention_loss": 0.017781974490760466
-        },
-        {
-          "validation_fold": 4,
-          "validation_reference_entity_retention_experimental_conditions": 0.989010989010989,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9786476868327402,
-          "validation_reference_entity_retention_pfas_characteristics": 1.0,
-          "validation_reference_value_support_retention_experimental_conditions": 1.0,
-          "validation_reference_value_support_retention_adsorbent_properties": 0.9997316156736445,
-          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9625974275628254,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.968417340332302,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9734256570045365,
-          "validation_reference_retention_score": 0.985758968490782,
-          "validation_reference_retention_loss": 0.01424103150921796
+          "validation_reference_contrast_retention_experimental_conditions": 0.9212554362208342,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9394216378736502,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9798026375091629,
+          "validation_reference_retention_score": 0.9788738969866492,
+          "validation_reference_retention_loss": 0.021126103013350828
         }
       ],
       "optimized_fold_diagnostics": [
         {
           "validation_fold": 0,
-          "validation_reference_entity_retention_experimental_conditions": 0.978021978021978,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9715302491103203,
-          "validation_reference_entity_retention_pfas_characteristics": 1.0,
-          "validation_reference_value_support_retention_experimental_conditions": 0.9952153110047848,
-          "validation_reference_value_support_retention_adsorbent_properties": 0.9997316156736445,
-          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9983193277310924,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.9634580839024572,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9439602476797749,
-          "validation_reference_retention_score": 0.9833596459026724,
-          "validation_reference_retention_loss": 0.01664035409732756
-        },
-        {
-          "validation_fold": 1,
           "validation_reference_entity_retention_experimental_conditions": 1.0,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9786476868327402,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9964028776978417,
           "validation_reference_entity_retention_pfas_characteristics": 1.0,
           "validation_reference_value_support_retention_experimental_conditions": 1.0,
           "validation_reference_value_support_retention_adsorbent_properties": 1.0,
           "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9217010690194081,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.992530345471522,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.953500437799101,
-          "validation_reference_retention_score": 0.9829310599025303,
-          "validation_reference_retention_loss": 0.01706894009746973
+          "validation_reference_contrast_retention_experimental_conditions": 0.991291061879297,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9950980392156863,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.92886586935928,
+          "validation_reference_retention_score": 0.9901842053502339,
+          "validation_reference_retention_loss": 0.009815794649766119
         },
         {
-          "validation_fold": 2,
-          "validation_reference_entity_retention_experimental_conditions": 0.989010989010989,
-          "validation_reference_entity_retention_adsorbent_properties": 0.99644128113879,
+          "validation_fold": 1,
+          "validation_reference_entity_retention_experimental_conditions": 0.9775280898876404,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9856115107913669,
           "validation_reference_entity_retention_pfas_characteristics": 1.0,
           "validation_reference_value_support_retention_experimental_conditions": 0.9990430622009568,
           "validation_reference_value_support_retention_adsorbent_properties": 1.0,
           "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9320728291316528,
-          "validation_reference_contrast_retention_adsorbent_properties": 1.0,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9768326020545677,
-          "validation_reference_retention_score": 0.9881556403929951,
-          "validation_reference_retention_loss": 0.011844359607004917
+          "validation_reference_contrast_retention_experimental_conditions": 0.8878075115964389,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9986631016042781,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9414683177460419,
+          "validation_reference_retention_score": 0.9766801770918582,
+          "validation_reference_retention_loss": 0.02331982290814183
+        },
+        {
+          "validation_fold": 2,
+          "validation_reference_entity_retention_experimental_conditions": 0.9887640449438202,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9856115107913669,
+          "validation_reference_entity_retention_pfas_characteristics": 1.0,
+          "validation_reference_value_support_retention_experimental_conditions": 1.0,
+          "validation_reference_value_support_retention_adsorbent_properties": 0.9997282608695651,
+          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
+          "validation_reference_contrast_retention_experimental_conditions": 0.9621517947642516,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9899918300653593,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9772025446487035,
+          "validation_reference_retention_score": 0.9892722206758963,
+          "validation_reference_retention_loss": 0.010727779324103737
         },
         {
           "validation_fold": 3,
+          "validation_reference_entity_retention_experimental_conditions": 0.9887640449438202,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9748201438848921,
+          "validation_reference_entity_retention_pfas_characteristics": 1.0,
+          "validation_reference_value_support_retention_experimental_conditions": 0.9952153110047848,
+          "validation_reference_value_support_retention_adsorbent_properties": 0.9997282608695651,
+          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
+          "validation_reference_contrast_retention_experimental_conditions": 0.9983193277310924,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9257281267923684,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9878387663504989,
+          "validation_reference_retention_score": 0.9856015535085579,
+          "validation_reference_retention_loss": 0.014398446491442063
+        },
+        {
+          "validation_fold": 4,
           "validation_reference_entity_retention_experimental_conditions": 1.0,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9822064056939501,
+          "validation_reference_entity_retention_adsorbent_properties": 0.9748201438848921,
           "validation_reference_entity_retention_pfas_characteristics": 1.0,
           "validation_reference_value_support_retention_experimental_conditions": 1.0,
           "validation_reference_value_support_retention_adsorbent_properties": 0.9945652173913043,
           "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9574153547336939,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.9213326173684231,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9844426343957827,
-          "validation_reference_retention_score": 0.9822180255092395,
-          "validation_reference_retention_loss": 0.017781974490760466
-        },
-        {
-          "validation_fold": 4,
-          "validation_reference_entity_retention_experimental_conditions": 0.989010989010989,
-          "validation_reference_entity_retention_adsorbent_properties": 0.9786476868327402,
-          "validation_reference_entity_retention_pfas_characteristics": 1.0,
-          "validation_reference_value_support_retention_experimental_conditions": 1.0,
-          "validation_reference_value_support_retention_adsorbent_properties": 0.9997316156736445,
-          "validation_reference_value_support_retention_pfas_characteristics": 1.0,
-          "validation_reference_contrast_retention_experimental_conditions": 0.9625974275628254,
-          "validation_reference_contrast_retention_adsorbent_properties": 0.968417340332302,
-          "validation_reference_contrast_retention_pfas_characteristics": 0.9734256570045365,
-          "validation_reference_retention_score": 0.985758968490782,
-          "validation_reference_retention_loss": 0.01424103150921796
+          "validation_reference_contrast_retention_experimental_conditions": 0.9212554362208342,
+          "validation_reference_contrast_retention_adsorbent_properties": 0.9394216378736502,
+          "validation_reference_contrast_retention_pfas_characteristics": 0.9798026375091629,
+          "validation_reference_retention_score": 0.9788738969866492,
+          "validation_reference_retention_loss": 0.021126103013350828
         }
       ]
     }
@@ -462,25 +462,25 @@
     },
     "numeric_missing_strategy": "xgb_native",
     "reference_retention": {
-      "database_contrast_experimental_conditions": 0.08675534991324466,
-      "training_contrast_experimental_conditions": 0.08675534991324466,
+      "database_contrast_experimental_conditions": 0.08811354228267297,
+      "training_contrast_experimental_conditions": 0.08811354228267297,
       "contrast_retention_experimental_conditions": 1.0,
-      "database_contrast_adsorbent_properties": 0.07023411371237458,
-      "training_contrast_adsorbent_properties": 0.07023411371237458,
+      "database_contrast_adsorbent_properties": 0.07059110893991206,
+      "training_contrast_adsorbent_properties": 0.07059110893991206,
       "contrast_retention_adsorbent_properties": 1.0,
-      "database_contrast_pfas_characteristics": 0.24744221295945434,
-      "training_contrast_pfas_characteristics": 0.24744221295945434,
+      "database_contrast_pfas_characteristics": 0.2479659046881054,
+      "training_contrast_pfas_characteristics": 0.2479659046881054,
       "contrast_retention_pfas_characteristics": 1.0
     }
   },
   "regressor": "xgb",
   "best_params": {
-    "n_estimators": 983,
-    "learning_rate": 0.04489207235556639,
+    "n_estimators": 1004,
+    "learning_rate": 0.04148408765482746,
     "max_depth": 6,
-    "min_child_weight": 3.754235499772482,
-    "subsample": 0.929608736893105,
-    "colsample_bytree": 0.7199472184998893,
+    "min_child_weight": 2.1882280446000686,
+    "subsample": 0.8676377544371859,
+    "colsample_bytree": 0.696616911806643,
     "gamma": 0.0,
     "reg_alpha": 0.05,
     "reg_lambda": 5.0
@@ -506,22 +506,22 @@
       }
     },
     "selection_metric": "equal_source_row_inner_validation_rmse",
-    "best_trial": 95,
-    "best_validation_rmse": 0.40736179271295825,
+    "best_trial": 51,
+    "best_validation_rmse": 0.42293743020467,
     "early_stop_config": {
       "warmup_trials": 100,
       "patience": 25,
       "se_multiplier": 0.25,
       "min_delta_floor": 0.003
     },
-    "early_stop_reason": "No best-validation-RMSE improvement > 0.003 for 25 completed trials after 100 warmup trials.",
+    "early_stop_reason": "No best-validation-RMSE improvement > 0.0030065 for 25 completed trials after 100 warmup trials.",
     "study_user_attributes": {
-      "early_stop_reference_best_value": 0.40736179271295825,
-      "early_stop_reference_best_trial": 95,
+      "early_stop_reference_best_value": 0.42293743020467,
+      "early_stop_reference_best_trial": 51,
       "early_stop_trials_since_meaningful_improvement": 25,
-      "early_stop_current_min_delta": 0.003,
-      "early_stop_best_trial_fold_rmse_se": 0.008079735595623033,
-      "early_stop_reason": "No best-validation-RMSE improvement > 0.003 for 25 completed trials after 100 warmup trials."
+      "early_stop_current_min_delta": 0.0030064964941295103,
+      "early_stop_best_trial_fold_rmse_se": 0.012025985976518041,
+      "early_stop_reason": "No best-validation-RMSE improvement > 0.0030065 for 25 completed trials after 100 warmup trials."
     }
   },
   "training_settings": {
@@ -535,17 +535,17 @@
   },
   "metrics": {
     "all_data_refit_apparent": {
-      "n": 3792,
-      "mae": 0.14430953635887334,
-      "rmse": 0.20659970157019825,
-      "r2": 0.9652973269658957,
-      "spearman": 0.9829541270506729
+      "n": 3776,
+      "mae": 0.1388979795996094,
+      "rmse": 0.20075456959825716,
+      "r2": 0.9664473304875578,
+      "spearman": 0.9837822676657689
     }
   },
   "deployment": {
     "protocol": "hyperparameters tuned by inner validation on all eligible rows, then refit on all eligible rows for deployment; generalization metrics are supplied by separate outer-resampling evaluation",
-    "training_rows": 3792,
-    "source_rows": 2756,
+    "training_rows": 3776,
+    "source_rows": 2745,
     "ensemble_size": 5,
     "features": {
       "selected": [

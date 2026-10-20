@@ -17,8 +17,15 @@ UNSEEN_WARNING = (
     "Validate shortlisted adsorbents experimentally."
 )
 
+ALIAS_COLUMNS = ("Abbreviation", "PFAS_name", "Compound Full Name", "Name")
+
 def identity_key(value: Any) -> str:
     return "" if value is None or pd.isna(value) else "".join(c for c in str(value).casefold() if c.isalnum())
+
+def trained_cache_rows(cache: pd.DataFrame, records: pd.DataFrame) -> pd.Series:
+    """Mark cache rows whose name aliases match a PFAS in the fitted records."""
+    trained = set(records["PFAS_name"].map(identity_key)) - {""}
+    return cache.apply(lambda row: bool({identity_key(row.get(k)) for k in ALIAS_COLUMNS} & trained), axis=1)
 
 def export_runtime_support(directory: Path, manifest: dict, records: pd.DataFrame) -> dict:
     """Package structures linked to actual fitted rows without touching model weights."""
@@ -31,7 +38,7 @@ def export_runtime_support(directory: Path, manifest: dict, records: pd.DataFram
     references: dict[str, dict] = {}
     mapped: set[str] = set()
     for _, row in cache.iterrows():
-        aliases = {identity_key(row.get(k)) for k in ("Abbreviation", "PFAS_name", "Compound Full Name", "Name")} - {""}
+        aliases = {identity_key(row.get(k)) for k in ALIAS_COLUMNS} - {""}
         hits = records[trained.isin(aliases)]
         if hits.empty:
             continue
